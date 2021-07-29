@@ -35,6 +35,9 @@ import okhttp3.ResponseBody;
 public final class HttpClient {
 
     private static final boolean DBG = true;
+
+    private static final HttpClient HTTP_CLIENT = new HttpClient();
+
     private final Handler mMainHandler;
     private OkHttpClient mOkHttpClient;
 
@@ -96,8 +99,8 @@ public final class HttpClient {
 //        return mOkHttpClient.newBuilder().proxy(proxy).build();
 //    }
 
-    public static HttpClient getInstance() {
-        return SingletonHolder.HTTP_CLIENT;
+    public static HttpClient get() {
+        return HTTP_CLIENT;
     }
 
     public OkHttpClient getOkHttpClient() {
@@ -200,7 +203,8 @@ public final class HttpClient {
         return mMainHandler;
     }
 
-    private final static class SingletonHolder {
-        private static final HttpClient HTTP_CLIENT = new HttpClient();
+    public void callbackError(com.sleticalboy.http.Callback callback, IOException e) {
+        if (callback == null) return;
+        mMainHandler.post(() -> callback.onError(e));
     }
 }

@@ -1,5 +1,7 @@
 package com.sleticalboy.http.download;
 
+import com.sleticalboy.http.Callback;
+
 /**
  * Created on 18-9-3.
  * <p>
@@ -7,14 +9,7 @@ package com.sleticalboy.http.download;
  *
  * @author leebin
  */
-public interface DownloadCallback {
-
-    /**
-     * 下载出错时回调
-     *
-     * @param e {@link Throwable}
-     */
-    void onError(Throwable e);
+public interface DownloadCallback extends Callback {
 
     /**
      * 下载开始时回调
@@ -50,34 +45,4 @@ public interface DownloadCallback {
      */
     void onResume();
 
-    class SimpleCallback implements DownloadCallback {
-
-        @Override
-        public void onError(Throwable e) {
-        }
-
-        @Override
-        public void onStart(long total) {
-        }
-
-        @Override
-        public void onProgress(float progress) {
-        }
-
-        @Override
-        public void onPause() {
-        }
-
-        @Override
-        public void onComplete() {
-        }
-
-        @Override
-        public void onCancel() {
-        }
-
-        @Override
-        public void onResume() {
-        }
-    }
 }

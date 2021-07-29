@@ -17,7 +17,7 @@ public final class RetrofitClient {
     
     private RetrofitClient() {
         mRetrofit = new Retrofit.Builder()
-                .client(HttpClient.getInstance().getOkHttpClient())
+                .client(HttpClient.get().getOkHttpClient())
                 .baseUrl("")
                 .addConverterFactory(FastJsonConverterFactory.create()) // json support
                 .addConverterFactory(ScalarsConverterFactory.create()) // String, boxed, primitives support

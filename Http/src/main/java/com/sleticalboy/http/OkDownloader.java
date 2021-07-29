@@ -29,7 +29,6 @@ public final class OkDownloader {
     private static final int STATE_PAUSE = 0x101;
     private static final int STATE_CANCEL = 0x102;
     
-    private final HttpClient mHttpClient;
     private final String mUrl;
     private final File mSaveFile;
     private DownloadCallback mCallback;
@@ -46,9 +45,8 @@ public final class OkDownloader {
     public OkDownloader(String downloadUrl, File saveFile, boolean isNeedProgress) {
         mUrl = downloadUrl;
         mSaveFile = saveFile;
-        mHttpClient = HttpClient.getInstance();
         if (isNeedProgress) {
-            mHttpClient.addInterceptor(ProgressInterceptor.newInstance());
+            HttpClient.get().addInterceptor(ProgressInterceptor.newInstance());
             ProgressInterceptor.addCallback(mUrl, new ProgressCallback.SimpleCallback() {
                 
                 @Override
@@ -56,14 +54,14 @@ public final class OkDownloader {
                     if (mCallback != null) {
                         // 断点续传时此处为剩余文件的长度
                         // total + breakPoint 是文件的总长度
-                        mHttpClient.getMainHandler().post(() -> mCallback.onStart(total));
+                        HttpClient.get().getMainHandler().post(() -> mCallback.onStart(total));
                     }
                 }
                 
                 @Override
                 public void onProgress(float progress, long bytesTotalRead) {
                     if (mCallback != null) {
-                        mHttpClient.getMainHandler().post(() -> mCallback.onProgress(progress));
+                        HttpClient.get().getMainHandler().post(() -> mCallback.onProgress(progress));
                     }
                 }
             });
@@ -92,11 +90,11 @@ public final class OkDownloader {
         RequestBuilder getBuilder = new GetBuilder()
                 .url(mUrl)
                 .breakPoint(startPoint, null);
-        mHttpClient.getOkHttpClient().newCall(getBuilder.build()).enqueue(new Callback() {
+        HttpClient.get().getOkHttpClient().newCall(getBuilder.build()).enqueue(new Callback() {
             @Override
             public void onFailure(final Call call, final IOException e) {
                 if (mCallback != null) {
-                    mHttpClient.getMainHandler().post(() -> mCallback.onError(e));
+                    HttpClient.get().getMainHandler().post(() -> mCallback.onError(e));
                 }
             }
             
@@ -178,11 +176,11 @@ public final class OkDownloader {
             if (mCallback != null) {
                 ProgressInterceptor.removeCallback(mUrl);
                 resetDownloader();
-                mHttpClient.getMainHandler().post(() -> mCallback.onComplete(mSaveFile));
+                HttpClient.get().getMainHandler().post(() -> mCallback.onComplete(mSaveFile));
             }
         } catch (IOException ignored) {
             if (mCallback != null) {
-                mHttpClient.getMainHandler().post(() -> mCallback.onError(ignored));
+                HttpClient.get().getMainHandler().post(() -> mCallback.onError(ignored));
             }
         } finally {
             OkUtils.closeSilently(inputStream);
@@ -199,11 +197,11 @@ public final class OkDownloader {
     private void notifyStateChange(int state) {
         if (mCallback != null) {
             if (state == STATE_CANCEL) {
-                mHttpClient.getMainHandler().post(() -> mCallback.onCancel());
+                HttpClient.get().getMainHandler().post(() -> mCallback.onCancel());
             } else if (state == STATE_PAUSE) {
-                mHttpClient.getMainHandler().post(() -> mCallback.onPause());
+                HttpClient.get().getMainHandler().post(() -> mCallback.onPause());
             } else if (state == STATE_RESUME) {
-                mHttpClient.getMainHandler().post(() -> mCallback.onResume());
+                HttpClient.get().getMainHandler().post(() -> mCallback.onResume());
             }
         }
     }
