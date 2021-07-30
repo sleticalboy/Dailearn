@@ -48,7 +48,7 @@ class FaceView(context: Context, attrs: AttributeSet?) : AppCompatImageView(cont
         }
         if (mFaces != null) {
             Log.d(TAG, "onDraw" + mFaces!!.size)
-            val id: Int = CameraInstance.get().cameraId
+            val id: Int = CameraWrapper.get().cameraId
             mirror = id == Camera.CameraInfo.CAMERA_FACING_FRONT
             canvas.save()
             prepareMatrix()

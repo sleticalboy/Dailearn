@@ -12,9 +12,8 @@ import android.view.*
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
-import com.example.camera.util.CameraInstance
+import com.example.camera.util.CameraWrapper
 import java.lang.ref.WeakReference
 
 class CameraActivity : AppCompatActivity() {
@@ -65,7 +64,7 @@ class CameraActivity : AppCompatActivity() {
         surfacePreview.holder.setFormat(PixelFormat.TRANSPARENT)
         surfacePreview.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                CameraInstance.get().doOpenCamera(Camera.CameraInfo.CAMERA_FACING_BACK)
+                CameraWrapper.get().doOpenCamera()
             }
 
             override fun surfaceChanged(
@@ -74,12 +73,12 @@ class CameraActivity : AppCompatActivity() {
                 width: Int,
                 height: Int
             ) {
-                CameraInstance.get().doStartPreview(holder)
-                mainHandler.sendEmptyMessageDelayed(CameraInstance.PREVIEW_HAS_STARTED, 1000)
+                CameraWrapper.get().doStartPreview(holder)
+                mainHandler.sendEmptyMessageDelayed(CameraWrapper.PREVIEW_HAS_STARTED, 1000)
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
-                CameraInstance.get().doStopPreview()
+                CameraWrapper.get().doStopPreview()
             }
         })
 
@@ -96,16 +95,16 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun bindListeners() {
-        takeBtn.setOnClickListener { v: View? -> CameraInstance.get().doTakePic() }
+        takeBtn.setOnClickListener { v: View? -> CameraWrapper.get().doTakePic() }
         surfacePreview.setOnTouchListener { _: View?, event: MotionEvent? ->
-            if (CameraInstance.get().cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+            if (CameraWrapper.get().cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                 return@setOnTouchListener gestureDetector.onTouchEvent(event)
             } else {
                 return@setOnTouchListener false
             }
         }
         changeFlashModeIV.setOnClickListener {
-            CameraInstance.get().setFlashMode(changeFlashModeIV)
+            CameraWrapper.get().setFlashMode(changeFlashModeIV)
         }
         switchCameraIV.setOnClickListener { changeCamera() }
     }
@@ -119,7 +118,7 @@ class CameraActivity : AppCompatActivity() {
 
             override fun onSingleTapUp(e: MotionEvent): Boolean {
                 Log.d("MyGestureDetector", "onSingleTapUp")
-                CameraInstance.get().autoFocus { success: Boolean, _: Camera? ->
+                CameraWrapper.get().autoFocus { success: Boolean, _: Camera? ->
                     if (success) {
                         Log.d(TAG, "聚焦成功")
                     } else {
@@ -127,7 +126,7 @@ class CameraActivity : AppCompatActivity() {
                     }
                     focusLayout.visibility = View.GONE
                 }
-                CameraInstance.get().setFocusArea(this@CameraActivity, e)
+                CameraWrapper.get().setFocusArea(this@CameraActivity, e)
                 showFocusIcon(e)
                 return true
             }
@@ -148,10 +147,10 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun changeCamera() {
-        CameraInstance.get().doStopPreview()
-        val newCameraId: Int = (CameraInstance.get().cameraId + 1) % 2
-        CameraInstance.get().doOpenCamera(newCameraId)
-        CameraInstance.get().doStartPreview(surfacePreview.holder)
+        CameraWrapper.get().doStopPreview()
+        val newCameraId: Int = (CameraWrapper.get().cameraId + 1) % 2
+        CameraWrapper.get().doOpenCamera(newCameraId)
+        CameraWrapper.get().doStartPreview(surfacePreview.holder)
         if (newCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
             switchCameraIV.setImageResource(R.drawable.camera_setting_switch_back)
         } else {
@@ -160,12 +159,12 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun startGoogleDetect() {
-        val parameters: Camera.Parameters = CameraInstance.get().cameraParameters ?: return
-        val camera: Camera = CameraInstance.get().camera ?: return
+        val parameters: Camera.Parameters = CameraWrapper.get().cameraParameters ?: return
+        val camera: Camera = CameraWrapper.get().camera ?: return
         if (parameters.maxNumDetectedFaces <= 0) return
         camera.setFaceDetectionListener { faces, _/*camera*/ ->
             val msg = mainHandler.obtainMessage()
-            msg.what = CameraInstance.RECEIVE_FACE_MSG
+            msg.what = CameraWrapper.RECEIVE_FACE_MSG
             msg.obj = faces
             msg.sendToTarget()
         }
@@ -179,11 +178,11 @@ class CameraActivity : AppCompatActivity() {
         override fun handleMessage(msg: Message) {
             val host = mHost.get() ?: return
             when (msg.what) {
-                CameraInstance.PREVIEW_HAS_STARTED -> {
+                CameraWrapper.PREVIEW_HAS_STARTED -> {
                     host.startGoogleDetect()
                     Log.e(TAG, "开启人脸识别")
                 }
-                CameraInstance.RECEIVE_FACE_MSG -> {
+                CameraWrapper.RECEIVE_FACE_MSG -> {
                     Log.e(TAG, "收到人脸识别的信息")
                 }
             }
