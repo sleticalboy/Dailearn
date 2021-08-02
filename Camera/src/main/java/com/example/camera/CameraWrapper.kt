@@ -1,4 +1,4 @@
-package com.example.camera.util
+package com.example.camera
 
 import android.content.Context
 import android.graphics.ImageFormat
@@ -10,7 +10,7 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.widget.ImageView
-import com.example.camera.R
+import java.io.File
 import java.io.IOException
 import java.util.*
 
@@ -39,6 +39,17 @@ class CameraWrapper private constructor() {
     //   开始预览
     //      Camera.startPreview()
 
+    // 推流和拉流
+    // 推流指直播端
+    //   视频采集：yuv 格式
+    //   音频采集：pcm 格式
+    //   编码：h.264 格式
+    //   rtmp：push 到服务端
+    // 拉流指观看直播的客户端
+    //   通过指定的直播 url pull 到客户端
+    //   解码
+    //   播放
+
     var camera: Camera? = null
         private set
     private var isPreview = false
@@ -50,12 +61,15 @@ class CameraWrapper private constructor() {
 
     init {
         val num = Camera.getNumberOfCameras()
-        if (num <= 0) {
-            throw IllegalStateException("No camera available!")
-        }
-        for (i in 0..num) {
+        if (num <= 0) throw IllegalStateException("No camera available!")
+        Log.d(TAG, "init() num: $num")
+        for (i in 0 until num) {
             // 获取相机信息，cameraInfo 为入参，信息会写入到其中
             Camera.getCameraInfo(i, cameraInfo)
+            Log.d(
+                TAG,
+                "init() id: ${cameraInfo.facing} orientation: ${cameraInfo.orientation} sound: ${cameraInfo.canDisableShutterSound}"
+            )
             cameraId = cameraInfo.facing
             orientation = cameraInfo.orientation
             if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT ||
@@ -69,9 +83,8 @@ class CameraWrapper private constructor() {
         }
     }
 
-    fun doOpenCamera() {
-        Log.d(TAG, "doOpenCamera() with default id: $cameraId")
-        doOpenCamera(cameraId)
+    fun open() {
+        open(cameraId)
     }
 
     /**
@@ -79,7 +92,7 @@ class CameraWrapper private constructor() {
      *
      * @param id
      */
-    fun doOpenCamera(id: Int) {
+    fun open(id: Int) {
         Log.d(TAG, "open camera with id: $id")
         try {
             cameraId = id
@@ -95,7 +108,7 @@ class CameraWrapper private constructor() {
      *
      * @param holder
      */
-    fun doStartPreview(holder: SurfaceHolder?) {
+    fun preview(holder: SurfaceHolder?) {
         Log.d(TAG, "doStartPreview() $camera")
         if (camera == null) return
         if (isPreview) {
@@ -112,8 +125,8 @@ class CameraWrapper private constructor() {
         printSupportPreviewSize(parameters)
         printSupportPictureSize(parameters)
         printSupportFocusMode(parameters)
-        //            parameters.setPictureSize(parameters.getPreviewSize().width,parameters.getPictureSize().height);
-        //设置的这两个size必须时支持的size大小，否则时不可以的，会出现setparameters错误
+        // parameters.setPictureSize(parameters.getPreviewSize().width,parameters.getPictureSize().height);
+        // 设置的这两个size必须时支持的size大小，否则时不可以的，会出现setparameters错误
         parameters.setPreviewSize(
             parameters.supportedPreviewSizes[0].width,
             parameters.supportedPreviewSizes[0].height
@@ -138,10 +151,15 @@ class CameraWrapper private constructor() {
             camera!!.setPreviewCallbackWithBuffer { data, camera ->
                 camera.addCallbackBuffer(data)
                 // 拿到当前相机的数据流，可直接进行推流或者按照一定的帧率进行推流
+                Log.d(TAG, "onPreviewFrame() called with: data = ${data.size},")
             }
             val buffer = Array(3) {
                 // ByteArray(4/*(width * height * 像素数) / 8*/)
-                ByteArray((mParams.previewSize.width * mParams.previewSize.height * ImageFormat.getBitsPerPixel(ImageFormat.NV21)) / 8)
+                ByteArray(
+                    (mParams.previewSize.width * mParams.previewSize.height * ImageFormat.getBitsPerPixel(
+                        ImageFormat.NV21
+                    )) / 8
+                )
             }
             for (buf in buffer) {
                 camera!!.addCallbackBuffer(buf)
@@ -156,7 +174,7 @@ class CameraWrapper private constructor() {
     /**
      * 结束预览
      */
-    fun doStopPreview() {
+    fun stopPreview() {
         if (isPreview) {
             isPreview = false
             camera!!.stopPreview()
@@ -188,10 +206,15 @@ class CameraWrapper private constructor() {
     private inner class PicCallBacKImpl : Camera.PictureCallback {
         override fun onPictureTaken(data: ByteArray, camera: Camera) {
             isPreview = false
+            val path = "/sdcard/" + System.currentTimeMillis() + "_preview.jpg"
             Thread {
                 try {
-                    ImageUtil.saveImage(data, "/sdcard/preview.jpg")
+                    ImageUtil.saveImage(data, path)
+                    if (File(path).exists()) {
+                        Log.d(TAG, "onPictureTaken() take success: $path")
+                    }
                 } catch (e: IOException) {
+                    e.printStackTrace()
                 }
             }.start()
             // 重新开启预览 ，不然不能继续拍照
@@ -341,8 +364,6 @@ class CameraWrapper private constructor() {
 
     companion object {
         private val sCamera = CameraWrapper()
-        const val PREVIEW_HAS_STARTED = 110
-        const val RECEIVE_FACE_MSG = 111
         private const val TAG = "CameraWrapper"
 
         fun get(): CameraWrapper {

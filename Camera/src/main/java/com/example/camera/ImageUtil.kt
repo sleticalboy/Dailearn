@@ -1,4 +1,4 @@
-package com.example.camera.util
+package com.example.camera
 
 import android.graphics.BitmapFactory
 import android.media.ExifInterface
@@ -20,7 +20,13 @@ object ImageUtil {
     @Throws(IOException::class)
     fun saveImage(data: ByteArray?, path: String) {
         // save
-        val fos = FileOutputStream(File(path), true)
+        val file = File(path)
+        if (file.exists()) {
+            file.delete()
+        } else {
+            file.createNewFile()
+        }
+        val fos = FileOutputStream(file, true)
         fos.write(data)
         fos.close()
 

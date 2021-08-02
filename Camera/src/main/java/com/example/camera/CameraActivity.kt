@@ -5,27 +5,17 @@ import android.graphics.PixelFormat
 import android.hardware.Camera
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Message
 import android.util.Log
 import android.view.*
 import android.widget.FrameLayout
-import android.widget.ImageButton
-import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
-import com.example.camera.util.CameraWrapper
-import java.lang.ref.WeakReference
+import com.example.camera.databinding.MainBinding
 
 class CameraActivity : AppCompatActivity() {
 
-    private lateinit var takeBtn: ImageButton
-    private lateinit var surfacePreview: SurfaceView
-    private lateinit var focusLayout: FrameLayout
-    private lateinit var changeFlashModeIV: ImageView
-    private lateinit var switchCameraIV: ImageView
+    private var binding: MainBinding? = null
     private var width = 0
     private var height = 0
-    private val mainHandler = MainHandler(this)
 
     /**
      * Called when the activity was first created.
@@ -34,7 +24,8 @@ class CameraActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         supportActionBar?.hide()
-        setContentView(R.layout.main)
+        binding = MainBinding.inflate(layoutInflater)
+        setContentView(binding!!.root)
         initView()
         bindListeners()
     }
@@ -58,13 +49,17 @@ class CameraActivity : AppCompatActivity() {
         )
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        binding = null
+    }
+
     private fun initView() {
-        surfacePreview = findViewById(R.id.surface_view)
         //translucent半透明 transparent透明
-        surfacePreview.holder.setFormat(PixelFormat.TRANSPARENT)
-        surfacePreview.holder.addCallback(object : SurfaceHolder.Callback {
+        binding!!.surfaceView.holder.setFormat(PixelFormat.TRANSPARENT)
+        binding!!.surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                CameraWrapper.get().doOpenCamera()
+                CameraWrapper.get().open()
             }
 
             override fun surfaceChanged(
@@ -73,40 +68,37 @@ class CameraActivity : AppCompatActivity() {
                 width: Int,
                 height: Int
             ) {
-                CameraWrapper.get().doStartPreview(holder)
-                mainHandler.sendEmptyMessageDelayed(CameraWrapper.PREVIEW_HAS_STARTED, 1000)
+                Log.d(
+                    TAG,
+                    "surfaceChanged() called with: format = $format, width = $width, height = $height"
+                )
+                CameraWrapper.get().preview(holder)
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
-                CameraWrapper.get().doStopPreview()
+                CameraWrapper.get().stopPreview()
             }
         })
 
-        takeBtn = findViewById(R.id.take_btn)
-        focusLayout = findViewById(R.id.camera_focus_layout)
-
-        focusLayout.post {
-            width = focusLayout.width / 2
-            height = focusLayout.height / 2
+        binding!!.cameraFocusLayout.post {
+            width = binding!!.cameraFocusLayout.width / 2
+            height = binding!!.cameraFocusLayout.height / 2
         }
-
-        changeFlashModeIV = findViewById(R.id.flash_iv)
-        switchCameraIV = findViewById(R.id.swich_camera_iv)
     }
 
     private fun bindListeners() {
-        takeBtn.setOnClickListener { v: View? -> CameraWrapper.get().doTakePic() }
-        surfacePreview.setOnTouchListener { _: View?, event: MotionEvent? ->
+        binding!!.takeBtn.setOnClickListener { v: View? -> CameraWrapper.get().doTakePic() }
+        binding!!.surfaceView.setOnTouchListener { _: View?, event: MotionEvent? ->
             if (CameraWrapper.get().cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                 return@setOnTouchListener gestureDetector.onTouchEvent(event)
             } else {
                 return@setOnTouchListener false
             }
         }
-        changeFlashModeIV.setOnClickListener {
-            CameraWrapper.get().setFlashMode(changeFlashModeIV)
+        binding!!.flashIv.setOnClickListener {
+            CameraWrapper.get().setFlashMode(binding!!.flashIv)
         }
-        switchCameraIV.setOnClickListener { changeCamera() }
+        binding!!.swichCameraIv.setOnClickListener { changeCamera() }
     }
 
     private var gestureDetector =
@@ -124,7 +116,7 @@ class CameraActivity : AppCompatActivity() {
                     } else {
                         Log.d(TAG, "聚焦失败")
                     }
-                    focusLayout.visibility = View.GONE
+                    binding!!.cameraFocusLayout.visibility = View.GONE
                 }
                 CameraWrapper.get().setFocusArea(this@CameraActivity, e)
                 showFocusIcon(e)
@@ -135,59 +127,27 @@ class CameraActivity : AppCompatActivity() {
     private fun showFocusIcon(e: MotionEvent) {
         val x = e.x.toInt()
         val y = e.y.toInt()
-        val lp = focusLayout.layoutParams as FrameLayout.LayoutParams
+        val lp = binding!!.cameraFocusLayout.layoutParams as FrameLayout.LayoutParams
         lp.leftMargin = (x - width + 0.5).toInt()
-        lp.topMargin = (y - height + 0.5 + switchCameraIV.height).toInt()
+        lp.topMargin = (y - height + 0.5 + binding!!.swichCameraIv.height).toInt()
         Log.d(
             TAG, "showFocusIcon x" + x + "y" + y + "params.width" + lp.width
                     + "params.height" + lp.height
         )
-        focusLayout.layoutParams = lp
-        focusLayout.visibility = View.VISIBLE
+        binding!!.cameraFocusLayout.layoutParams = lp
+        binding!!.cameraFocusLayout.visibility = View.VISIBLE
     }
 
     private fun changeCamera() {
-        CameraWrapper.get().doStopPreview()
+        CameraWrapper.get().stopPreview()
         val newCameraId: Int = (CameraWrapper.get().cameraId + 1) % 2
-        CameraWrapper.get().doOpenCamera(newCameraId)
-        CameraWrapper.get().doStartPreview(surfacePreview.holder)
+        CameraWrapper.get().open(newCameraId)
+        CameraWrapper.get().preview(binding!!.surfaceView.holder)
         if (newCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
-            switchCameraIV.setImageResource(R.drawable.camera_setting_switch_back)
+            binding!!.swichCameraIv.setImageResource(R.drawable.camera_setting_switch_back)
         } else {
-            switchCameraIV.setImageResource(R.drawable.camera_setting_switch_front)
+            binding!!.swichCameraIv.setImageResource(R.drawable.camera_setting_switch_front)
         }
-    }
-
-    private fun startGoogleDetect() {
-        val parameters: Camera.Parameters = CameraWrapper.get().cameraParameters ?: return
-        val camera: Camera = CameraWrapper.get().camera ?: return
-        if (parameters.maxNumDetectedFaces <= 0) return
-        camera.setFaceDetectionListener { faces, _/*camera*/ ->
-            val msg = mainHandler.obtainMessage()
-            msg.what = CameraWrapper.RECEIVE_FACE_MSG
-            msg.obj = faces
-            msg.sendToTarget()
-        }
-        camera.startFaceDetection()
-    }
-
-    private class MainHandler(host: CameraActivity) : Handler() {
-
-        private val mHost: WeakReference<CameraActivity> = WeakReference(host)
-
-        override fun handleMessage(msg: Message) {
-            val host = mHost.get() ?: return
-            when (msg.what) {
-                CameraWrapper.PREVIEW_HAS_STARTED -> {
-                    host.startGoogleDetect()
-                    Log.e(TAG, "开启人脸识别")
-                }
-                CameraWrapper.RECEIVE_FACE_MSG -> {
-                    Log.e(TAG, "收到人脸识别的信息")
-                }
-            }
-        }
-
     }
 
     companion object {
