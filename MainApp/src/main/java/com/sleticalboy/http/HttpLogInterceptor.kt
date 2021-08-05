@@ -6,6 +6,7 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.internal.http.HttpHeaders
+import okhttp3.internal.platform.Platform
 import okio.Buffer
 import java.io.EOFException
 import java.io.IOException
