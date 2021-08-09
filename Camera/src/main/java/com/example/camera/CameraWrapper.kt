@@ -50,14 +50,11 @@ class CameraWrapper private constructor() {
     //   解码
     //   播放
 
-    var camera: Camera? = null
-        private set
+    private var camera: Camera? = null
     private var isPreview = false
-    var cameraId = -1 // 0表示后置，1表示前置
-        private set
-    val cameraInfo = Camera.CameraInfo()
     private var orientation = 0
-        private set
+    internal var cameraId = -1 // 0表示后置，1表示前置
+    internal val cameraInfo = Camera.CameraInfo()
 
     init {
         val num = Camera.getNumberOfCameras()
@@ -151,7 +148,7 @@ class CameraWrapper private constructor() {
             camera!!.setPreviewCallbackWithBuffer { data, camera ->
                 camera.addCallbackBuffer(data)
                 // 拿到当前相机的数据流，可直接进行推流或者按照一定的帧率进行推流
-                Log.d(TAG, "onPreviewFrame() called with: data = ${data.size},")
+                // Log.d(TAG, "onPreviewFrame() called with: data = ${data.size},")
             }
             val buffer = Array(3) {
                 // ByteArray(4/*(width * height * 像素数) / 8*/)
@@ -323,6 +320,7 @@ class CameraWrapper private constructor() {
      * @param imageView
      */
     fun setFlashMode(imageView: ImageView?) {
+        if (cameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) return
         val parameters = camera!!.parameters
         val flashMode = parameters.flashMode
         Log.d(TAG, "setFlashMode  $flashMode")
@@ -358,9 +356,6 @@ class CameraWrapper private constructor() {
             Log.i(TAG, "focusModes--$mode")
         }
     }
-
-    val cameraParameters: Camera.Parameters?
-        get() = if (camera != null) camera!!.parameters else null
 
     companion object {
         private val sCamera = CameraWrapper()

@@ -1,6 +1,7 @@
 package com.example.camera
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.PixelFormat
 import android.hardware.Camera
 import android.os.Build
@@ -16,6 +17,7 @@ class CameraActivity : AppCompatActivity() {
     private var binding: MainBinding? = null
     private var width = 0
     private var height = 0
+    private var mGranted = false
 
     /**
      * Called when the activity was first created.
@@ -33,7 +35,14 @@ class CameraActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
-        requestPermissions(arrayOf(Manifest.permission.CAMERA), 0x10)
+        mGranted =
+            checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        requestPermissions(
+            arrayOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ), 0x10
+        )
     }
 
     override fun onRequestPermissionsResult(
@@ -47,6 +56,9 @@ class CameraActivity : AppCompatActivity() {
             TAG,
             "onRequestPermissionsResult() permissions = ${permissions.contentToString()}, grantResults = ${grantResults.contentToString()}"
         )
+        mGranted = true
+        openCamera()
+        startPreview(binding!!.surfaceView.holder)
     }
 
     override fun onDestroy() {
@@ -59,7 +71,7 @@ class CameraActivity : AppCompatActivity() {
         binding!!.surfaceView.holder.setFormat(PixelFormat.TRANSPARENT)
         binding!!.surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                CameraWrapper.get().open()
+                openCamera()
             }
 
             override fun surfaceChanged(
@@ -72,11 +84,11 @@ class CameraActivity : AppCompatActivity() {
                     TAG,
                     "surfaceChanged() called with: format = $format, width = $width, height = $height"
                 )
-                CameraWrapper.get().preview(holder)
+                startPreview(holder)
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
-                CameraWrapper.get().stopPreview()
+                stopPreview()
             }
         })
 
@@ -87,7 +99,7 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun bindListeners() {
-        binding!!.takeBtn.setOnClickListener { v: View? -> CameraWrapper.get().doTakePic() }
+        binding!!.takeBtn.setOnClickListener { CameraWrapper.get().doTakePic() }
         binding!!.surfaceView.setOnTouchListener { _: View?, event: MotionEvent? ->
             if (CameraWrapper.get().cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                 return@setOnTouchListener gestureDetector.onTouchEvent(event)
@@ -101,7 +113,7 @@ class CameraActivity : AppCompatActivity() {
         binding!!.swichCameraIv.setOnClickListener { changeCamera() }
     }
 
-    private var gestureDetector =
+    private val gestureDetector =
         GestureDetector(object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean {
                 Log.d("MyGestureDetector", "onDown")
@@ -139,15 +151,27 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun changeCamera() {
-        CameraWrapper.get().stopPreview()
+        stopPreview()
         val newCameraId: Int = (CameraWrapper.get().cameraId + 1) % 2
         CameraWrapper.get().open(newCameraId)
-        CameraWrapper.get().preview(binding!!.surfaceView.holder)
+        startPreview(binding!!.surfaceView.holder)
         if (newCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
             binding!!.swichCameraIv.setImageResource(R.drawable.camera_setting_switch_back)
         } else {
             binding!!.swichCameraIv.setImageResource(R.drawable.camera_setting_switch_front)
         }
+    }
+
+    private fun openCamera() {
+        if (mGranted) CameraWrapper.get().open()
+    }
+
+    private fun startPreview(holder: SurfaceHolder) {
+        if (mGranted) CameraWrapper.get().preview(holder)
+    }
+
+    private fun stopPreview() {
+        CameraWrapper.get().stopPreview()
     }
 
     companion object {
