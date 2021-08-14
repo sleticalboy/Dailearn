@@ -2,6 +2,8 @@ package com.sleticalboy.http;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -65,6 +67,7 @@ public class RewriteUrlInterceptor implements Interceptor {
         }
     }
 
+    @NonNull
     @Override
     public Response intercept(Chain chain) throws IOException {
         Request rawRequest = chain.request();
@@ -72,7 +75,7 @@ public class RewriteUrlInterceptor implements Interceptor {
         if (newHost.size() == 0) return chain.proceed(rawRequest);
         HttpUrl url = HttpUrl.parse(newHost.get(0));
         if (url == null) return chain.proceed(rawRequest);
-        Log.v("RewriteUrl", "intercept() new url: " + url + ", host: " + url.host());
+        Log.v(TAG, "intercept() new url: " + url + ", host: " + url.host());
         Request.Builder newBuilder = rawRequest.newBuilder();
         newBuilder.removeHeader(Constants.REWRITE_HOST);
         url = rawRequest.url().newBuilder().host(url.host()).build();

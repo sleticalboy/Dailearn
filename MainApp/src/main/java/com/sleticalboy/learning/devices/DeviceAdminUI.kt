@@ -1,9 +1,9 @@
 package com.sleticalboy.learning.devices
 
 import android.os.Bundle
-import com.sleticalboy.learning.R
+import android.view.View
 import com.sleticalboy.learning.base.BaseActivity
-import kotlinx.android.synthetic.main.activity_devices.*
+import com.sleticalboy.learning.databinding.ActivityDevicesBinding
 
 /**
  * Created on 20-2-17.
@@ -13,29 +13,34 @@ import kotlinx.android.synthetic.main.activity_devices.*
  */
 class DeviceAdminUI : BaseActivity() {
 
+    private var mBind: ActivityDevicesBinding? = null
     private var mManager: DevicesManager? = null
 
     override fun prepareWork(savedInstanceState: Bundle?) {
         mManager = DevicesManager(this)
     }
 
-    override fun layoutResId(): Int = R.layout.activity_devices
+    override fun layout(): View {
+        // R.layout.activity_devices
+        mBind = ActivityDevicesBinding.inflate(layoutInflater)
+        return mBind!!.root
+    }
 
     override fun initView() {
         // activate and deactivate device admin
-        activeDeviceAdmin.setOnClickListener { mManager!!.startActivate() }
-        stopDeviceAdmin.setOnClickListener { mManager!!.startDeactivate() }
+        mBind!!.activeDeviceAdmin.setOnClickListener { mManager!!.startActivate() }
+        mBind!!.stopDeviceAdmin.setOnClickListener { mManager!!.startDeactivate() }
         // screen lock
-        wayOfLock.setOnClickListener { mManager!!.setWayOfLock() }
-        lockNow.setOnClickListener { mManager!!.lockScreenNow() }
-        lockDelay.setOnClickListener { mManager!!.lockScreenDelay(6 * 1000) }
+        mBind!!.wayOfLock.setOnClickListener { mManager!!.setWayOfLock() }
+        mBind!!.lockNow.setOnClickListener { mManager!!.lockScreenNow() }
+        mBind!!.lockDelay.setOnClickListener { mManager!!.lockScreenDelay(6000L) }
         // reset device
-        resetDevice.setOnClickListener { mManager!!.resetDevice() }
+        mBind!!.resetDevice.setOnClickListener { mManager!!.resetDevice() }
         // forbid using camera
-        forbidCamera.setOnClickListener { mManager!!.forbidCamera() }
+        mBind!!.forbidCamera.setOnClickListener { mManager!!.forbidCamera() }
         // reset password
-        resetPassword.setOnClickListener { mManager!!.resetPassword() }
+        mBind!!.resetPassword.setOnClickListener { mManager!!.resetPassword() }
         // encrypt storage
-        encryptStorage.setOnClickListener { mManager!!.encryptStorage() }
+        mBind!!.encryptStorage.setOnClickListener { mManager!!.encryptStorage() }
     }
 }

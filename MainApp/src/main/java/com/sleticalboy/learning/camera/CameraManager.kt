@@ -38,16 +38,12 @@ class CameraManager {
      *
      * @param surface
      */
-    fun startPreview(surface: SurfaceTexture?) {
-        try {
-            if (mCamera == null) {
-                openCamera()
-            }
-            mCamera!!.setPreviewTexture(surface)
-            mCamera!!.startPreview()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
+    fun startPreview(surface: SurfaceTexture?) = try {
+        if (mCamera == null) openCamera()
+        mCamera!!.setPreviewTexture(surface)
+        mCamera!!.startPreview()
+    } catch (e: IOException) {
+        e.printStackTrace()
     }
 
     /**
@@ -56,9 +52,7 @@ class CameraManager {
     private fun openCamera() {
         val cameraId = Camera.CameraInfo.CAMERA_FACING_FRONT
         mCamera = Camera.open(cameraId)
-        if (mCamera == null) {
-            return
-        }
+        if (mCamera == null) return
         mCamera!!.setDisplayOrientation(90)
         val parameters = mCamera!!.parameters
         parameters.pictureFormat = ImageFormat.JPEG
@@ -195,14 +189,11 @@ class CameraManager {
         fun onFailure(e: Throwable?)
     }
 
-    class Size(val mWidth: Int, val mHeight: Int) {
-        fun getWidth(): Int {
-            return mWidth
-        }
+    class Size(private val mWidth: Int, private val mHeight: Int) {
 
-        fun getHeight(): Int {
-            return mHeight
-        }
+        fun getWidth(): Int = mWidth
+
+        fun getHeight(): Int = mHeight
     }
 
     open class SimpleSurfaceTextureListener : SurfaceTextureListener {

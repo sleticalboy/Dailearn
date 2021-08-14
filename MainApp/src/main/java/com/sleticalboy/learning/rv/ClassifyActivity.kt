@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
 import com.sleticalboy.learning.bean.AppInfo
+import com.sleticalboy.learning.databinding.ActivityClassifyBinding
 import com.sleticalboy.weight.xrecycler.decoration.DividerGridItemDecoration
 import java.util.*
 
@@ -102,7 +103,6 @@ class ClassifyActivity : BaseActivity() {
     }
 
     override fun initView() {
-        val recyclerView = findViewById<RecyclerView>(R.id.recycler_view)
 
         val layoutManager = GridLayoutManager(this, 3)
         layoutManager.orientation = LinearLayoutManager.VERTICAL
@@ -112,15 +112,19 @@ class ClassifyActivity : BaseActivity() {
                 return if (mAdapter!!.getItemViewType(position) == TYPE_TITLE) layoutManager.spanCount else 1
             }
         }
-        recyclerView.layoutManager = layoutManager
-        recyclerView.addItemDecoration(DividerGridItemDecoration(this, 8))
+        mBind!!.recyclerView.layoutManager = layoutManager
+        mBind!!.recyclerView.addItemDecoration(DividerGridItemDecoration(this, 8))
 
         mAdapter = AppInfoAdapter(this, mAppList)
-        recyclerView.adapter = mAdapter
+        mBind!!.recyclerView.adapter = mAdapter
     }
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_classify
+    private var mBind: ActivityClassifyBinding? = null
+
+    override fun layout(): View {
+        // return R.layout.activity_classify
+        mBind = ActivityClassifyBinding.inflate(layoutInflater)
+        return mBind!!.root
     }
 
     internal class AppInfoAdapter(private var mContext: Context, private var mList: List<AppInfo>)
@@ -169,7 +173,7 @@ class ClassifyActivity : BaseActivity() {
         }
     }
 
-    internal class AppInfoHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class AppInfoHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val iv_app_icon: ImageView = itemView.findViewById(R.id.iv_app_icon)
         val tv_app_name: TextView = itemView.findViewById(R.id.tv_app_name)
     }

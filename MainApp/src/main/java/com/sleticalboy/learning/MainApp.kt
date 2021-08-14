@@ -8,8 +8,6 @@ import android.os.Build
 import android.util.Log
 import com.sleticalboy.learning.components.receiver.GlobalReceiver
 import com.sleticalboy.util.NotificationHelper
-import com.squareup.leakcanary.LeakCanary
-import com.squareup.leakcanary.RefWatcher
 
 /**
  * Created on 18-3-5.
@@ -22,20 +20,11 @@ class MainApp : Application() {
     override fun onCreate() {
         super.onCreate()
         mApp = this
-        installLeakCanary()
         adaptAndroidO()
     }
 
-    private fun installLeakCanary() {
-        if (!LeakCanary.isInAnalyzerProcess(this)) {
-            mRefWatcher = LeakCanary.install(this)
-        }
-    }
-
     private fun adaptAndroidO() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return
-        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         Log.d("MainApp", "adapt android O")
         registerReceivers()
         NotificationHelper.createAllChannels(this)
@@ -51,7 +40,6 @@ class MainApp : Application() {
     companion object {
 
         private var mApp: Application? = null
-        private var mRefWatcher: RefWatcher? = null
 
         val app: Context? get() = mApp
     }

@@ -1,6 +1,8 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+}
 
 android {
     compileSdkVersion rootProject.ext.compile_version
@@ -19,6 +21,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    buildFeatures {
+        viewBinding true
+        dataBinding true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -29,36 +35,31 @@ android {
     }
 }
 
-dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation files('libs/BASE64Encoder.jar')
-    implementation files('libs/bcprov-jdk16-1.46.jar')
+project.configurations.all {
+    assert it instanceof Configuration
+    // 强制使用依赖版本，用于解决依赖版本不一致
+    it.resolutionStrategy.force('com.squareup.okio:okio:2.2.2')
+    // it.resolutionStrategy.failOnVersionConflict()
+}
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation "androidx.core:core-ktx:$ktx_version"
-    implementation "androidx.appcompat:appcompat:$appcompat_version"
-    implementation "androidx.annotation:annotation:$appcompat_version"
-    implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
-    implementation "com.google.android.material:material:$material_version"
-    implementation "androidx.recyclerview:recyclerview:$recyclerview_version"
-    implementation "androidx.lifecycle:lifecycle-extensions:$lifecycle_version"
+dependencies {
+    implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version")
+    implementation("androidx.core:core-ktx:$ktx_version")
+    implementation("androidx.appcompat:appcompat:$appcompat_version")
+    implementation("androidx.constraintlayout:constraintlayout:$constraint_version")
+    implementation("com.google.android.material:material:$material_version")
+    implementation("androidx.recyclerview:recyclerview:$recyclerview_version")
+    implementation("androidx.lifecycle:lifecycle-extensions:$lifecycle_version")
 
     // other dependencies
-    implementation 'com.tbruyelle.rxpermissions2:rxpermissions:0.9.5@aar'
-    implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
-    implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
-    implementation "com.jakewharton.retrofit:retrofit2-rxjava2-adapter:$rxjava_adapter_version"
-    implementation "androidx.exifinterface:exifinterface:$exif_interface"
-    implementation "com.airbnb.android:lottie:$lottie_version"
+    implementation("com.squareup.retrofit2:retrofit:$retrofit_version")
+    implementation("com.squareup.retrofit2:converter-gson:$retrofit_version")
+    implementation("com.jakewharton.retrofit:retrofit2-rxjava2-adapter:$rxjava_adapter_version")
+    implementation("androidx.exifinterface:exifinterface:$exif_interface")
+    implementation("com.airbnb.android:lottie:$lottie_version")
 
     //debug版本
     debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
-    //发布版本，将该工具失效，避免影响线上业务
-    releaseImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$leakcanary_version"
-    // 对 fragment 的支持
-    debugImplementation "com.squareup.leakcanary:leakcanary-support-fragment:$leakcanary_version"
-}
-
-repositories {
-    mavenCentral()
 }

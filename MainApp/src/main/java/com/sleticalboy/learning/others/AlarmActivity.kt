@@ -8,9 +8,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.TextView
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityAlarmBinding
 import com.sleticalboy.util.DevicesUtils
 import com.sleticalboy.util.TimeUtils
 
@@ -27,13 +29,20 @@ class AlarmActivity : BaseActivity() {
     private val alarmReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (mAction == intent.action) {
-                Log.d("AlarmActivity", intent.action)
+                intent.action?.let { Log.d(logTag(), it) }
             }
         }
     }
+
     private var mAlarmManager: AlarmManager? = null
-    override fun layoutResId(): Int {
-        return R.layout.activity_alarm
+    private var mBind: ActivityAlarmBinding? = null
+
+    override fun logTag(): String = "AlarmActivity"
+
+    override fun layout(): View {
+        // return R.layout.activity_alarm
+        mBind = ActivityAlarmBinding.inflate(layoutInflater)
+        return mBind!!.root
     }
 
     override fun initView() {
@@ -46,11 +55,8 @@ class AlarmActivity : BaseActivity() {
         Log.d("AlarmActivity", time)
         tvTime.text = time
         val msg = TimeUtils.millis2str(System.currentTimeMillis())
-        Log.d("AlarmActivity", msg)
-        tvTime.append("""
-
-    $msg
-    """.trimIndent())
+        msg?.let { Log.d(logTag(), it) }
+        tvTime.append("$msg".trimIndent())
         val distance = TimeUtils.getDistance(34.7704267, 113.7584882, 34.7703974, 113.7583287).toDouble()
         tvTime.append("\ndistance = $distance")
         tvTime.append("mac address = ${DevicesUtils.getMacAddress(this)}")
@@ -62,7 +68,12 @@ class AlarmActivity : BaseActivity() {
         registerReceiver(alarmReceiver, filter)
         val intent = Intent(mAction)
         val operation = PendingIntent.getBroadcast(this, 0, intent, 0)
-        mAlarmManager!!.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 60000, operation)
+        mAlarmManager!!.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            System.currentTimeMillis(),
+            60000,
+            operation
+        )
     }
 
     override fun prepareWork(savedInstanceState: Bundle?) {
@@ -72,6 +83,7 @@ class AlarmActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        mBind = null
         unregisterReceiver(alarmReceiver)
     }
 }

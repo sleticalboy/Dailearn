@@ -11,9 +11,9 @@ import android.os.Looper
 import android.view.View
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityNotificationsBinding
 import com.sleticalboy.util.NotificationHelper
 import com.sleticalboy.util.ThreadHelper
-
 
 /**
  * Created on 20-4-2.
@@ -30,8 +30,9 @@ class NotificationsUI : BaseActivity() {
         mHandler = Handler(Looper.getMainLooper())
     }
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_notifications
+    override fun layout(): View {
+        // R.layout.activity_notifications
+        return ActivityNotificationsBinding.inflate(layoutInflater).root
     }
 
     override fun initView() {

@@ -8,13 +8,15 @@ import android.widget.EditText
 import android.widget.TextView
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityProviderBinding
 
 class ProviderPractise : BaseActivity() {
 
     private var mResult: TextView? = null
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_provider
+    override fun layout(): View {
+        // R.layout.activity_provider
+        return ActivityProviderBinding.inflate(layoutInflater).root
     }
 
     override fun initView() {

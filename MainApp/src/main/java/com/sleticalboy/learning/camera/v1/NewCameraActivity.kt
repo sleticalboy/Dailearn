@@ -1,9 +1,10 @@
 package com.sleticalboy.learning.camera.v1
 
 import android.Manifest
-import com.sleticalboy.learning.R
+import android.view.View
 import com.sleticalboy.learning.base.BaseActivity
 import com.sleticalboy.learning.camera.CameraCompat
+import com.sleticalboy.learning.databinding.ActivityEmptyBinding
 
 /**
  * Created on 18-2-26.
@@ -22,8 +23,9 @@ class NewCameraActivity : BaseActivity() {
 
     override fun initView() {}
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_empty
+    override fun layout(): View {
+        // R.layout.activity_empty
+        return ActivityEmptyBinding.inflate(layoutInflater).root
     }
 
     override fun logTag(): String = "NewCamera"

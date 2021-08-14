@@ -14,9 +14,8 @@ import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseListFragment
 import com.sleticalboy.learning.base.BaseRVAdapter
 import com.sleticalboy.learning.base.BaseRVHolder
-import com.sleticalboy.learning.bt.ble.BleScanner
 import com.sleticalboy.learning.bt.common.BtScanner
-import kotlinx.android.synthetic.main.bt_common_header.*
+import com.sleticalboy.learning.databinding.BtCommonHeaderBinding
 
 /**
  * Created on 20-8-18.
@@ -25,10 +24,12 @@ import kotlinx.android.synthetic.main.bt_common_header.*
  */
 class CommonBtFragment : BaseListFragment<BluetoothDevice>() {
 
+    private var registered = false
     private var mScanner: BtScanner? = null
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val device = intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as BluetoothDevice
+            if (intent == null) return
+            val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
             val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
             if (state == BluetoothDevice.BOND_BONDED) {
                 //
@@ -45,14 +46,16 @@ class CommonBtFragment : BaseListFragment<BluetoothDevice>() {
     override fun onResume() {
         super.onResume()
         context?.registerReceiver(mReceiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
+        registered = true
     }
 
     override fun logTag(): String = "CommonBtFragment"
 
     override fun initHeader(headerContainer: FrameLayout) {
         layoutInflater.inflate(R.layout.bt_common_header, headerContainer, true)
-        startScan.setOnClickListener { doStart() }
-        stopScan.setOnClickListener { doStop() }
+        val bind = BtCommonHeaderBinding.inflate(layoutInflater, headerContainer, true)
+        bind.startScan.setOnClickListener { doStart() }
+        bind.stopScan.setOnClickListener { doStop() }
     }
 
     override fun createAdapter(): BaseRVAdapter<BluetoothDevice> = DevicesAdapter()
@@ -72,7 +75,8 @@ class CommonBtFragment : BaseListFragment<BluetoothDevice>() {
 
     override fun onPause() {
         super.onPause()
-        context?.unregisterReceiver(mReceiver)
+        if (registered) context?.unregisterReceiver(mReceiver)
+        registered = false
     }
 
     override fun onDetach() {

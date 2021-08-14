@@ -1,10 +1,12 @@
 package com.sleticalboy.learning.rv
 
+import android.view.View
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityDecorationBinding
 import com.sleticalboy.learning.rv.adapter.ItemTouchAdapter
 import com.sleticalboy.weight.xrecycler.decoration.DividerGridItemDecoration
 import com.sleticalboy.weight.xrecycler.helper.SelectedItemDragItemTouchCallback
@@ -18,6 +20,7 @@ import com.sleticalboy.weight.xrecycler.helper.SelectedItemDragItemTouchCallback
  * @description
  */
 class DecorationActivity : BaseActivity() {
+
     private val mImagesIds = arrayOf(
             R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
             R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher)
@@ -39,7 +42,9 @@ class DecorationActivity : BaseActivity() {
         ItemTouchHelper(SelectedItemDragItemTouchCallback(adapter)).attachToRecyclerView(recyclerView)
     }
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_decoration
+    override fun layout(): View {
+        // R.layout.activity_decoration
+        val bind = ActivityDecorationBinding.inflate(layoutInflater)
+        return bind.root
     }
 }

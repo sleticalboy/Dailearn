@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityWheelRvBinding
 import com.sleticalboy.learning.rv.adapter.ItemAdapter
 
 /**
@@ -20,8 +21,9 @@ import com.sleticalboy.learning.rv.adapter.ItemAdapter
 class WheelRVActivity : BaseActivity() {
 
     private val mImagesId = arrayOf(
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher)
+        R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
+        R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher
+    )
 
     private var mRecyclerView: RecyclerView? = null
     private var mCurrentPos = Integer.MAX_VALUE shr 1
@@ -82,8 +84,9 @@ class WheelRVActivity : BaseActivity() {
         mRecyclerView!!.addOnScrollListener(MyOnScrollListener())
     }
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_wheel_rv
+    override fun layout(): View {
+        // R.layout.activity_wheel_rv
+        return ActivityWheelRvBinding.inflate(layoutInflater).root
     }
 
     private inner class MyOnTouchListener : View.OnTouchListener {

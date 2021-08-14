@@ -2,15 +2,22 @@ package com.sleticalboy.learning.bt
 
 import android.Manifest
 import android.util.Log
+import android.view.View
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
-import kotlinx.android.synthetic.main.activity_bluetooth_main.*
+import com.sleticalboy.learning.databinding.ActivityBluetoothMainBinding
 
 class BluetoothUI : BaseActivity() {
 
+    private var mBind: ActivityBluetoothMainBinding? = null
+
     override fun logTag(): String = "BluetoothUI"
 
-    override fun layoutResId(): Int = R.layout.activity_bluetooth_main
+    override fun layout(): View {
+        // R.layout.activity_bluetooth_main
+        mBind = ActivityBluetoothMainBinding.inflate(layoutInflater)
+        return mBind!!.root
+    }
 
     override fun requiredPermissions(): Array<String> {
         return arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -25,11 +32,11 @@ class BluetoothUI : BaseActivity() {
     }
 
     override fun initView() {
-        btCommon.setOnClickListener {
+        mBind!!.btCommon.setOnClickListener {
             // open common fragment
             showFragment(CommonBtFragment::class.java.name)
         }
-        ble.setOnClickListener {
+        mBind!!.ble.setOnClickListener {
             // open ble fragment
             showFragment(BleFragment::class.java.name)
         }
@@ -42,9 +49,7 @@ class BluetoothUI : BaseActivity() {
             f = supportFragmentManager.fragmentFactory.instantiate(classLoader, tag)
             transaction.replace(R.id.fragmentRoot, f, tag)
         } else {
-            if (f.isAdded) {
-                transaction.show(f)
-            }
+            if (f.isAdded) transaction.show(f)
         }
         transaction.commitAllowingStateLoss()
         supportFragmentManager.executePendingTransactions()

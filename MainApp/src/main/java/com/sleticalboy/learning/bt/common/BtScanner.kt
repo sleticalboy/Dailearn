@@ -18,6 +18,7 @@ class BtScanner(context: Context) {
 
     private val mContext: Context
     private var mCallback: Callback? = null
+    private var registered = false
 
     private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -43,7 +44,7 @@ class BtScanner(context: Context) {
         }
 
         private fun getDevice(intent: Intent): BluetoothDevice {
-            return intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE) as BluetoothDevice
+            return intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)!!
         }
     }
 
@@ -66,7 +67,7 @@ class BtScanner(context: Context) {
     fun destroy() {
         stopScan()
         mCallback = null
-        mContext.unregisterReceiver(mReceiver)
+        if (registered) mContext.unregisterReceiver(mReceiver)
     }
 
     interface Callback {
@@ -78,12 +79,13 @@ class BtScanner(context: Context) {
     }
 
     init {
+        mContext = context.applicationContext
         val filters = IntentFilter()
         filters.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
         filters.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
         filters.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         filters.addAction(BluetoothDevice.ACTION_FOUND)
-        context.registerReceiver(mReceiver, filters)
-        mContext = context.applicationContext
+        mContext.registerReceiver(mReceiver, filters)
+        registered = true
     }
 }

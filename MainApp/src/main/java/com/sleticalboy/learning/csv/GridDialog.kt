@@ -3,6 +3,7 @@ package com.sleticalboy.learning.csv
 import android.app.Dialog
 import android.util.Log
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -11,7 +12,7 @@ import android.widget.TextView
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseDialog
 import com.sleticalboy.learning.bean.AudioItem
-import kotlinx.android.synthetic.main.layout_grid_dialog.*
+import com.sleticalboy.learning.databinding.LayoutGridDialogBinding
 
 /**
  * Created on 20-9-3.
@@ -20,15 +21,20 @@ import kotlinx.android.synthetic.main.layout_grid_dialog.*
  */
 class GridDialog : BaseDialog() {
 
+    private var mBind: LayoutGridDialogBinding? = null
     private var mSelection: Int = 0
     private lateinit var mData: List<AudioItem>
 
     override fun logTag(): String = "GridDialog"
 
-    override fun layout(): Int = R.layout.layout_grid_dialog
+    override fun layout(inflater: LayoutInflater, parent: ViewGroup?): View {
+        // R.layout.layout_grid_dialog
+        mBind = LayoutGridDialogBinding.inflate(inflater, parent, false)
+        return mBind!!.root
+    }
 
     override fun initView(view: View) {
-        gridView.adapter = object : BaseAdapter() {
+        mBind!!.gridView.adapter = object : BaseAdapter() {
 
             override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
                 val itemView: View
@@ -59,21 +65,21 @@ class GridDialog : BaseDialog() {
 
             override fun getCount(): Int = mData.size
         }
-        gridView.setOnKeyListener(View.OnKeyListener { _, keyCode, event ->
+        mBind!!.gridView.setOnKeyListener(View.OnKeyListener { _, keyCode, event ->
             val left = keyCode == KeyEvent.KEYCODE_DPAD_LEFT
             val right = keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
             if ((left || right) && event.action == KeyEvent.ACTION_DOWN) {
-                val child = gridView.selectedView // getSelectedView()
-                val pos = gridView.selectedItemPosition // getSelectedItemPosition()
+                val child = mBind!!.gridView.selectedView // getSelectedView()
+                val pos = mBind!!.gridView.selectedItemPosition // getSelectedItemPosition()
                 // Log.d(logTag(), "onKey() -> down -> pos: $pos -> left: $left -> right: $right")
                 if (child != null && pos > 0 && pos < mData.size - 1) {
-                    if (left && pos % gridView.numColumns == 0) { // getNumColumns()
-                        gridView.setSelection(pos - 1)
+                    if (left && pos % mBind!!.gridView.numColumns == 0) { // getNumColumns()
+                        mBind!!.gridView.setSelection(pos - 1)
                         Log.d(logTag(), "onKey() -> left -> previous: ${pos - 1}")
                         return@OnKeyListener true
                     }
-                    if (right && pos % gridView.numColumns == gridView.numColumns - 1) {
-                        gridView.setSelection(pos + 1)
+                    if (right && pos % mBind!!.gridView.numColumns == mBind!!.gridView.numColumns - 1) {
+                        mBind!!.gridView.setSelection(pos + 1)
                         Log.d(logTag(), "onKey() -> right -> next: ${pos + 1}")
                         return@OnKeyListener true
                     }
@@ -82,7 +88,7 @@ class GridDialog : BaseDialog() {
             false
         })
 
-        gridView.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        mBind!!.gridView.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
 
             private var mView: View? = null
 
@@ -105,11 +111,11 @@ class GridDialog : BaseDialog() {
                 // do nothing
             }
         }
-        gridView.post {
-            gridView.setSelection(mSelection)
-            val params = gridView.layoutParams
+        mBind!!.gridView.post {
+            mBind!!.gridView.setSelection(mSelection)
+            val params = mBind!!.gridView.layoutParams
             params.height = (resources.displayMetrics.heightPixels * 0.4).toInt()
-            gridView.layoutParams = params
+            mBind!!.gridView.layoutParams = params
         }
     }
 

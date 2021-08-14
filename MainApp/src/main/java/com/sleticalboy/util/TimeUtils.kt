@@ -62,7 +62,7 @@ object TimeUtils {
             try {
                 DEFAULT_FORMAT.parse(timeStr).time
             } catch (e: ParseException) {
-                Log.d("TimeUtils", e.message)
+                Log.d("TimeUtils", "${e.message}")
                 0L
             }
         } else 0L

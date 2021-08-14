@@ -19,6 +19,7 @@ import android.widget.Toast
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.accounts.Constants
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityLoginBinding
 
 class AuthenticatorActivity : BaseActivity(), Constants {
 
@@ -102,8 +103,10 @@ class AuthenticatorActivity : BaseActivity(), Constants {
         finish()
     }
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_login
+    override fun layout(): View {
+        // return R.layout.activity_login
+        val bind = ActivityLoginBinding.inflate(layoutInflater)
+        return bind.root
     }
 
     override fun finish() {

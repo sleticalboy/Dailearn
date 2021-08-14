@@ -14,8 +14,8 @@ import com.sleticalboy.learning.base.BaseActivity
 import com.sleticalboy.learning.bean.ModuleItem
 import com.sleticalboy.learning.data.DataEngine
 import com.sleticalboy.learning.data.Result
+import com.sleticalboy.learning.databinding.ActivityIndexBinding
 import io.reactivex.schedulers.Schedulers
-import kotlinx.android.synthetic.main.activity_index.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -23,9 +23,14 @@ import kotlin.concurrent.thread
 
 class IndexActivity : BaseActivity() {
 
-    val dataSet = arrayListOf<ModuleItem>()
+    private val dataSet = arrayListOf<ModuleItem>()
+    private var mBind: ActivityIndexBinding? = null
 
-    override fun layoutResId(): Int = R.layout.activity_index
+    override fun layout(): View {
+        // R.layout.activity_index
+        mBind = ActivityIndexBinding.inflate(layoutInflater)
+        return mBind!!.root
+    }
 
     override fun initView() {
         val adapter = DataAdapter()
@@ -47,7 +52,7 @@ class IndexActivity : BaseActivity() {
                 }
             }
         })
-        recyclerView.adapter = adapter
+        mBind!!.recyclerView.adapter = adapter
     }
 
     override fun initData() {
@@ -73,9 +78,7 @@ class IndexActivity : BaseActivity() {
     private fun baidu() {
         thread {
             val demo = RetrofitClient.get().create(IDemo::class.java)
-            val result = demo.visit("text/html")
-                    .execute()
-                    .body()
+            val result = demo.visit("text/html").execute().body()
             Log.v(logTag(), "retrofit result: $result")
 
             demo.visit().subscribeOn(Schedulers.io())
@@ -95,6 +98,11 @@ class IndexActivity : BaseActivity() {
     }
 
     override fun logTag(): String = "IndexActivity"
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mBind = null
+    }
 
     inner class DataAdapter : RecyclerView.Adapter<ItemHolder>() {
 

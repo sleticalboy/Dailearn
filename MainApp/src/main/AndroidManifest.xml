@@ -96,6 +96,8 @@
         <!--activity for bluetooth-->
         <activity android:name="com.sleticalboy.learning.bt.BluetoothUI" />
         <activity android:name="com.sleticalboy.learning.others.NotificationsUI" />
+        <activity android:name=".components.ProviderPractise" />
+        <activity android:name=".dialogs.DialogsUI" />
 
         <provider
             android:name="com.sleticalboy.learning.accounts.ContactsProvider"

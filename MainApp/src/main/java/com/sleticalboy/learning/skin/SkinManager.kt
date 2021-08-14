@@ -19,10 +19,6 @@ class SkinManager {
     private var mResource: Resources? = null
     private var mPackageName: String? = null
 
-    private object SingletonHolder {
-        val manager = SkinManager()
-    }
-
     fun init(context: Context) {
         get().mContext = context
     }
@@ -38,20 +34,16 @@ class SkinManager {
         mResource = Resources(assets, mContext.resources.displayMetrics, mContext.resources.configuration)
 
         mPackageName = mContext.packageManager.getPackageArchiveInfo(url,
-                PackageManager.GET_ACTIVITIES).packageName
+                PackageManager.GET_ACTIVITIES)!!.packageName
         Log.d(TAG, "get package name by PackageManager: $mPackageName")
     }
 
     fun getColor(@ColorRes oldRes: Int): Int {
-        if (mResource == null) {
-            return ContextCompat.getColor(mContext, oldRes)
-        }
+        if (mResource == null) return ContextCompat.getColor(mContext, oldRes)
         val name = mContext.resources.getResourceEntryName(oldRes)
         val defType = mContext.resources.getResourceTypeName(oldRes)
         val id = mResource!!.getIdentifier(name, defType, mPackageName)
-        if (id == 0) {
-            return ContextCompat.getColor(mContext, oldRes)
-        }
+        if (id == 0) return ContextCompat.getColor(mContext, oldRes)
         return mResource!!.getColor(id)
     }
 
@@ -59,6 +51,6 @@ class SkinManager {
 
         const val TAG = "SkinManager"
 
-        fun get(): SkinManager = SingletonHolder.manager
+        fun get(): SkinManager = SkinManager()
     }
 }

@@ -12,6 +12,7 @@ import com.google.android.material.appbar.AppBarLayout.OnOffsetChangedListener
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
 import com.sleticalboy.learning.csv.HeaderActivity.RecyclerAdapter.MyViewHolder
+import com.sleticalboy.learning.databinding.ActivityHeaderBinding
 import java.util.*
 
 /**
@@ -22,8 +23,9 @@ import java.util.*
  */
 class HeaderActivity : BaseActivity() {
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_header
+    override fun layout(): View {
+        // R.layout.activity_header
+        return ActivityHeaderBinding.inflate(layoutInflater).root
     }
 
     override fun initView() {

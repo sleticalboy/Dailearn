@@ -1,10 +1,10 @@
 package com.sleticalboy.learning.csv
 
 import android.util.Log
-import com.sleticalboy.learning.R
+import android.view.View
 import com.sleticalboy.learning.base.BaseActivity
 import com.sleticalboy.learning.bean.AudioItem
-import kotlinx.android.synthetic.main.activity_grid_view.*
+import com.sleticalboy.learning.databinding.ActivityGridViewBinding
 
 /**
  * Created on 20-9-1.
@@ -13,6 +13,7 @@ import kotlinx.android.synthetic.main.activity_grid_view.*
  */
 class GridViewActivity : BaseActivity() {
 
+    private var mBind: ActivityGridViewBinding? = null
     private var mData: ArrayList<AudioItem>? = null
     private var mSelection: Int = -1
 
@@ -40,12 +41,16 @@ class GridViewActivity : BaseActivity() {
         Log.d(logTag(), "initData() selection: $mSelection, data size: ${mData!!.size}")
     }
 
-    override fun layoutResId(): Int = R.layout.activity_grid_view
+    override fun layout(): View {
+        // R.layout.activity_grid_view
+        mBind = ActivityGridViewBinding.inflate(layoutInflater)
+        return mBind!!.root
+    }
 
     override fun logTag(): String = "GridViewActivity"
 
     override fun initView() {
-        btnShowDialog.setOnClickListener {
+        mBind!!.btnShowDialog.setOnClickListener {
             showGridDialog()
         }
     }

@@ -1,6 +1,5 @@
 package com.sleticalboy.http
 
-import android.util.Log
 import okhttp3.Headers
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -60,10 +59,9 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
         val requestBody = request.body()
         val hasRequestBody = requestBody != null
         val connection = chain.connection()
-        var requestStartMessage = ("--> " + request.method() + ' ' + request.url()
-                + if (connection != null) " " + connection.protocol() else "")
+        var requestStartMessage = ("--> ${request.method()} ${request.url()}${if (connection != null) " ${connection.protocol()}" else ""}")
         if (!logHeaders && hasRequestBody) {
-            requestStartMessage += " (" + requestBody!!.contentLength() + "-byte body)"
+            requestStartMessage += " (${requestBody!!.contentLength()}-byte body)"
         }
         logger.log(requestStartMessage)
         if (logHeaders) {
@@ -71,10 +69,10 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
                 // Request body headers are only present when installed as a network interceptor. Force
                 // them to be included (when available) so there values are known.
                 if (requestBody!!.contentType() != null) {
-                    logger.log("Content-Type: " + requestBody.contentType())
+                    logger.log("Content-Type: ${requestBody.contentType()}")
                 }
                 if (requestBody.contentLength() != -1L) {
-                    logger.log("Content-Length: " + requestBody.contentLength())
+                    logger.log("Content-Length: ${requestBody.contentLength()}")
                 }
             }
             val headers = request.headers()
@@ -84,14 +82,14 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
                 val name = headers.name(i)
                 // Skip headers from the request body as they are explicitly logged above.
                 if (!"Content-Type".equals(name, ignoreCase = true) && !"Content-Length".equals(name, ignoreCase = true)) {
-                    logger.log(name + ": " + headers.value(i))
+                    logger.log("$name: ${headers.value(i)}")
                 }
                 i++
             }
             if (!logBody || !hasRequestBody) {
-                logger.log("--> END " + request.method())
+                logger.log("--> END ${request.method()}")
             } else if (bodyEncoded(request.headers())) {
-                logger.log("--> END " + request.method() + " (encoded body omitted)")
+                logger.log("--> END ${request.method()} (encoded body omitted)")
             } else {
                 val buffer = Buffer()
                 requestBody!!.writeTo(buffer)
@@ -100,11 +98,9 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
                 if (contentType != null) charset = contentType.charset(UTF8)
                 if (isPlaintext(buffer)) {
                     logger.log(buffer.readString(charset))
-                    logger.log("--> END " + request.method()
-                            + " (" + requestBody.contentLength() + "-byte body)")
+                    logger.log("--> END ${request.method()} (${requestBody.contentLength()}-byte body)")
                 } else {
-                    logger.log("--> END " + request.method() + " (binary "
-                            + requestBody.contentLength() + "-byte body omitted)")
+                    logger.log("--> END ${request.method()} (binary ${requestBody.contentLength()}-byte body omitted)")
                 }
             }
         }
@@ -143,13 +139,13 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
                 val contentType = responseBody.contentType()
                 if (contentType != null) charset = contentType.charset(UTF8)
                 if (!isPlaintext(buffer)) {
-                    logger.log("<-- END HTTP (binary " + buffer.size() + "-byte body omitted)")
+                    logger.log("<-- END HTTP (binary ${buffer.size}-byte body omitted)")
                     return response
                 }
                 if (contentLength != 0L) {
                     logger.log(buffer.clone().readString(charset))
                 }
-                logger.log("<-- END HTTP (" + buffer.size() + "-byte body)")
+                logger.log("<-- END HTTP (${buffer.size}-byte body)")
             }
         }
         return response
@@ -162,7 +158,7 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
     private fun isPlaintext(buffer: Buffer): Boolean {
         return try {
             val prefix = Buffer()
-            val byteCount = if (buffer.size() < 64) buffer.size() else 64
+            val byteCount = if (buffer.size < 64) buffer.size else 64
             buffer.copyTo(prefix, 0, byteCount)
             for (i in 0..15) {
                 if (prefix.exhausted()) break
@@ -256,7 +252,7 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
              */
             val logger: Logger = object : Logger {
                 override fun log(message: String?) {
-                    Log.v("OkHttpLog", "" + message)
+                    Platform.get().log(Platform.INFO, message, null)
                 }
             }
         }

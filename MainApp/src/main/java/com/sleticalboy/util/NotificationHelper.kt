@@ -1,11 +1,11 @@
 package com.sleticalboy.util
 
+import android.annotation.TargetApi
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Color
 import android.os.Build
-import androidx.annotation.RequiresApi
 
 /**
  * Created on 20-4-2.
@@ -20,18 +20,16 @@ object NotificationHelper {
 
     fun createAllChannels(context: Context) {
         ensureManager(context)
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return
-        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         sManager!!.createNotificationChannels(listOf(commonChannel(), messageChannel()))
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @TargetApi(Build.VERSION_CODES.O)
     private fun commonChannel(): NotificationChannel {
         return NotificationChannel(COMMON_TAG, COMMON_TAG, NotificationManager.IMPORTANCE_DEFAULT)
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @TargetApi(Build.VERSION_CODES.O)
     private fun messageChannel(): NotificationChannel {
         val channel = NotificationChannel(SPECIAL_TAG, SPECIAL_TAG,
                 NotificationManager.IMPORTANCE_DEFAULT)
@@ -41,9 +39,7 @@ object NotificationHelper {
     }
 
     private fun ensureManager(context: Context) {
-        if (sManager != null) {
-            return
-        }
+        if (sManager != null) return
         sManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     }
 }

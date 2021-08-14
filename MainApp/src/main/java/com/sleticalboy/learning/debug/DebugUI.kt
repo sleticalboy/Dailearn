@@ -1,17 +1,23 @@
 package com.sleticalboy.learning.debug
 
-import com.sleticalboy.learning.R
+import android.view.View
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityDebugBinding
 import com.sleticalboy.util.DebugUtils
-import kotlinx.android.synthetic.main.activity_debug.*
 
 class DebugUI : BaseActivity() {
 
-    override fun layoutResId(): Int = R.layout.activity_debug
+    private var mBind: ActivityDebugBinding? = null
+
+    override fun layout(): View {
+        // R.layout.activity_debug
+        mBind = ActivityDebugBinding.inflate(layoutInflater)
+        return mBind!!.root
+    }
 
     override fun initView() {
-        openSettings.setOnClickListener { DebugUtils.openSettings(application) }
-        debugLayout.setOnCheckedChangeListener { _, isChecked ->
+        mBind!!.openSettings.setOnClickListener { DebugUtils.openSettings(application) }
+        mBind!!.debugLayout.setOnCheckedChangeListener { _, isChecked ->
             DebugUtils.debugLayout(isChecked)
         }
     }

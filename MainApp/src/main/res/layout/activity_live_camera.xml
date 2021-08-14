@@ -9,13 +9,13 @@
         android:layout_height="match_parent" />
 
     <TextureView
-        android:id="@+id/mLiveView"
+        android:id="@+id/live_View"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center_horizontal" />
 
     <FrameLayout
-        android:id="@+id/mFocusIcon"
+        android:id="@+id/focus_Icon"
         android:layout_width="120dp"
         android:layout_height="120dp"
         android:visibility="gone">
@@ -35,7 +35,7 @@
     </FrameLayout>
 
     <ImageButton
-        android:id="@+id/mTakePicBtn"
+        android:id="@+id/btn_take_pic"
         android:layout_width="80dp"
         android:layout_height="80dp"
         android:layout_gravity="bottom|center_horizontal"

@@ -48,9 +48,7 @@ object DebugUtils {
     fun debugLayout(open: Boolean) {
         // show layout bound
         // final boolean isEnabled = SystemProperties.getBoolean("debug.layout", false/*default*/);
-        if (sIsWorking) {
-            return
-        }
+        if (sIsWorking) return
         sIsWorking = true
         try {
             ensure()

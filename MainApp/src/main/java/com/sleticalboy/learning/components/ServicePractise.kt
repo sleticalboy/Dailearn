@@ -6,48 +6,53 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.util.Log
-import com.sleticalboy.learning.R
+import android.view.View
 import com.sleticalboy.learning.base.BaseActivity
 import com.sleticalboy.learning.components.service.LocalService
-import kotlinx.android.synthetic.main.activity_service.*
+import com.sleticalboy.learning.databinding.ActivityServiceBinding
 
 class ServicePractise : BaseActivity() {
 
+    private var mBind: ActivityServiceBinding? = null
     private var mService: LocalService? = null
 
     private val connection = object : ServiceConnection {
 
         override fun onServiceDisconnected(name: ComponentName?) {
-            tvBindProgress.text = "Disconnected"
+            mBind!!.tvBindProgress.text = "Disconnected"
             mService = null
         }
 
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            tvBindProgress.text = "Connected"
+            mBind!!.tvBindProgress.text = "Connected"
             mService = (service as LocalService.LocalBinder).getService()
         }
     }
 
-    override fun layoutResId(): Int = R.layout.activity_service
+    override fun layout(): View {
+        // R.layout.activity_service
+        mBind = ActivityServiceBinding.inflate(layoutInflater)
+        return mBind!!.root
+    }
 
     override fun initView() {
-        btnStart.setOnClickListener {
+        mBind!!.btnStart.setOnClickListener {
             Log.d(logTag(), "start service")
         }
-        btnStop.setOnClickListener {
+        mBind!!.btnStop.setOnClickListener {
             Log.d(logTag(), "stop service")
         }
 
-        tvBindProgress.text = "Idle"
-        btnBind.setOnClickListener {
-            tvBindProgress.text = "Connecting..."
+        mBind!!.tvBindProgress.text = "Idle"
+        mBind!!.btnBind.setOnClickListener {
+            mBind!!.tvBindProgress.text = "Connecting..."
             doBindService()
         }
-        btnUnbind.setOnClickListener {
-            tvBindProgress.text = "Disconnecting..."
+        mBind!!.btnUnbind.setOnClickListener {
+            mBind!!.tvBindProgress.text = "Disconnecting..."
             doUnbindService()
         }
-        serviceFoo.setOnClickListener {
+        mBind!!.serviceFoo.setOnClickListener {
         }
     }
 

@@ -1,8 +1,8 @@
 package com.sleticalboy.learning.csv
 
-import com.sleticalboy.learning.R
+import android.view.View
 import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.weight.AutoSwitchView
+import com.sleticalboy.learning.databinding.ActivityAutoSwitchBinding
 import java.util.*
 
 /**
@@ -12,14 +12,15 @@ import java.util.*
  */
 class AutoSwitchUI : BaseActivity() {
 
-    private var autoSwitchView: AutoSwitchView? = null
+    private var mBind: ActivityAutoSwitchBinding? = null
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_auto_switch
+    override fun layout(): View {
+        // return R.layout.activity_auto_switch
+        mBind = ActivityAutoSwitchBinding.inflate(layoutInflater)
+        return mBind!!.root
     }
 
     override fun initView() {
-        autoSwitchView = findViewById(R.id.auto_switch_view)
     }
 
     override fun initData() {
@@ -27,18 +28,18 @@ class AutoSwitchUI : BaseActivity() {
         for (i in 0..30) {
             textList.add("第 $i 条数据")
         }
-        autoSwitchView!!.setTextList(textList)
-        autoSwitchView!!.setAnimTime(300)
-        autoSwitchView!!.setTextStillTime(3000)
+        mBind!!.autoSwitchView.setTextList(textList)
+        mBind!!.autoSwitchView.setAnimTime(300)
+        mBind!!.autoSwitchView.setTextStillTime(3000)
     }
 
     override fun onPause() {
         super.onPause()
-        autoSwitchView!!.stop()
+        mBind!!.autoSwitchView.stop()
     }
 
     override fun onResume() {
         super.onResume()
-        autoSwitchView!!.start()
+        mBind!!.autoSwitchView.start()
     }
 }

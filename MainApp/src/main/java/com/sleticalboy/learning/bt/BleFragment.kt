@@ -16,7 +16,7 @@ import com.sleticalboy.learning.base.BaseListFragment
 import com.sleticalboy.learning.base.BaseRVAdapter
 import com.sleticalboy.learning.base.BaseRVHolder
 import com.sleticalboy.learning.bt.ble.*
-import kotlinx.android.synthetic.main.bt_common_header.*
+import com.sleticalboy.learning.databinding.BtCommonHeaderBinding
 
 /**
  * Created on 20-8-18.
@@ -34,6 +34,7 @@ class BleFragment : BaseListFragment<BleScanner.Result>() {
 
         override fun onServiceDisconnected(name: ComponentName) {
             Log.d(logTag(), "onServiceDisconnected() name:$name")
+            mService?.release()
             mService = null
         }
     }
@@ -47,15 +48,13 @@ class BleFragment : BaseListFragment<BleScanner.Result>() {
     override fun createAdapter(): BaseRVAdapter<BleScanner.Result> = DevicesAdapter()
 
     override fun initHeader(headerContainer: FrameLayout) {
-        layoutInflater.inflate(R.layout.bt_common_header, headerContainer, true)
-        startScan.setOnClickListener { startBtScan() }
-        stopScan.setOnClickListener { stopBtScan() }
+        val bind = BtCommonHeaderBinding.inflate(layoutInflater, headerContainer, true)
+        bind.startScan.setOnClickListener { startBtScan() }
+        bind.stopScan.setOnClickListener { stopBtScan() }
     }
 
     private fun startBtScan() {
-        if (mService == null) {
-            return
-        }
+        if (mService == null) return
         val request = BleScanner.Request()
         request.mCallback = object : BleScanner.Callback() {
             override fun onScanResult(result: BleScanner.Result) {

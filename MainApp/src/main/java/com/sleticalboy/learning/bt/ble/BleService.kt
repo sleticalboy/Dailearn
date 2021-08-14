@@ -48,9 +48,7 @@ class BleService : Service(), Handler.Callback {
     }
 
     override fun onBind(intent: Intent): IBinder {
-        if (mBinder == null) {
-            mBinder = LeBinder(this)
-        }
+        if (mBinder == null) mBinder = LeBinder(this)
         return mBinder!!
     }
 
@@ -58,6 +56,7 @@ class BleService : Service(), Handler.Callback {
         super.onDestroy()
         unbindHidProxy()
         unregisterBtReceiver()
+        mBinder = null
     }
 
     private fun bindHidProxy() {
@@ -106,31 +105,35 @@ class BleService : Service(), Handler.Callback {
         return true
     }
 
-    inner class LeBinder(private val mService: BleService) : Binder() {
+    class LeBinder(private var mService: BleService?) : Binder() {
 
         fun startScan(request: BleScanner.Request?) {
             val msg = Message.obtain()
             msg.obj = request
             msg.what = MSG_START_SCAN
-            handler?.sendMessage(msg)
+            mService?.handler?.sendMessage(msg)
         }
 
         fun stopScan() {
-            handler?.sendEmptyMessage(MSG_STOP_SCAN)
+            mService?.handler?.sendEmptyMessage(MSG_STOP_SCAN)
         }
 
         fun connect(device: BluetoothDevice, callback: IConnectCallback) {
             val msg = Message.obtain()
             msg.obj = Connection(device, callback)
             msg.what = MSG_START_CONNECT
-            handler?.sendMessage(msg)
+            mService?.handler?.sendMessage(msg)
         }
 
         fun cancel(device: BluetoothDevice?) {
             val msg = Message.obtain()
             msg.what = MSG_CANCEL_CONNECT
             msg.obj = device
-            handler?.sendMessage(msg)
+            mService?.handler?.sendMessage(msg)
+        }
+
+        fun release() {
+            mService = null
         }
     }
 

@@ -6,6 +6,7 @@ import androidx.core.app.ActivityOptionsCompat
 import androidx.fragment.app.Fragment
 import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseActivity
+import com.sleticalboy.learning.databinding.ActivityTransitionBinding
 
 /**
  * Created by AS 3.3 on 19-1-6.
@@ -14,8 +15,9 @@ import com.sleticalboy.learning.base.BaseActivity
  */
 class TransitionUI : BaseActivity() {
 
-    override fun layoutResId(): Int {
-        return R.layout.activity_transition
+    override fun layout(): View {
+        // R.layout.activity_transition
+        return ActivityTransitionBinding.inflate(layoutInflater).root
     }
 
     override fun initView() {
@@ -40,17 +42,18 @@ class TransitionUI : BaseActivity() {
         // view.getGlobalVisibleRect(rect);
         // intent.setSourceBounds(rect);
         intent.putExtra("place_holder", "place_holder")
-        val options = ActivityOptionsCompat.makeSceneTransitionAnimation(this, view, "share_element_test")
+        val options =
+            ActivityOptionsCompat.makeSceneTransitionAnimation(this, view, "share_element_test")
         startActivity(intent, options.toBundle())
         overridePendingTransition(0, 0)
     }
 
     private fun jump(sharedElement: View) {
         supportFragmentManager
-                .beginTransaction()
-                .addSharedElement(sharedElement, "shared_element_test")
-                .replace(R.id.container, Fragment()/*placeholder*/)
-                .addToBackStack(null)
-                .commit()
+            .beginTransaction()
+            .addSharedElement(sharedElement, "shared_element_test")
+            .replace(R.id.container, Fragment()/*placeholder*/)
+            .addToBackStack(null)
+            .commit()
     }
 }

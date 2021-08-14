@@ -2,8 +2,8 @@ package com.sleticalboy.learning.base
 
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.tbruyelle.rxpermissions2.RxPermissions
 
 /**
  * Created on 18-2-1.
@@ -14,13 +14,11 @@ import com.tbruyelle.rxpermissions2.RxPermissions
 abstract class BaseActivity : AppCompatActivity() {
 
     protected val requestCode = 0x12
-    protected var rxPerm: RxPermissions? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        rxPerm = RxPermissions(this)
         prepareWork(savedInstanceState)
-        setContentView(layoutResId())
+        setContentView(layout())
         initView()
         initData()
     }
@@ -29,9 +27,7 @@ abstract class BaseActivity : AppCompatActivity() {
         super.onStart()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val perms = requiredPermissions()
-            if (perms.isEmpty()) {
-                return
-            }
+            if (perms.isEmpty()) return
             requestPermissions(perms, this.requestCode)
         }
     }
@@ -40,7 +36,7 @@ abstract class BaseActivity : AppCompatActivity() {
         return arrayOf()
     }
 
-    protected abstract fun layoutResId(): Int
+    protected abstract fun layout(): View
 
     protected abstract fun initView()
 
