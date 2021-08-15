@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.fragment.app.DialogFragment
 
 abstract class BaseDialog : DialogFragment() {
@@ -31,10 +32,11 @@ abstract class BaseDialog : DialogFragment() {
     override fun onStart() {
         super.onStart()
         if (fullScreen()) {
-            // 移除四周 padding
+            // 移除四周 padding，使全屏
             dialog!!.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            // 设置全屏
-            dialog!!.window?.setLayout(-1, -1)
+            // 设置宽高
+            dialog!!.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT)
         }
     }
 

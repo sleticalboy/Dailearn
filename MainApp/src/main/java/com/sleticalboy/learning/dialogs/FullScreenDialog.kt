@@ -3,6 +3,7 @@ package com.sleticalboy.learning.dialogs
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.sleticalboy.learning.R
 import com.sleticalboy.learning.base.BaseDialog
 import com.sleticalboy.learning.databinding.DialogFullScreenBinding
 
@@ -14,6 +15,10 @@ class FullScreenDialog : BaseDialog() {
 
     private var bind: DialogFullScreenBinding? = null
 
+    override fun getTheme(): Int {
+        return R.style.DialogFullScreen
+    }
+
     override fun layout(inflater: LayoutInflater, parent: ViewGroup?): View {
         bind = DialogFullScreenBinding.inflate(inflater, parent, false)
         return bind!!.root
@@ -21,8 +26,6 @@ class FullScreenDialog : BaseDialog() {
 
     override fun initView(view: View) {
     }
-
-    override fun fullScreen(): Boolean = true
 
     companion object {
         var TAG = "FullScreenDialog"
