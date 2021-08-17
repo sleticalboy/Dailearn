@@ -1,5 +1,7 @@
 package com.sleticalboy.http;
 
+import androidx.annotation.NonNull;
+
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -24,21 +26,24 @@ public class ByteArrayCallAdapterFactory extends CallAdapter.Factory {
     }
 
     @Override
-    public CallAdapter<?, ?> get(Type returnType, Annotation[] annotations, Retrofit retrofit) {
+    public CallAdapter<?, ?> get(@NonNull Type returnType, @NonNull Annotation[] annotations,
+                                 @NonNull Retrofit retrofit) {
         Class<?> rawType = getRawType(returnType);
         if (rawType != byte[].class) return null;
         return new CallAdapter<ResponseBody, byte[]>() {
+            @NonNull
             @Override
             public Type responseType() {
                 return byte[].class;
             }
 
+            @NonNull
             @Override
-            public byte[] adapt(Call<ResponseBody> call) {
+            public byte[] adapt(@NonNull Call<ResponseBody> call) {
                 try {
                     ResponseBody body = call.execute().body();
-                    if (body != null) body.bytes();
-                } catch (IOException e) {
+                    if (body != null) return body.bytes();
+                } catch (IOException ignored) {
                 }
                 return new byte[0];
             }

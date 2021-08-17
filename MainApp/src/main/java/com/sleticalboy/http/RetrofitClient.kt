@@ -23,7 +23,8 @@ class RetrofitClient private constructor() {
     }
 
     companion object {
-        fun get(): RetrofitClient = RetrofitClient()
+        private val retrofitClient = RetrofitClient()
+        fun get(): RetrofitClient = retrofitClient
     }
 
     init {
