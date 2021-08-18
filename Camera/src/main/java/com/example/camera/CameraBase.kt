@@ -4,23 +4,21 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.PixelFormat
 import android.hardware.Camera
-import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
-import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.example.camera.compat.ICamera
 import com.example.camera.databinding.CameraBaseBinding
-import java.lang.IllegalArgumentException
 
 abstract class CameraBase : AppCompatActivity() {
 
     protected val logTag: String = javaClass.simpleName
     private var mGranted = false
-    private var mBinding: CameraBaseBinding? = null
+    protected var mBinding: CameraBaseBinding? = null
+    private var mView: View? = null
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,17 +38,9 @@ abstract class CameraBase : AppCompatActivity() {
 
     abstract fun getSurfaceView(): View
 
-    private fun initView() {
-        val surfaceView = getSurfaceView()
-        mBinding!!.root.addView(surfaceView, 0, ConstraintLayout.LayoutParams(-1, -1))
-        // translucent半透明 transparent透明
-        if (surfaceView is SurfaceView) {
-            surfaceView.holder.setFormat(PixelFormat.TRANSPARENT)
-        } else if (surfaceView is TextureView) {
-            //
-        } else {
-            throw IllegalArgumentException("wrong surface view")
-        }
+    protected open fun initView() {
+
+        updatePreviewView(getSurfaceView())
 
         // set listeners
         mBinding!!.takeBtn.setOnClickListener {
@@ -58,13 +48,6 @@ abstract class CameraBase : AppCompatActivity() {
                 override fun onTaken(data: ByteArray, camera: ICamera) {
                 }
             })
-        }
-        surfaceView.setOnTouchListener { _: View?, event: MotionEvent? ->
-            if (CameraCompat.get().getId() == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                return@setOnTouchListener gestureDetector.onTouchEvent(event)
-            } else {
-                return@setOnTouchListener false
-            }
         }
         mBinding!!.flashIv.setOnClickListener {
             CameraCompat.get().setFlashMode(object : ICamera.FlashModeChooser {
@@ -92,6 +75,32 @@ abstract class CameraBase : AppCompatActivity() {
             })
         }
         mBinding!!.swichCameraIv.setOnClickListener { changeCamera() }
+    }
+
+    protected fun updatePreviewView(surfaceView: View, restart: Boolean = false) {
+        if (mView == surfaceView) return
+        if (surfaceView.parent != null) {
+            (surfaceView.parent as ViewGroup).removeView(surfaceView)
+        }
+        mBinding!!.root.removeView(mView)
+        mBinding!!.root.addView(surfaceView, 0, ConstraintLayout.LayoutParams(-1, -1))
+        // translucent半透明 transparent透明
+        if (surfaceView is SurfaceView) {
+            surfaceView.holder.setFormat(PixelFormat.TRANSPARENT)
+        } else if (surfaceView is TextureView) {
+            //
+        } else {
+            throw IllegalArgumentException("wrong surface view")
+        }
+        surfaceView.setOnTouchListener { _: View?, event: MotionEvent? ->
+            if (CameraCompat.get().getId() == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                return@setOnTouchListener gestureDetector.onTouchEvent(event)
+            } else {
+                return@setOnTouchListener false
+            }
+        }
+        mView = surfaceView
+        if (restart) stopPreview()
     }
 
     override fun onStart() {
@@ -188,11 +197,10 @@ abstract class CameraBase : AppCompatActivity() {
 
     protected fun startPreview() {
         if (!mGranted) return
-        val surfaceView = getSurfaceView()
-        if (surfaceView is SurfaceView) {
-            CameraCompat.get().startPreview(surfaceView.holder)
-        } else if (surfaceView is TextureView) {
-            CameraCompat.get().startPreview(surfaceView)
+        if (mView is SurfaceView) {
+            CameraCompat.get().startPreview((mView as SurfaceView).holder)
+        } else if (mView is TextureView) {
+            CameraCompat.get().startPreview(mView)
         }
     }
 

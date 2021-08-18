@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Camera 1</string>
+    <string name="use_surface_view">use surface view</string>
+    <string name="use_texture_view">use texture view</string>
 </resources>
