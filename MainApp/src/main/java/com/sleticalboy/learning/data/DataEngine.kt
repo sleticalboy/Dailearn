@@ -19,10 +19,8 @@ class DataEngine private constructor() {
 
     companion object {
 
-        private var sDataEngine: DataEngine? = null
-        fun get(): DataEngine {
-            if (sDataEngine == null) sDataEngine = DataEngine()
-            return sDataEngine as DataEngine
-        }
+        private val sDataEngine = DataEngine()
+
+        fun get(): DataEngine = sDataEngine
     }
 }

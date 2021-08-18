@@ -16,7 +16,9 @@ import androidx.recyclerview.widget.RecyclerView.Recycler
  * @description
  */
 class MyLinearLayoutManager(context: Context?) : LinearLayoutManager(context, HORIZONTAL, false) {
+
     private val mMeasuredDimension = IntArray(2)
+
     override fun onMeasure(recycler: Recycler, state: RecyclerView.State,
                            widthSpec: Int, heightSpec: Int) {
         val widthMode = MeasureSpec.getMode(widthSpec)
@@ -58,16 +60,14 @@ class MyLinearLayoutManager(context: Context?) : LinearLayoutManager(context, HO
     private fun measureScrapChild(recycler: Recycler, position: Int, widthSpec: Int,
                                   heightSpec: Int, measuredDimension: IntArray) {
         val view = recycler.getViewForPosition(position)
-        if (view != null) {
-            val p = view.layoutParams as RecyclerView.LayoutParams
-            val childWidthSpec = ViewGroup.getChildMeasureSpec(widthSpec,
-                    paddingLeft + paddingRight, p.width)
-            val childHeightSpec = ViewGroup.getChildMeasureSpec(heightSpec,
-                    paddingTop + paddingBottom, p.height)
-            view.measure(childWidthSpec, childHeightSpec)
-            measuredDimension[0] = view.measuredWidth + p.leftMargin + p.rightMargin
-            measuredDimension[1] = view.measuredHeight + p.bottomMargin + p.topMargin
-            recycler.recycleView(view)
-        }
+        val p = view.layoutParams as RecyclerView.LayoutParams
+        val childWidthSpec = ViewGroup.getChildMeasureSpec(widthSpec,
+                paddingLeft + paddingRight, p.width)
+        val childHeightSpec = ViewGroup.getChildMeasureSpec(heightSpec,
+                paddingTop + paddingBottom, p.height)
+        view.measure(childWidthSpec, childHeightSpec)
+        measuredDimension[0] = view.measuredWidth + p.leftMargin + p.rightMargin
+        measuredDimension[1] = view.measuredHeight + p.bottomMargin + p.topMargin
+        recycler.recycleView(view)
     }
 }

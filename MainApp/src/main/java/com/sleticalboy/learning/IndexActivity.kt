@@ -3,6 +3,7 @@ package com.sleticalboy.learning
 import android.content.Intent
 import android.graphics.Color
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -33,7 +34,7 @@ class IndexActivity : BaseActivity() {
     }
 
     override fun initView() {
-        val adapter = DataAdapter()
+        mBind!!.recyclerView.adapter = DataAdapter(dataSet)
         val start = System.currentTimeMillis()
         DataEngine.get().indexModel().getModuleSource().observe(this, {
             when (it) {
@@ -47,12 +48,11 @@ class IndexActivity : BaseActivity() {
                     Log.d(logTag(), "initView() load data success: $it")
                     dataSet.clear()
                     dataSet.addAll((it as Result.Success).getData())
-                    adapter.notifyDataSetChanged()
+                    mBind!!.recyclerView.adapter?.notifyItemRangeChanged(0, dataSet.size - 1)
                     Log.d(logTag(), "show UI cost: ${System.currentTimeMillis() - start} ms")
                 }
             }
         })
-        mBind!!.recyclerView.adapter = adapter
     }
 
     override fun initData() {
@@ -82,10 +82,10 @@ class IndexActivity : BaseActivity() {
             Log.v(logTag(), "retrofit result: $result")
 
             demo.visit().subscribeOn(Schedulers.io())
-                    .observeOn(Schedulers.io())
-                    .subscribe {
-                        Log.v(logTag(), "rxjava result: $it")
-                    }
+                .observeOn(Schedulers.io())
+                .subscribe {
+                    Log.v(logTag(), "rxjava result: $it")
+                }
 
             Log.v(logTag(), "list result: " + demo.list())
             val array = demo.byteArray()
@@ -104,7 +104,8 @@ class IndexActivity : BaseActivity() {
         mBind = null
     }
 
-    inner class DataAdapter : RecyclerView.Adapter<ItemHolder>() {
+    class DataAdapter(private val dataSet: ArrayList<ModuleItem>) :
+        RecyclerView.Adapter<ItemHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
             val itemView = TextView(parent.context)
@@ -112,22 +113,37 @@ class IndexActivity : BaseActivity() {
             return ItemHolder(itemView)
         }
 
-        override fun getItemCount(): Int = dataSet.size
+        override fun getItemCount(): Int {
+            return dataSet.size
+        }
 
         override fun onBindViewHolder(holder: ItemHolder, position: Int) {
             val item = dataSet[position]
             holder.textView.text = item.title
             holder.textView.setOnClickListener {
-                Log.d(logTag(), "item click with: ${item.clazz}")
-                startActivity(Intent(this@IndexActivity, item.clazz))
+                Log.d(TAG, "item click with: ${item.clazz}")
+                holder.itemView.context.startActivity(Intent(holder.itemView.context, item.clazz))
             }
-            holder.textView.setPadding(32, 16, 32, 16)
-            holder.textView.textSize = 24F
-            holder.textView.setTextColor(Color.BLUE)
         }
     }
 
     class ItemHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+
         val textView = itemView as TextView
+
+        init {
+            textView.gravity = Gravity.CENTER
+            textView.layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            textView.setPadding(32, 16, 32, 16)
+            textView.textSize = 24F
+            textView.setTextColor(Color.BLUE)
+        }
+    }
+
+    companion object {
+        private const val TAG = "IndexActivity"
     }
 }

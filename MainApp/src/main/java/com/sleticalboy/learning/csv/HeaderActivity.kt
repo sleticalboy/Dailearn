@@ -50,7 +50,7 @@ class HeaderActivity : BaseActivity() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
             return MyViewHolder(LayoutInflater.from(parent.context)
-                    .inflate(R.layout.item_recycler, parent, false))
+                    .inflate(R.layout.item_rv_text, parent, false))
         }
 
         override fun onBindViewHolder(holder: MyViewHolder, position: Int) {

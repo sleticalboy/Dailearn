@@ -19,10 +19,7 @@ import com.sleticalboy.learning.others.AlarmActivity
 import com.sleticalboy.learning.dialogs.DialogsUI
 import com.sleticalboy.learning.others.ImageConvertUI
 import com.sleticalboy.learning.others.NotificationsUI
-import com.sleticalboy.learning.rv.ClassifyActivity
-import com.sleticalboy.learning.rv.DecorationActivity
-import com.sleticalboy.learning.rv.PagerActivity
-import com.sleticalboy.learning.rv.WheelRVActivity
+import com.sleticalboy.learning.rv.*
 
 /**
  * Created on 20-3-30.
@@ -65,8 +62,9 @@ class IndexModel internal constructor() {
                 // RecyclerView
                 ModuleItem("RecyclerView 分类别显示", ClassifyActivity::class.java),
                 ModuleItem("RecyclerView 分页", PagerActivity::class.java),
-                ModuleItem("RecyclerView 添加 item 分割线 / 拖拽排序", DecorationActivity::class.java),
+                ModuleItem("RecyclerView 拖拽排序", DecorationActivity::class.java),
                 ModuleItem("RecyclerView 轮播", WheelRVActivity::class.java),
+                ModuleItem("RecyclerView 横竖嵌套", NestedRvActivity::class.java),
                 // notifications
                 ModuleItem("通知呼吸灯闪烁", NotificationsUI::class.java),
                 // dialogs
