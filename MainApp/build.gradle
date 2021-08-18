@@ -60,6 +60,8 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:$exif_interface")
     implementation("com.airbnb.android:lottie:$lottie_version")
 
+    //coroutines
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1"
     //debug版本
     debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
 }

@@ -17,6 +17,10 @@ import com.sleticalboy.learning.data.DataEngine
 import com.sleticalboy.learning.data.Result
 import com.sleticalboy.learning.databinding.ActivityIndexBinding
 import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -57,7 +61,23 @@ class IndexActivity : BaseActivity() {
 
     override fun initData() {
         // baidu()
-        github()
+        // github()
+        // coroutines()
+    }
+
+    private fun coroutines() {
+        runBlocking {
+            repeat(5) {
+                Log.d(TAG, "coroutines() called")
+                delay(500L)
+            }
+        }
+        val job = GlobalScope.launch {
+            delay(500L)
+            Log.d(TAG, "coroutines() called")
+        }
+        job.cancel()
+        // job.join()
     }
 
     private fun github() {
