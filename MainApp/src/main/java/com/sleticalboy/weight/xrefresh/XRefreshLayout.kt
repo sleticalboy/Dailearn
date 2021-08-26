@@ -3,16 +3,13 @@ package com.sleticalboy.weight.xrefresh
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.TypedArray
-import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
 import android.view.*
 import android.view.animation.DecelerateInterpolator
-import android.widget.AbsListView
 import android.widget.FrameLayout
 import android.widget.Scroller
-import androidx.core.view.ViewCompat
-import com.sleticalboy.util.UIUtils.dp2px
+import com.sleticalboy.util.UiUtils.dp2px
 import com.sleticalboy.weight.xrefresh.interfaces.IFooterView
 import com.sleticalboy.weight.xrefresh.interfaces.IHeaderView
 

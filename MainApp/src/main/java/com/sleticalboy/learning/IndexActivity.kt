@@ -16,6 +16,7 @@ import com.sleticalboy.learning.bean.ModuleItem
 import com.sleticalboy.learning.data.DataEngine
 import com.sleticalboy.learning.data.Result
 import com.sleticalboy.learning.databinding.ActivityIndexBinding
+import com.sleticalboy.learning.others.KeyboardHeightProvider
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -55,6 +56,11 @@ class IndexActivity : BaseActivity() {
                     mBind!!.recyclerView.adapter?.notifyItemRangeChanged(0, dataSet.size - 1)
                     Log.d(logTag(), "show UI cost: ${System.currentTimeMillis() - start} ms")
                 }
+            }
+        })
+        KeyboardHeightProvider.inject(this, object : KeyboardHeightProvider.HeightObserver {
+            override fun onHeightChanged(height: Int, orientation: Int) {
+                // 检测到软键盘弹出
             }
         })
     }

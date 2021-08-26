@@ -15,25 +15,19 @@ object ThreadHelper {
     private var sWorker: Handler? = null
 
     private fun ensureMain() {
-        if (sMain != null) {
-            return
-        }
+        if (sMain != null) return
         sMain = Handler(Looper.getMainLooper())
     }
 
     private fun ensureWorker() {
-        if (sWorker != null) {
-            return
-        }
+        if (sWorker != null) return
         val thread = HandlerThread("ThreadHelper")
         thread.start()
         sWorker = Handler(thread.looper)
     }
 
     private fun exec(main: Boolean, task: Runnable?, delay: Long) {
-        if (task == null) {
-            return
-        }
+        if (task == null) return
         if (main) {
             if (Looper.getMainLooper() == Looper.myLooper()) {
                 task.run()

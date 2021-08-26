@@ -2,7 +2,6 @@ package com.sleticalboy.weight.view
 
 import android.content.Context
 import android.content.res.TypedArray
-import android.graphics.Canvas
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.Gravity
@@ -14,7 +13,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.sleticalboy.learning.R
-import com.sleticalboy.util.UIUtils.dp2px
+import com.sleticalboy.util.UiUtils.dp2px
 import com.sleticalboy.weight.xrecycler.helper.PageScrollHelper
 import com.sleticalboy.weight.xrecycler.helper.PageScrollHelper.OnPageSelectedListener
 import com.sleticalboy.weight.xrecycler.helper.PagerLayoutManager

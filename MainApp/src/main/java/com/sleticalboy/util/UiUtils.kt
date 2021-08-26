@@ -1,6 +1,7 @@
 package com.sleticalboy.util
 
 import android.content.Context
+import android.content.res.Resources
 import android.util.DisplayMetrics
 import android.view.WindowManager
 
@@ -11,7 +12,7 @@ import android.view.WindowManager
  * @version 1.0
  * @description utils for operations about UI
  */
-object UIUtils {
+object UiUtils {
 
     /**
      * 获取屏幕的尺寸
@@ -19,6 +20,7 @@ object UIUtils {
      * @param context
      * @return
      */
+    @JvmStatic
     fun getScreenSize(context: Context): Size {
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val displayMetrics = DisplayMetrics()
@@ -64,6 +66,13 @@ object UIUtils {
     fun sp2px(context: Context, sp: Float): Int {
         val fontScale = context.resources.displayMetrics.scaledDensity
         return (sp * fontScale + 0.5f).toInt()
+    }
+
+    @JvmStatic
+    fun getStatusBarHeight(): Int {
+        val res = Resources.getSystem()
+        val id = res.getIdentifier("status_bar_height", "dimen", "android")
+        return res.getDimensionPixelSize(id)
     }
 
     class Size internal constructor(val width: Int, val height: Int)
