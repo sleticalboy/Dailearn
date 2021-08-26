@@ -24,6 +24,8 @@ buildscript {
         glide_transtormation_version = '3.3.0'
         exif_interface = '1.3.2'
         lottie_version = '3.6.0'
+        gson = '2.8.7'
+        okio = '2.2.2'
     }
 
     repositories {

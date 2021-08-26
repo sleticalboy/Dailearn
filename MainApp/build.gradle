@@ -38,7 +38,9 @@ android {
 project.configurations.all {
     assert it instanceof Configuration
     // 强制使用依赖版本，用于解决依赖版本不一致
-    it.resolutionStrategy.force('com.squareup.okio:okio:2.2.2')
+    it.resolutionStrategy.force("com.squareup.okio:okio:$okio",
+            "com.google.code.gson:gson:$gson"
+    )
     // it.resolutionStrategy.failOnVersionConflict()
 }
 
@@ -59,6 +61,7 @@ dependencies {
     implementation("com.jakewharton.retrofit:retrofit2-rxjava2-adapter:$rxjava_adapter_version")
     implementation("androidx.exifinterface:exifinterface:$exif_interface")
     implementation("com.airbnb.android:lottie:$lottie_version")
+    compileOnly("com.google.code.gson:gson:$gson")
 
     //coroutines
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1"
