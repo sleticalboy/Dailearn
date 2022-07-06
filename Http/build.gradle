@@ -7,8 +7,6 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.min_version
         targetSdkVersion rootProject.ext.target_version
-        versionCode 1
-        versionName "1.0"
     }
 
     buildTypes {
@@ -26,6 +24,7 @@ android {
     lintOptions {
         abortOnError false
     }
+    namespace 'com.sleticalboy.http'
 }
 
 dependencies {

@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 32
     buildToolsVersion "30.0.3"
 
     defaultConfig {
         applicationId "com.example.camera"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 32
     }
 
     buildTypes {
@@ -30,11 +30,12 @@ android {
         dataBinding true
         viewBinding true
     }
+    namespace 'com.example.camera'
 }
 dependencies {
     implementation("androidx.core:core-ktx:$ktx_version")
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
-    implementation 'com.google.android.material:material:1.3.0'
+    implementation "com.google.android.material:material:$material_version"
 }

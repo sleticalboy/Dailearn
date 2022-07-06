@@ -33,6 +33,7 @@ android {
         abortOnError = true
         disable 'TypographyFractions', 'TypographyQuotes'
     }
+    namespace 'com.sleticalboy.learning'
 }
 
 project.configurations.all {
@@ -64,7 +65,7 @@ dependencies {
     compileOnly("com.google.code.gson:gson:$gson")
 
     //coroutines
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1"
     //debug版本
     debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
 }
