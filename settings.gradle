@@ -1,7 +1,6 @@
-rootProject.name = 'Daily'
 //include ':sample-arch'
 include ':MainApp'
-//include ':EmojiPanel'
+include ':EmojiPanel'
 //include ':Http'
 //include ':Camera2'
 include ':Camera'
