@@ -3,10 +3,10 @@
 buildscript {
     ext {
         kotlin_version = '1.7.0'
-        compile_version = 30
+        compile_version = 32
         build_version = '30.0.3'
         min_version = 21
-        target_version = 29
+        target_version = 32
         gradle_version = '7.2.1'
         appcompat_version = '1.4.2'
         ktx_version = '1.8.0'
