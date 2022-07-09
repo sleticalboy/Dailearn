@@ -1,7 +1,6 @@
 .gradle/
 *.iml
 .idea/
-/build/
 captures/
 .DS_Store
 .externalNativeBuild
@@ -10,6 +9,7 @@ gradle/
 MQTT/
 *.zip
 
-/*/release/
-/*/debug/
-/*/build/
+**/release/
+**/debug/
+**/build/
+**/.cxx
