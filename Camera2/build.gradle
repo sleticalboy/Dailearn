@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 32
-    buildToolsVersion '30.0.3'
+    compileSdkVersion rootProject.ext.compile_version
+    buildToolsVersion rootProject.ext.build_version
     defaultConfig {
         applicationId "com.crazyview.crazycamera2"
         minSdkVersion 21
@@ -17,7 +17,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    namespace 'com.crazyview.crazycamera2'
+    // namespace 'com.crazyview.crazycamera2'
 }
 
 dependencies {

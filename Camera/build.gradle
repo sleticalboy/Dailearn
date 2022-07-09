@@ -5,8 +5,8 @@ plugins {
 }
 
 android {
-    compileSdkVersion 32
-    buildToolsVersion "30.0.3"
+    compileSdkVersion rootProject.ext.compile_version
+    buildToolsVersion rootProject.ext.build_version
 
     defaultConfig {
         applicationId "com.example.camera"
@@ -27,10 +27,10 @@ android {
     }
 
     buildFeatures {
-        dataBinding true
+        //dataBinding true
         viewBinding true
     }
-    namespace 'com.example.camera'
+    // namespace 'com.example.camera'
 }
 dependencies {
     implementation("androidx.core:core-ktx:$ktx_version")

@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    compileSdkVersion 32
+    compileSdkVersion rootProject.ext.compile_version
 
     defaultConfig {
         applicationId "com.binlee.sample"
@@ -23,7 +23,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    namespace 'com.binlee.sample'
+    // namespace 'com.binlee.sample'
 }
 
 dependencies {

@@ -24,7 +24,7 @@ android {
     lintOptions {
         abortOnError false
     }
-    namespace 'com.sleticalboy.http'
+    // namespace 'com.sleticalboy.http'
 }
 
 dependencies {

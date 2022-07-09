@@ -28,7 +28,7 @@ android {
     buildFeatures {
         viewBinding true
     }
-    namespace 'com.binlee.emoji'
+    // namespace 'com.binlee.emoji'
 }
 
 dependencies {

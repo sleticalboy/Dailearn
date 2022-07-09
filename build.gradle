@@ -7,7 +7,7 @@ buildscript {
         build_version = '30.0.3'
         min_version = 21
         target_version = 32
-        gradle_version = '7.2.1'
+        gradle_version = '4.0.0'
         appcompat_version = '1.4.2'
         ktx_version = '1.8.0'
         constraint_version = '2.1.4'
@@ -70,8 +70,15 @@ task printBuildDir(description: 'print build files', group: 'custom') {
     println 'printBuildDir() finished'
 }
 
-task clean(type: Delete) {
-    println 'start deleting ' + rootProject.buildDir + " done"
-    delete rootProject.buildDir
-    println 'delete ' + rootProject.buildDir + " done"
+allprojects {
+    tasks.findByName('clean') {
+        doLast {
+            try {
+                delete(file('build'))
+                delete(file('.gradle'))
+                delete(file('.cxx'))
+            } catch (Throwable ignored) {
+            }
+        }
+    }
 }

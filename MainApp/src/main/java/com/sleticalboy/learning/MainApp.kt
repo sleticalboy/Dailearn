@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
+import com.binlee.sample.jni.LibJni
 import com.sleticalboy.learning.components.receiver.GlobalReceiver
 import com.sleticalboy.util.NotificationHelper
 
@@ -16,6 +17,12 @@ import com.sleticalboy.util.NotificationHelper
  * @version 1.0
  */
 class MainApp : Application() {
+
+    override fun attachBaseContext(base: Context?) {
+        super.attachBaseContext(base)
+        val string = LibJni.nativeGetString()
+        Log.d(TAG, "attachBaseContext() string from native: $string")
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -38,6 +45,8 @@ class MainApp : Application() {
     }
 
     companion object {
+
+        private const val TAG = "MainApp"
 
         private var mApp: Application? = null
 
