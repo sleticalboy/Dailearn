@@ -11,10 +11,9 @@ android {
     versionCode 1
     versionName "1.0"
 
-    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     externalNativeBuild {
       cmake {
-        cppFlags ''
+        cppFlags '-fno-rtti -fno-exceptions'
         abiFilters 'arm64-v8a', 'armeabi-v7a'
       }
     }
@@ -33,15 +32,10 @@ android {
   externalNativeBuild {
     cmake {
       path file('CMakeLists.txt')
-      // version '3.18.1'
+      version '3.10.2'
     }
   }
 }
 
 dependencies {
-  implementation 'androidx.appcompat:appcompat:1.4.2'
-  implementation 'com.google.android.material:material:1.6.1'
-  testImplementation 'junit:junit:4.13.2'
-  androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-  androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
