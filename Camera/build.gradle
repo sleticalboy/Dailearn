@@ -10,8 +10,8 @@ android {
 
   defaultConfig {
     applicationId "com.example.camera"
-    minSdkVersion 21
-    targetSdkVersion 32
+    minSdkVersion rootProject.ext.min_version
+    targetSdkVersion rootProject.ext.target_version
   }
 
   buildTypes {

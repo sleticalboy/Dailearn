@@ -15,6 +15,10 @@
 
 #define LOG_TAG "LibJni"
 
+#ifndef ALOGD
+#define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__);
+#endif
+
 #ifndef ALOGE
 #define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);
 #endif
@@ -36,6 +40,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
   if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
     return JNI_FALSE;
   }
+  ALOGD("%s reserved: %p", __func__, reserved)
   jclass cls_libJni = env->FindClass("com/binlee/sample/jni/LibJni");
   if (env->RegisterNatives(cls_libJni, methods, sizeof(methods) / sizeof(JNINativeMethod)) < 0) {
     ALOGE("%s RegisterNatives error", __func__)
@@ -49,6 +54,7 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
   if (vm->GetEnv((void **)&env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
     return;
   }
+  ALOGD("%s reserved: %p", __func__, reserved)
   jclass cls_jniLib = env->FindClass("com/binlee/sample/jni/LibJni");
   env->UnregisterNatives(cls_jniLib);
   env->DeleteLocalRef(cls_jniLib);
