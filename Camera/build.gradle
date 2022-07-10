@@ -1,41 +1,41 @@
 plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
-    id 'kotlin-kapt'
+  id 'com.android.application'
+  id 'kotlin-android'
+  id 'kotlin-kapt'
 }
 
 android {
-    compileSdkVersion rootProject.ext.compile_version
-    buildToolsVersion rootProject.ext.build_version
+  compileSdkVersion rootProject.ext.compile_version
+  buildToolsVersion rootProject.ext.build_version
 
-    defaultConfig {
-        applicationId "com.example.camera"
-        minSdkVersion 21
-        targetSdkVersion 32
-    }
+  defaultConfig {
+    applicationId "com.example.camera"
+    minSdkVersion 21
+    targetSdkVersion 32
+  }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-        }
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
     }
+  }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+  }
 
-    buildFeatures {
-        //dataBinding true
-        viewBinding true
-    }
-    // namespace 'com.example.camera'
+  buildFeatures {
+    //dataBinding true
+    viewBinding true
+  }
+  // namespace 'com.example.camera'
 }
 dependencies {
-    implementation("androidx.core:core-ktx:$ktx_version")
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation "androidx.appcompat:appcompat:$appcompat_version"
-    implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
-    implementation "com.google.android.material:material:$material_version"
+  implementation("androidx.core:core-ktx:$ktx_version")
+  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+  implementation "androidx.appcompat:appcompat:$appcompat_version"
+  implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
+  implementation "com.google.android.material:material:$material_version"
 }

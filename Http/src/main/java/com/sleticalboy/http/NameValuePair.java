@@ -9,7 +9,7 @@ import java.io.Serializable;
  */
 public interface NameValuePair extends Serializable {
 
-    String getName();
+  String getName();
 
-    String getValue();
+  String getValue();
 }

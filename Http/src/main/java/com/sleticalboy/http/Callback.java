@@ -7,10 +7,10 @@ package com.sleticalboy.http;
  */
 public interface Callback {
 
-    /**
-     * 下载出错时回调
-     *
-     * @param e {@link Throwable}
-     */
-    void onError(Throwable e);
+  /**
+   * 下载出错时回调
+   *
+   * @param e {@link Throwable}
+   */
+  void onError(Throwable e);
 }

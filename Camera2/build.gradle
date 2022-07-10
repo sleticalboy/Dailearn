@@ -1,29 +1,29 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion rootProject.ext.compile_version
-    buildToolsVersion rootProject.ext.build_version
-    defaultConfig {
-        applicationId "com.crazyview.crazycamera2"
-        minSdkVersion 21
-        targetSdkVersion 32
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+  compileSdkVersion rootProject.ext.compile_version
+  buildToolsVersion rootProject.ext.build_version
+  defaultConfig {
+    applicationId "com.crazyview.crazycamera2"
+    minSdkVersion 21
+    targetSdkVersion 32
+    versionCode 1
+    versionName "1.0"
+    testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+  }
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-    // namespace 'com.crazyview.crazycamera2'
+  }
+  // namespace 'com.crazyview.crazycamera2'
 }
 
 dependencies {
-    api fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestImplementation('androidx.test.espresso:espresso-core:3.4.0')
-    testImplementation 'junit:junit:4.13.2'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    implementation "androidx.appcompat:appcompat:$appcompat_version"
+  api fileTree(dir: 'libs', include: ['*.jar'])
+  androidTestImplementation('androidx.test.espresso:espresso-core:3.4.0')
+  testImplementation 'junit:junit:4.13.2'
+  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+  implementation "androidx.appcompat:appcompat:$appcompat_version"
 }

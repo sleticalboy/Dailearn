@@ -20,8 +20,7 @@ class MainApp : Application() {
 
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
-        val string = LibJni.nativeGetString()
-        Log.d(TAG, "attachBaseContext() string from native: $string")
+        Log.d(TAG, "attachBaseContext() ${LibJni.nativeGetString()}")
     }
 
     override fun onCreate() {

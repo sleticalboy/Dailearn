@@ -16,11 +16,11 @@
  */
 -->
 <ContactsSource
-    xmlns:android="http://schemas.android.com/apk/res/android">
-    <ContactsDataKind
-        android:mimeType="vnd.android.cursor.item/vnd.samplesyncadapter.profile"
-        android:icon="@drawable/ic_account_box_24dp"
-        android:summaryColumn="data2"
-        android:detailColumn="data3"
-        android:detailSocialSummary="true" />
+  xmlns:android="http://schemas.android.com/apk/res/android">
+  <ContactsDataKind
+    android:mimeType="vnd.android.cursor.item/vnd.samplesyncadapter.profile"
+    android:icon="@drawable/ic_account_box_24dp"
+    android:summaryColumn="data2"
+    android:detailColumn="data3"
+    android:detailSocialSummary="true" />
 </ContactsSource>

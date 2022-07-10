@@ -1,84 +1,82 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext {
-        kotlin_version = '1.7.0'
-        compile_version = 32
-        build_version = '30.0.3'
-        min_version = 21
-        target_version = 32
-        gradle_version = '4.0.0'
-        appcompat_version = '1.4.2'
-        ktx_version = '1.8.0'
-        constraint_version = '2.1.4'
-        material_version = '1.6.1'
-        lifecycle_version = '2.2.0'
-        multidex_version = '2.0.1'
-        leakcanary_version = '2.8'
-        recyclerview_version = '1.2.1'
-        retrofit_version = '2.9.0'
-        fastjson_version = '1.2.69'
-        okhttp_version = '4.9.0'
-        rxjava_adapter_version = '1.0.0'
-        glide_version = '4.12.0'
-        glide_transtormation_version = '3.3.0'
-        exif_interface = '1.3.3'
-        lottie_version = '3.7.2'
-        gson = '2.9.0'
-        okio = '2.2.2'
-    }
+  ext {
+    kotlin_version = '1.6.10'
+    compile_version = 32
+    build_version = '30.0.3'
+    min_version = 21
+    target_version = 32
+    gradle_version = '4.0.0'
+    appcompat_version = '1.4.2'
+    ktx_version = '1.8.0'
+    constraint_version = '2.1.4'
+    material_version = '1.6.1'
+    lifecycle_version = '2.2.0'
+    multidex_version = '2.0.1'
+    leakcanary_version = '2.8'
+    recyclerview_version = '1.2.1'
+    retrofit_version = '2.9.0'
+    fastjson_version = '1.2.69'
+    okhttp_version = '4.9.0'
+    rxjava_adapter_version = '1.0.0'
+    glide_version = '4.12.0'
+    glide_transtormation_version = '3.3.0'
+    exif_interface = '1.3.3'
+    lottie_version = '3.7.2'
+    gson = '2.9.0'
+    okio = '2.2.2'
+  }
 
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath "com.android.tools.build:gradle:$gradle_version"
-        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath "com.android.tools.build:gradle:$gradle_version"
+    classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
-    }
+    // NOTE: Do not place your application dependencies here; they belong
+    // in the individual module build.gradle files
+  }
 }
 
 allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
+  repositories {
+    google()
+    mavenCentral()
+  }
 }
 
 // 定义函数递归输出目录下的文件
 def printRecurse(/*File*/ file) {
-    if (file.isDirectory()) {
-        println('' + file + ' -> dir')
-        file.listFiles().each {
-            printRecurse(it)
-        }
-    } else {
-        println file
+  if (file.isDirectory()) {
+    println('' + file + ' -> dir')
+    file.listFiles().each {
+      printRecurse(it)
     }
+  } else {
+    println file
+  }
 }
 
 // 定义一个 task
 // group: 对任务进行分组(否则就出现在 other 分组中)
 // description: 描述任务的职责
 task printBuildDir(description: 'print build files', group: 'custom') {
-    println 'printBuildDir() started'
-    printRecurse(rootProject.buildDir)
-    println 'printBuildDir() finished'
+  println 'printBuildDir() started'
+  printRecurse(rootProject.buildDir)
+  println 'printBuildDir() finished'
 }
 
-allprojects {
-    tasks.findByName('clean') {
-        doLast {
-            try {
-                delete(file('build'))
-                delete(file('.gradle'))
-                delete(file('.cxx'))
-            } catch (Throwable ignored) {
-            }
-        }
+task clean(type: Delete) {
+  allprojects {
+    try {
+      delete(file('build'))
+      delete(file('.gradle'))
+      delete(file('.cxx'))
+    } catch (Throwable ignored) {
     }
+  }
 }

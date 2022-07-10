@@ -6,10 +6,9 @@ package com.sleticalboy.http.builder;
  * @author leebin
  */
 public final class DeleteBuilder extends RequestBuilder {
-    
-    @Override
-    protected void realMethod() {
-        mRequestBuilder.method("DELETE", mIsEmptyRequestBody ? EMPTY_BODY : mBodyBuilder.build());
-    }
-    
+
+  @Override
+  protected void realMethod() {
+    mRequestBuilder.method("DELETE", mIsEmptyRequestBody ? EMPTY_BODY : mBodyBuilder.build());
+  }
 }

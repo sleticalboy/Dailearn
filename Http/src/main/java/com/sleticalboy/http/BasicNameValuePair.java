@@ -9,23 +9,23 @@ import androidx.annotation.NonNull;
  */
 public final class BasicNameValuePair implements NameValuePair {
 
-    private static final long serialVersionUID = 5830785193629439085L;
+  private static final long serialVersionUID = 5830785193629439085L;
 
-    private final String name;
-    private final String value;
+  private final String name;
+  private final String value;
 
-    public BasicNameValuePair(@NonNull final String name, final String value) {
-        this.name = name;
-        this.value = value == null ? "" : value;
-    }
+  public BasicNameValuePair(@NonNull final String name, final String value) {
+    this.name = name;
+    this.value = value == null ? "" : value;
+  }
 
-    @Override
-    public String getName() {
-        return name;
-    }
+  @Override
+  public String getName() {
+    return name;
+  }
 
-    @Override
-    public String getValue() {
-        return value;
-    }
+  @Override
+  public String getValue() {
+    return value;
+  }
 }

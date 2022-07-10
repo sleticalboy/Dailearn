@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">CrazyCamera2</string>
-    <string name="take_photo">拍照</string>
+  <string name="app_name">CrazyCamera2</string>
+  <string name="take_photo">拍照</string>
 </resources>

@@ -2,7 +2,6 @@ package com.example.camera
 
 import android.content.Context
 import android.util.Log
-import android.view.SurfaceHolder
 import com.example.camera.compat.CameraV1
 import com.example.camera.compat.CameraV2
 import com.example.camera.compat.ICamera

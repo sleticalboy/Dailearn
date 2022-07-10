@@ -8,23 +8,23 @@ import com.sleticalboy.http.Task;
  * @author leebin
  */
 public final class UploadTask extends Task {
-    
-    public UploadTask() {
-        super("minxing %s", "UploadTask");
-    }
-    
-    @Override
-    public void execute() {
-    
-    }
-    
-    @Override
-    public void cancel() {
-    
-    }
-    
-    @Override
-    public boolean isCanceled() {
-        return false;
-    }
+
+  public UploadTask() {
+    super("minxing %s", "UploadTask");
+  }
+
+  @Override
+  public void execute() {
+
+  }
+
+  @Override
+  public void cancel() {
+
+  }
+
+  @Override
+  public boolean isCanceled() {
+    return false;
+  }
 }

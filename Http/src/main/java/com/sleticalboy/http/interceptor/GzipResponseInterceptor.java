@@ -1,7 +1,6 @@
 package com.sleticalboy.http.interceptor;
 
 import java.io.IOException;
-
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -18,47 +17,47 @@ import okio.Okio;
  */
 public final class GzipResponseInterceptor implements Interceptor {
 
-    private GzipResponseInterceptor() {
-        //no instance
-    }
+  private GzipResponseInterceptor() {
+    //no instance
+  }
 
-    public static GzipResponseInterceptor newInstance() {
-        return new GzipResponseInterceptor();
-    }
+  public static GzipResponseInterceptor newInstance() {
+    return new GzipResponseInterceptor();
+  }
 
-    @Override
-    public Response intercept(Chain chain) throws IOException {
-        final Request request = chain.request();
-        final String gzip = request.header("Accept-Encoding");
-        if ("gzip".equalsIgnoreCase(gzip)) {
-            return unGzipResponse(chain.proceed(request));
-        } else {
-            return chain.proceed(request);
+  @Override
+  public Response intercept(Chain chain) throws IOException {
+    final Request request = chain.request();
+    final String gzip = request.header("Accept-Encoding");
+    if ("gzip".equalsIgnoreCase(gzip)) {
+      return unGzipResponse(chain.proceed(request));
+    } else {
+      return chain.proceed(request);
+    }
+  }
+
+  private Response unGzipResponse(Response response) {
+    final ResponseBody responseBody = response.body();
+    if (responseBody == null) {
+      return response;
+    }
+    return response.newBuilder()
+      .body(new ResponseBody() {
+        @Override
+        public MediaType contentType() {
+          return responseBody.contentType();
         }
-    }
 
-    private Response unGzipResponse(Response response) {
-        final ResponseBody responseBody = response.body();
-        if (responseBody == null) {
-            return response;
+        @Override
+        public long contentLength() {
+          return 0;
         }
-        return response.newBuilder()
-                .body(new ResponseBody() {
-                    @Override
-                    public MediaType contentType() {
-                        return responseBody.contentType();
-                    }
 
-                    @Override
-                    public long contentLength() {
-                        return 0;
-                    }
-
-                    @Override
-                    public BufferedSource source() {
-                        return Okio.buffer(new GzipSource(responseBody.source()));
-                    }
-                })
-                .build();
-    }
+        @Override
+        public BufferedSource source() {
+          return Okio.buffer(new GzipSource(responseBody.source()));
+        }
+      })
+      .build();
+  }
 }

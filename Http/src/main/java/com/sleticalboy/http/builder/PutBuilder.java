@@ -6,9 +6,9 @@ package com.sleticalboy.http.builder;
  * @author leebin
  */
 public final class PutBuilder extends RequestBuilder {
-    
-    @Override
-    protected void realMethod() {
-        mRequestBuilder.method("PUT", mBodyBuilder.build());
-    }
+
+  @Override
+  protected void realMethod() {
+    mRequestBuilder.method("PUT", mBodyBuilder.build());
+  }
 }

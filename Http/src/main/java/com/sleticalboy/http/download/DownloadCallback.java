@@ -11,38 +11,37 @@ import com.sleticalboy.http.Callback;
  */
 public interface DownloadCallback extends Callback {
 
-    /**
-     * 下载开始时回调
-     *
-     * @param total 下载内容的总长度
-     */
-    void onStart(long total);
+  /**
+   * 下载开始时回调
+   *
+   * @param total 下载内容的总长度
+   */
+  void onStart(long total);
 
-    /**
-     * 下载进度回调
-     *
-     * @param progress 进度条
-     */
-    void onProgress(float progress);
+  /**
+   * 下载进度回调
+   *
+   * @param progress 进度条
+   */
+  void onProgress(float progress);
 
-    /**
-     * 下载暂停回调
-     */
-    void onPause();
+  /**
+   * 下载暂停回调
+   */
+  void onPause();
 
-    /**
-     * 下载完成回调
-     */
-    void onComplete();
+  /**
+   * 下载完成回调
+   */
+  void onComplete();
 
-    /**
-     * 取消下载回调
-     */
-    void onCancel();
+  /**
+   * 取消下载回调
+   */
+  void onCancel();
 
-    /**
-     * 继续下载
-     */
-    void onResume();
-
+  /**
+   * 继续下载
+   */
+  void onResume();
 }

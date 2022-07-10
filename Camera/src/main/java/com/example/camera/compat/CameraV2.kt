@@ -2,7 +2,6 @@ package com.example.camera.compat
 
 import android.content.Context
 import android.hardware.camera2.CameraDevice
-import android.view.SurfaceHolder
 
 class CameraV2 : AbsCamera() {
 

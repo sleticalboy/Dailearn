@@ -9,11 +9,9 @@ import android.hardware.Camera
 import android.os.Build
 import android.util.Log
 import android.view.SurfaceHolder
-import android.view.TextureView
 import com.example.camera.ImageUtil
 import java.io.File
 import java.io.IOException
-import java.lang.IllegalArgumentException
 import java.util.*
 
 /**
@@ -152,24 +150,27 @@ class CameraV1 : AbsCamera() {
 
     override fun takePhoto(callback: ICamera.TakePhotoCallback) {
         if (isPreview && camera != null) {
-            camera!!.takePicture({ /*拍照时的动作默认会有咔嚓一声*/ }, null, { data, camera ->
-                // 拍照后的最主要的返回
-                isPreview = false
-                val path = "/sdcard/" + System.currentTimeMillis() + "_preview.jpg"
-                Thread {
-                    try {
-                        ImageUtil.saveImage(data, path)
-                        if (File(path).exists()) {
-                            Log.d(TAG, "onPictureTaken() take success: $path")
+            camera!!.takePicture(
+                { /*拍照时的动作默认会有咔嚓一声*/ }, null,
+                { data, camera ->
+                    // 拍照后的最主要的返回
+                    isPreview = false
+                    val path = "/sdcard/" + System.currentTimeMillis() + "_preview.jpg"
+                    Thread {
+                        try {
+                            ImageUtil.saveImage(data, path)
+                            if (File(path).exists()) {
+                                Log.d(TAG, "onPictureTaken() take success: $path")
+                            }
+                        } catch (e: IOException) {
+                            e.printStackTrace()
                         }
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                    }
-                }.start()
-                // 重新开启预览 ，不然不能继续拍照
-                camera.startPreview()
-                isPreview = true
-            }, )
+                    }.start()
+                    // 重新开启预览 ，不然不能继续拍照
+                    camera.startPreview()
+                    isPreview = true
+                },
+            )
         }
     }
 

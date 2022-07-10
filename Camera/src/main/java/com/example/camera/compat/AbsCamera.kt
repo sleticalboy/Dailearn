@@ -1,7 +1,6 @@
 package com.example.camera.compat
 
 import android.content.Context
-import android.view.SurfaceHolder
 
 abstract class AbsCamera : ICamera {
 

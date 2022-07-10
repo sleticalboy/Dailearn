@@ -1,7 +1,6 @@
 package com.sleticalboy.http.interceptor;
 
 import java.io.IOException;
-
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -18,50 +17,50 @@ import okio.Okio;
  */
 public final class GzipRequestInterceptor implements Interceptor {
 
-    private GzipRequestInterceptor() {
-        //no instance
-    }
+  private GzipRequestInterceptor() {
+    //no instance
+  }
 
-    public static GzipRequestInterceptor newInstance() {
-        return new GzipRequestInterceptor();
-    }
+  public static GzipRequestInterceptor newInstance() {
+    return new GzipRequestInterceptor();
+  }
 
-    @Override
-    public Response intercept(Chain chain) throws IOException {
-        final Request request = chain.request();
-        final String gzip = request.header("Content-Encoding");
-        if (request.body() != null && gzip != null && "gzip".equalsIgnoreCase(gzip)) {
-            return chain.proceed(gzipRequest(request));
-        } else {
-            return chain.proceed(request);
+  @Override
+  public Response intercept(Chain chain) throws IOException {
+    final Request request = chain.request();
+    final String gzip = request.header("Content-Encoding");
+    if (request.body() != null && gzip != null && "gzip".equalsIgnoreCase(gzip)) {
+      return chain.proceed(gzipRequest(request));
+    } else {
+      return chain.proceed(request);
+    }
+  }
+
+  private Request gzipRequest(Request request) {
+    final RequestBody requestBody = request.body();
+    if (requestBody == null) {
+      return request;
+    }
+    return request.newBuilder()
+      .method(request.method(), new RequestBody() {
+
+        @Override
+        public MediaType contentType() {
+          return requestBody.contentType();
         }
-    }
 
-    private Request gzipRequest(Request request) {
-        final RequestBody requestBody = request.body();
-        if (requestBody == null) {
-            return request;
+        @Override
+        public long contentLength() throws IOException {
+          return -1L;
         }
-        return request.newBuilder()
-                .method(request.method(), new RequestBody() {
 
-                    @Override
-                    public MediaType contentType() {
-                        return requestBody.contentType();
-                    }
-
-                    @Override
-                    public long contentLength() throws IOException {
-                        return -1L;
-                    }
-
-                    @Override
-                    public void writeTo(BufferedSink sink) throws IOException {
-                        final BufferedSink gzipSink = Okio.buffer(new GzipSink(sink));
-                        requestBody.writeTo(gzipSink);
-                        gzipSink.close();
-                    }
-                })
-                .build();
-    }
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+          final BufferedSink gzipSink = Okio.buffer(new GzipSink(sink));
+          requestBody.writeTo(gzipSink);
+          gzipSink.close();
+        }
+      })
+      .build();
+  }
 }

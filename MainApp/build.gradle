@@ -1,73 +1,73 @@
 plugins {
-    id 'com.android.application'
-    id 'kotlin-android'
-    id 'kotlin-kapt'
+  id 'com.android.application'
+  id 'kotlin-android'
+  id 'kotlin-kapt'
 }
 
 android {
-    compileSdkVersion rootProject.ext.compile_version
-    buildToolsVersion rootProject.ext.build_version
-    defaultConfig {
-        applicationId "com.sleticalboy.learning"
-        minSdkVersion rootProject.ext.min_version
-        targetSdkVersion rootProject.ext.target_version
-        versionCode 2
-        versionName "2.0"
-        multiDexEnabled true
+  compileSdkVersion rootProject.ext.compile_version
+  buildToolsVersion rootProject.ext.build_version
+  defaultConfig {
+    applicationId "com.sleticalboy.learning"
+    minSdkVersion rootProject.ext.min_version
+    targetSdkVersion rootProject.ext.target_version
+    versionCode 2
+    versionName "2.0"
+    multiDexEnabled true
+  }
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
-    buildFeatures {
-        viewBinding true
-        dataBinding true
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    lintOptions {
-        abortOnError = true
-        disable 'TypographyFractions', 'TypographyQuotes'
-    }
-    // namespace 'com.sleticalboy.learning'
+  }
+  buildFeatures {
+    viewBinding true
+    dataBinding true
+  }
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+  }
+  lintOptions {
+    abortOnError = true
+    disable 'TypographyFractions', 'TypographyQuotes'
+  }
+  // namespace 'com.sleticalboy.learning'
 }
 
 project.configurations.all {
-    assert it instanceof Configuration
-    // 强制使用依赖版本，用于解决依赖版本不一致
-    it.resolutionStrategy.force("com.squareup.okio:okio:$okio",
-            "com.google.code.gson:gson:$gson"
-    )
-    // it.resolutionStrategy.failOnVersionConflict()
+  assert it instanceof Configuration
+  // 强制使用依赖版本，用于解决依赖版本不一致
+  it.resolutionStrategy.force("com.squareup.okio:okio:$okio",
+    "com.google.code.gson:gson:$gson"
+  )
+  // it.resolutionStrategy.failOnVersionConflict()
 }
 
 dependencies {
-    implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
+  implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version")
-    implementation("androidx.core:core-ktx:$ktx_version")
-    implementation("androidx.appcompat:appcompat:$appcompat_version")
-    implementation("androidx.constraintlayout:constraintlayout:$constraint_version")
-    implementation("com.google.android.material:material:$material_version")
-    implementation("androidx.recyclerview:recyclerview:$recyclerview_version")
-    implementation("androidx.lifecycle:lifecycle-extensions:$lifecycle_version")
+  implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version")
+  implementation("androidx.core:core-ktx:$ktx_version")
+  implementation("androidx.appcompat:appcompat:$appcompat_version")
+  implementation("androidx.constraintlayout:constraintlayout:$constraint_version")
+  implementation("com.google.android.material:material:$material_version")
+  implementation("androidx.recyclerview:recyclerview:$recyclerview_version")
+  implementation("androidx.lifecycle:lifecycle-extensions:$lifecycle_version")
 
-    // other dependencies
-    implementation("com.squareup.retrofit2:retrofit:$retrofit_version")
-    implementation("com.squareup.retrofit2:converter-gson:$retrofit_version")
-    implementation("com.jakewharton.retrofit:retrofit2-rxjava2-adapter:$rxjava_adapter_version")
-    implementation("androidx.exifinterface:exifinterface:$exif_interface")
-    implementation("com.airbnb.android:lottie:$lottie_version")
-    compileOnly("com.google.code.gson:gson:$gson")
+  // other dependencies
+  implementation("com.squareup.retrofit2:retrofit:$retrofit_version")
+  implementation("com.squareup.retrofit2:converter-gson:$retrofit_version")
+  implementation("com.jakewharton.retrofit:retrofit2-rxjava2-adapter:$rxjava_adapter_version")
+  implementation("androidx.exifinterface:exifinterface:$exif_interface")
+  implementation("com.airbnb.android:lottie:$lottie_version")
+  compileOnly("com.google.code.gson:gson:$gson")
 
-    implementation(project(":lib_jni"))
+  implementation project(path: ':lib_jni')
 
-    //coroutines
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3"
-    //debug版本
-    debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
+  //coroutines
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3"
+  //debug版本
+  debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
 }

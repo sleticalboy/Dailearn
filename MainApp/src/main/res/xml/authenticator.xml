@@ -13,8 +13,8 @@
      limitations under the License.
 -->
 <account-authenticator
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accountType="@string/common_account_type"
-    android:icon="@drawable/ic_account_box_24dp"
-    android:label="@string/authenticator_label"
-    android:smallIcon="@drawable/ic_account_box_24dp" />
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:accountType="@string/common_account_type"
+  android:icon="@drawable/ic_account_box_24dp"
+  android:label="@string/authenticator_label"
+  android:smallIcon="@drawable/ic_account_box_24dp" />
