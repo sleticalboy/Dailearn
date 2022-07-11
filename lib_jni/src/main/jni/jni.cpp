@@ -28,11 +28,23 @@ jstring LibJni_nativeGetString(JNIEnv *env, jclass clazz) {
   return env->NewStringUTF(string.c_str());
 }
 
+void LibJni_nativeCallJava(JNIEnv *env, jclass clazz, jobject jContext) {
+  jclass cls_toast = env->FindClass("android/widget/Toast");
+  jmethodID method = env->GetStaticMethodID(cls_toast, "makeText",
+                         "(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;");
+  jobject toast = env->CallStaticObjectMethod(cls_toast , method,
+                              jContext, env->NewStringUTF("native toast"), 0);
+  method = env->GetMethodID(cls_toast, "show", "()V");
+  env->CallVoidMethod(toast, method);
+
+  env->DeleteLocalRef(cls_toast);
+  env->DeleteLocalRef(toast);
+}
+
 JNINativeMethod methods[] = {
   // com.binlee.sample.jni.LibJni.nativeGetString
-  {
-     "nativeGetString", "()Ljava/lang/String;", (void *)LibJni_nativeGetString
-  },
+  {"nativeGetString", "()Ljava/lang/String;",         (void *) LibJni_nativeGetString},
+  {"nativeCallJava",  "(Landroid/content/Context;)V", (void *) LibJni_nativeCallJava},
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -51,7 +63,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 void JNI_OnUnload(JavaVM *vm, void *reserved) {
   JNIEnv *env = nullptr;
-  if (vm->GetEnv((void **)&env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
+  if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
     return;
   }
   ALOGD("%s reserved: %p", __func__, reserved)
