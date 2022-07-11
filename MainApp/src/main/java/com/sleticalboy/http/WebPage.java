@@ -9,23 +9,23 @@ import com.google.gson.annotations.SerializedName;
  */
 public final class WebPage {
 
-    @SerializedName(value = "content")
-    private final String mContent;
+  @SerializedName(value = "content")
+  private final String mContent;
 
-    public WebPage() {
-        this(null);
-    }
+  public WebPage() {
+    this(null);
+  }
 
-    public WebPage(String content) {
-        mContent = content;
-    }
+  public WebPage(String content) {
+    mContent = content;
+  }
 
-    public String getContent() {
-        return mContent;
-    }
+  public String getContent() {
+    return mContent;
+  }
 
-    @Override
-    public String toString() {
-        return getContent();
-    }
+  @Override
+  public String toString() {
+    return getContent();
+  }
 }

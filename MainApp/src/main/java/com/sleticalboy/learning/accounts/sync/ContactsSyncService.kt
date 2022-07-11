@@ -11,20 +11,20 @@ import android.os.IBinder
  */
 class ContactsSyncService : Service() {
 
-    override fun onCreate() {
-        synchronized(LOCK) {
-            if (sSyncAdapter == null) {
-                sSyncAdapter = ContactsSyncAdapter(applicationContext)
-            }
-        }
+  override fun onCreate() {
+    synchronized(LOCK) {
+      if (sSyncAdapter == null) {
+        sSyncAdapter = ContactsSyncAdapter(applicationContext)
+      }
     }
+  }
 
-    override fun onBind(intent: Intent): IBinder? {
-        return sSyncAdapter!!.syncAdapterBinder
-    }
+  override fun onBind(intent: Intent): IBinder? {
+    return sSyncAdapter!!.syncAdapterBinder
+  }
 
-    companion object {
-        private val LOCK = Any()
-        private var sSyncAdapter: ContactsSyncAdapter? = null
-    }
+  companion object {
+    private val LOCK = Any()
+    private var sSyncAdapter: ContactsSyncAdapter? = null
+  }
 }

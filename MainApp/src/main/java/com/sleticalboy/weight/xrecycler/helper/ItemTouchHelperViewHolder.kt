@@ -9,7 +9,7 @@ package com.sleticalboy.weight.xrecycler.helper
  */
 interface ItemTouchHelperViewHolder {
 
-    fun onItemSelected()
+  fun onItemSelected()
 
-    fun onItemClear()
+  fun onItemClear()
 }

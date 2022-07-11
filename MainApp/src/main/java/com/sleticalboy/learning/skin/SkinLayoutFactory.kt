@@ -4,7 +4,8 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
-import java.util.*
+import java.util.Observable
+import java.util.Observer
 
 /**
  * Created on 20-9-10.
@@ -13,15 +14,20 @@ import java.util.*
  */
 class SkinLayoutFactory : LayoutInflater.Factory2, Observer {
 
-    override fun onCreateView(parent: View?, name: String, context: Context, attrs: AttributeSet): View? {
-        return null
-    }
+  override fun onCreateView(
+    parent: View?,
+    name: String,
+    context: Context,
+    attrs: AttributeSet
+  ): View? {
+    return null
+  }
 
-    override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
-        return null
-    }
+  override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
+    return null
+  }
 
-    override fun update(o: Observable?, arg: Any?) {
-        //
-    }
+  override fun update(o: Observable?, arg: Any?) {
+    //
+  }
 }

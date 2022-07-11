@@ -1,6 +1,5 @@
 package com.sleticalboy.learning.data
 
-
 /**
  * Created on 20-3-27.
  *
@@ -8,19 +7,19 @@ package com.sleticalboy.learning.data
  */
 class DataEngine private constructor() {
 
-    private var mIndexModel: IndexModel? = null
+  private var mIndexModel: IndexModel? = null
 
-    fun indexModel(): IndexModel {
-        if (mIndexModel == null) {
-            mIndexModel = IndexModel()
-        }
-        return mIndexModel!!
+  fun indexModel(): IndexModel {
+    if (mIndexModel == null) {
+      mIndexModel = IndexModel()
     }
+    return mIndexModel!!
+  }
 
-    companion object {
+  companion object {
 
-        private val sDataEngine = DataEngine()
+    private val sDataEngine = DataEngine()
 
-        fun get(): DataEngine = sDataEngine
-    }
+    fun get(): DataEngine = sDataEngine
+  }
 }

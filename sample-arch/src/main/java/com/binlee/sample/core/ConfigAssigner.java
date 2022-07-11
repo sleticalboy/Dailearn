@@ -9,11 +9,11 @@ import com.binlee.sample.model.ArchDevice;
  */
 public final class ConfigAssigner {
 
-    public ConfigAssigner() {
-        //
-    }
+  public ConfigAssigner() {
+    //
+  }
 
-    public boolean assign(ArchDevice device) {
-        return false;
-    }
+  public boolean assign(ArchDevice device) {
+    return false;
+  }
 }

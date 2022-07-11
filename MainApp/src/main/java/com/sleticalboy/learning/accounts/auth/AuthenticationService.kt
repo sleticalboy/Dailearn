@@ -11,19 +11,19 @@ import android.os.IBinder
  */
 class AuthenticationService : Service() {
 
-    private var mAuthenticator: Authenticator? = null
+  private var mAuthenticator: Authenticator? = null
 
-    override fun onCreate() {
-        mAuthenticator = Authenticator(this)
-        // Log.d(TAG, "onCreate() called");
-    }
+  override fun onCreate() {
+    mAuthenticator = Authenticator(this)
+    // Log.d(TAG, "onCreate() called");
+  }
 
-    override fun onBind(intent: Intent): IBinder? {
-        // Log.d(TAG, "onBind() called with: intent = [" + intent + "]");
-        return mAuthenticator!!.iBinder
-    }
+  override fun onBind(intent: Intent): IBinder? {
+    // Log.d(TAG, "onBind() called with: intent = [" + intent + "]");
+    return mAuthenticator!!.iBinder
+  }
 
-    companion object {
-        private const val TAG = "AuthenticationService"
-    }
+  companion object {
+    private const val TAG = "AuthenticationService"
+  }
 }

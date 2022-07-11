@@ -7,9 +7,9 @@ package com.binlee.sample.util;
  */
 public final class NrfHelper {
 
-    private NrfHelper() {
-    }
+  private NrfHelper() {
+  }
 
-    public static void disconnect(int pipe) {
-    }
+  public static void disconnect(int pipe) {
+  }
 }

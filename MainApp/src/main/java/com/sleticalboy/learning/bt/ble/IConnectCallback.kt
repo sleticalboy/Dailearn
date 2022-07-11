@@ -1,6 +1,5 @@
 package com.sleticalboy.learning.bt.ble
 
-
 /**
  * Created on 20-8-13.
  *
@@ -8,6 +7,6 @@ package com.sleticalboy.learning.bt.ble
  */
 interface IConnectCallback {
 
-    fun onFailure(connection: Connection, e: BleException)
-    fun onSuccess(connection: Connection)
+  fun onFailure(connection: Connection, e: BleException)
+  fun onSuccess(connection: Connection)
 }

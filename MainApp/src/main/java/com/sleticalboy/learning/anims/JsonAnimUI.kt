@@ -11,11 +11,11 @@ import com.sleticalboy.learning.databinding.ActivityJsonAnimBinding
  */
 class JsonAnimUI : BaseActivity() {
 
-    override fun layout(): View {
-        // R.layout.activity_json_anim
-        return ActivityJsonAnimBinding.inflate(layoutInflater).root
-    }
+  override fun layout(): View {
+    // R.layout.activity_json_anim
+    return ActivityJsonAnimBinding.inflate(layoutInflater).root
+  }
 
-    override fun initView() {
-    }
+  override fun initView() {
+  }
 }

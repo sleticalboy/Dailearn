@@ -13,21 +13,20 @@ import android.util.Log
  */
 object OSUtils {
 
-    private const val LOG_TAG = "OSUtils ->"
+  private const val LOG_TAG = "OSUtils ->"
 
-    @JvmStatic
-    fun isMainProcess(context: Context): Boolean {
-        val processName = getProcessName(context, android.os.Process.myPid())
-        Log.e(LOG_TAG, "process: $processName")
-        return !TextUtils.isEmpty(processName) && !processName!!.contains(":")
-    }
+  @JvmStatic
+  fun isMainProcess(context: Context): Boolean {
+    val processName = getProcessName(context, android.os.Process.myPid())
+    Log.e(LOG_TAG, "process: $processName")
+    return !TextUtils.isEmpty(processName) && !processName!!.contains(":")
+  }
 
-    private fun getProcessName(context: Context, pid: Int): String? {
-        val am = context.applicationContext.getSystemService(Context.ACTIVITY_SERVICE)
-                as ActivityManager
-        val runningApps = am.runningAppProcesses ?: return null
-        return runningApps.firstOrNull { it.pid == pid }?.processName
-    }
-
+  private fun getProcessName(context: Context, pid: Int): String? {
+    val am = context.applicationContext.getSystemService(Context.ACTIVITY_SERVICE)
+        as ActivityManager
+    val runningApps = am.runningAppProcesses ?: return null
+    return runningApps.firstOrNull { it.pid == pid }?.processName
+  }
 
 }

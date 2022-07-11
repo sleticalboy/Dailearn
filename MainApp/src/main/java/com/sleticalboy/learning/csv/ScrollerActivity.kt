@@ -12,18 +12,18 @@ import com.sleticalboy.learning.databinding.ActivityScrollerBinding
  */
 class ScrollerActivity : BaseActivity() {
 
-    private var bind:  ActivityScrollerBinding? = null
+  private var bind: ActivityScrollerBinding? = null
 
-    override fun layout(): View {
-        // R.layout.activity_scroller
-        bind = ActivityScrollerBinding.inflate(layoutInflater)
-        return bind!!.root
-    }
+  override fun layout(): View {
+    // R.layout.activity_scroller
+    bind = ActivityScrollerBinding.inflate(layoutInflater)
+    return bind!!.root
+  }
 
-    override fun initView() {
-        bind!!.scrollToBtn.setOnClickListener { bind!!.layout.scrollTo(-60, -100) }
-        bind!!.scrollByBtn.setOnClickListener { bind!!.layout.scrollBy(-60, -100) }
-    }
+  override fun initView() {
+    bind!!.scrollToBtn.setOnClickListener { bind!!.layout.scrollTo(-60, -100) }
+    bind!!.scrollByBtn.setOnClickListener { bind!!.layout.scrollBy(-60, -100) }
+  }
 
-    override fun initData() {}
+  override fun initData() {}
 }

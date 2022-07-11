@@ -13,20 +13,20 @@ import android.util.Log
  */
 class DevicesReceiver : DeviceAdminReceiver() {
 
-    override fun onEnabled(context: Context, intent: Intent) {
-        Log.d(TAG, "onEnabled() called with: context = [$context], intent = [$intent]")
-    }
+  override fun onEnabled(context: Context, intent: Intent) {
+    Log.d(TAG, "onEnabled() called with: context = [$context], intent = [$intent]")
+  }
 
-    override fun onDisabled(context: Context, intent: Intent) {
-        Log.d(TAG, "onDisabled() called with: context = [$context], intent = [$intent]")
-    }
+  override fun onDisabled(context: Context, intent: Intent) {
+    Log.d(TAG, "onDisabled() called with: context = [$context], intent = [$intent]")
+  }
 
-    override fun onDisableRequested(context: Context, intent: Intent): CharSequence? {
-        Log.d(TAG, "onDisableRequested() called with: context = [$context], intent = [$intent]")
-        return null
-    }
+  override fun onDisableRequested(context: Context, intent: Intent): CharSequence? {
+    Log.d(TAG, "onDisableRequested() called with: context = [$context], intent = [$intent]")
+    return null
+  }
 
-    companion object {
-        private const val TAG = "DevicesReceiver"
-    }
+  companion object {
+    private const val TAG = "DevicesReceiver"
+  }
 }

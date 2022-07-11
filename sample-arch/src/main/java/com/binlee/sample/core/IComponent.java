@@ -7,7 +7,7 @@ package com.binlee.sample.core;
  */
 public interface IComponent {
 
-    void onStart();
+  void onStart();
 
-    void onDestroy();
+  void onDestroy();
 }

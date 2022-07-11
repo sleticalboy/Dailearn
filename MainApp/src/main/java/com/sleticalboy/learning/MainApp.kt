@@ -18,37 +18,37 @@ import com.sleticalboy.util.NotificationHelper
  */
 class MainApp : Application() {
 
-    override fun attachBaseContext(base: Context?) {
-        super.attachBaseContext(base)
-        Log.d(TAG, "attachBaseContext() ${LibJni.nativeGetString()}")
-    }
+  override fun attachBaseContext(base: Context?) {
+    super.attachBaseContext(base)
+    Log.d(TAG, "attachBaseContext() ${LibJni.nativeGetString()}")
+  }
 
-    override fun onCreate() {
-        super.onCreate()
-        mApp = this
-        adaptAndroidO()
-    }
+  override fun onCreate() {
+    super.onCreate()
+    mApp = this
+    adaptAndroidO()
+  }
 
-    private fun adaptAndroidO() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        Log.d("MainApp", "adapt android O")
-        registerReceivers()
-        NotificationHelper.createAllChannels(this)
-    }
+  private fun adaptAndroidO() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    Log.d("MainApp", "adapt android O")
+    registerReceivers()
+    NotificationHelper.createAllChannels(this)
+  }
 
-    private fun registerReceivers() {
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(Intent.ACTION_SCREEN_ON)
-        intentFilter.addAction(Intent.ACTION_USER_PRESENT)
-        registerReceiver(GlobalReceiver(), intentFilter)
-    }
+  private fun registerReceivers() {
+    val intentFilter = IntentFilter()
+    intentFilter.addAction(Intent.ACTION_SCREEN_ON)
+    intentFilter.addAction(Intent.ACTION_USER_PRESENT)
+    registerReceiver(GlobalReceiver(), intentFilter)
+  }
 
-    companion object {
+  companion object {
 
-        private const val TAG = "MainApp"
+    private const val TAG = "MainApp"
 
-        private var mApp: Application? = null
+    private var mApp: Application? = null
 
-        val app: Context? get() = mApp
-    }
+    val app: Context? get() = mApp
+  }
 }

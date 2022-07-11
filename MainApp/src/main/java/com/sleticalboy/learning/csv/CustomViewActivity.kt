@@ -16,27 +16,27 @@ import android.widget.TextView
  */
 class CustomViewActivity : ListActivity() {
 
-    private val mDataList = arrayOf(
-            ViewHolder(ScrollerActivity::class.java, "Scroller 使用"),
-            ViewHolder(PathActivity::class.java, "Path 类使用"),
-            ViewHolder(GridViewActivity::class.java, "GridView 使用")
-    )
+  private val mDataList = arrayOf(
+    ViewHolder(ScrollerActivity::class.java, "Scroller 使用"),
+    ViewHolder(PathActivity::class.java, "Path 类使用"),
+    ViewHolder(GridViewActivity::class.java, "GridView 使用")
+  )
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        listAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mDataList)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    listAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mDataList)
+  }
+
+  override fun onListItemClick(l: ListView?, v: View?, position: Int, id: Long) {
+    val holder = mDataList[position]
+    (v as TextView).text = holder.mName
+    startActivity(Intent(this, holder.mClass))
+  }
+
+  class ViewHolder(internal var mClass: Class<*>, internal var mName: String) {
+
+    override fun toString(): String {
+      return mName
     }
-
-    override fun onListItemClick(l: ListView?, v: View?, position: Int, id: Long) {
-        val holder = mDataList[position]
-        (v as TextView).text = holder.mName
-        startActivity(Intent(this, holder.mClass))
-    }
-
-    class ViewHolder(internal var mClass: Class<*>, internal var mName: String) {
-
-        override fun toString(): String {
-            return mName
-        }
-    }
+  }
 }

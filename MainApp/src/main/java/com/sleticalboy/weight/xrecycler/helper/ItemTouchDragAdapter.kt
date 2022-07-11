@@ -9,11 +9,11 @@ package com.sleticalboy.weight.xrecycler.helper
  */
 interface ItemTouchDragAdapter {
 
-    /**
-     * Called when the item was moved
-     *
-     * @param from start position
-     * @param to   end position
-     */
-    fun onItemMove(from: Int, to: Int)
+  /**
+   * Called when the item was moved
+   *
+   * @param from start position
+   * @param to   end position
+   */
+  fun onItemMove(from: Int, to: Int)
 }

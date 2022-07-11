@@ -9,28 +9,28 @@ import android.bluetooth.BluetoothDevice;
  */
 public final class ArchDevice {
 
-    private final BluetoothDevice mTarget;
-    public String mMac;
-    public int content;
+  private final BluetoothDevice mTarget;
+  public String mMac;
+  public int content;
 
-    public ArchDevice(BluetoothDevice target) {
-        mTarget = target;
-    }
+  public ArchDevice(BluetoothDevice target) {
+    mTarget = target;
+  }
 
-    public ArchDevice(String mac) {
-        mTarget = null;
-        mMac = mac;
-    }
+  public ArchDevice(String mac) {
+    mTarget = null;
+    mMac = mac;
+  }
 
-    public BluetoothDevice target() {
-        return mTarget;
-    }
+  public BluetoothDevice target() {
+    return mTarget;
+  }
 
-    public String getId() {
-        return "0";
-    }
+  public String getId() {
+    return "0";
+  }
 
-    public String getName() {
-        return mTarget != null ? mTarget.getName() : mMac;
-    }
+  public String getName() {
+    return mTarget != null ? mTarget.getName() : mMac;
+  }
 }

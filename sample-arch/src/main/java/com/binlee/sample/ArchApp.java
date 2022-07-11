@@ -2,7 +2,6 @@ package com.binlee.sample;
 
 import android.app.Application;
 import android.content.Context;
-
 import com.binlee.sample.util.Glog;
 
 /**
@@ -12,17 +11,17 @@ import com.binlee.sample.util.Glog;
  */
 public final class ArchApp extends Application {
 
-    static {
-        Glog.setConfig(new Glog.Config(true, true, true));
-    }
+  static {
+    Glog.setConfig(new Glog.Config(true, true, true));
+  }
 
-    @Override
-    protected void attachBaseContext(Context base) {
-        super.attachBaseContext(base);
-    }
+  @Override
+  protected void attachBaseContext(Context base) {
+    super.attachBaseContext(base);
+  }
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-    }
+  @Override
+  public void onCreate() {
+    super.onCreate();
+  }
 }

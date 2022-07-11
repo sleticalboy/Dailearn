@@ -10,18 +10,17 @@ import java.lang.annotation.RetentionPolicy;
  */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Table {
+  String name();
+
+  @Retention(RetentionPolicy.RUNTIME) @interface Column {
     String name();
 
-    @Retention(RetentionPolicy.RUNTIME)
-    @interface Column {
-        String name();
+    String type();
 
-        String type();
+    String defVal() default "";
 
-        String defVal() default "";
+    boolean indexed() default false;
 
-        boolean indexed() default false;
-
-        boolean unique() default false;
-    }
+    boolean unique() default false;
+  }
 }

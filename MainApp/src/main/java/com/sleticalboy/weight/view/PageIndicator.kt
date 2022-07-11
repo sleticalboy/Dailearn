@@ -2,7 +2,6 @@ package com.sleticalboy.weight.view
 
 import androidx.viewpager.widget.ViewPager
 
-
 /**
  * Created on 18-3-15.
  *
@@ -10,19 +9,19 @@ import androidx.viewpager.widget.ViewPager
  * @description 页面指示器
  */
 interface PageIndicator {
-    /**
-     * @param viewPager
-     * @param initialPos
-     */
-    fun setupWithViewPager(viewPager: ViewPager?, initialPos: Int)
+  /**
+   * @param viewPager
+   * @param initialPos
+   */
+  fun setupWithViewPager(viewPager: ViewPager?, initialPos: Int)
 
-    /**
-     * @param pageIndex
-     */
-    fun setCurrentPage(pageIndex: Int)
+  /**
+   * @param pageIndex
+   */
+  fun setCurrentPage(pageIndex: Int)
 
-    /**
-     *
-     */
-    fun notifyDataSetChanged()
+  /**
+   *
+   */
+  fun notifyDataSetChanged()
 }

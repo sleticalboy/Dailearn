@@ -2,7 +2,6 @@ package com.binlee.sample.core;
 
 import android.content.Context;
 import android.os.Handler;
-
 import com.binlee.sample.event.IEvent;
 import com.binlee.sample.view.IView;
 
@@ -13,17 +12,17 @@ import com.binlee.sample.view.IView;
  */
 public interface IArchManager {
 
-    void onCreate(Context context);
+  void onCreate(Context context);
 
-    void onStart();
+  void onStart();
 
-    void onDestroy();
+  void onDestroy();
 
-    Handler handler();
+  Handler handler();
 
-    void postEvent(IEvent event);
+  void postEvent(IEvent event);
 
-    void attachView(IView view, boolean refresh);
+  void attachView(IView view, boolean refresh);
 
-    void detachView(IView view, boolean abort);
+  void detachView(IView view, boolean abort);
 }

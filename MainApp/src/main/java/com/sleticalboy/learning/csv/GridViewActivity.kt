@@ -13,52 +13,52 @@ import com.sleticalboy.learning.databinding.ActivityGridViewBinding
  */
 class GridViewActivity : BaseActivity() {
 
-    private var mBind: ActivityGridViewBinding? = null
-    private var mData: ArrayList<AudioItem>? = null
-    private var mSelection: Int = -1
+  private var mBind: ActivityGridViewBinding? = null
+  private var mData: ArrayList<AudioItem>? = null
+  private var mSelection: Int = -1
 
-    override fun initData() {
-        if (mSelection == -1) {
-            mSelection = intent.getIntExtra("mock_data", 26)
+  override fun initData() {
+    if (mSelection == -1) {
+      mSelection = intent.getIntExtra("mock_data", 26)
+    }
+    if (mData == null) {
+      mData = ArrayList()
+      var item: AudioItem
+      for (index in 0..42) {
+        item = AudioItem()
+        item.mTitle = "Item ${index + 1}"
+        item.mSummary = "Item ${index + 1}"
+        if (mSelection == index) {
+          item.mColor = android.R.color.holo_red_light
+          item.mColor2 = android.R.color.holo_blue_light
+        } else {
+          item.mColor = android.R.color.black
+          item.mColor2 = android.R.color.black
         }
-        if (mData == null) {
-            mData = ArrayList()
-            var item: AudioItem
-            for (index in 0..42) {
-                item = AudioItem()
-                item.mTitle = "Item ${index + 1}"
-                item.mSummary = "Item ${index + 1}"
-                if (mSelection == index) {
-                    item.mColor = android.R.color.holo_red_light
-                    item.mColor2 = android.R.color.holo_blue_light
-                } else {
-                    item.mColor = android.R.color.black
-                    item.mColor2 = android.R.color.black
-                }
-                mData!!.add(item)
-            }
-        }
-        Log.d(logTag(), "initData() selection: $mSelection, data size: ${mData!!.size}")
+        mData!!.add(item)
+      }
     }
+    Log.d(logTag(), "initData() selection: $mSelection, data size: ${mData!!.size}")
+  }
 
-    override fun layout(): View {
-        // R.layout.activity_grid_view
-        mBind = ActivityGridViewBinding.inflate(layoutInflater)
-        return mBind!!.root
+  override fun layout(): View {
+    // R.layout.activity_grid_view
+    mBind = ActivityGridViewBinding.inflate(layoutInflater)
+    return mBind!!.root
+  }
+
+  override fun logTag(): String = "GridViewActivity"
+
+  override fun initView() {
+    mBind!!.btnShowDialog.setOnClickListener {
+      showGridDialog()
     }
+  }
 
-    override fun logTag(): String = "GridViewActivity"
-
-    override fun initView() {
-        mBind!!.btnShowDialog.setOnClickListener {
-            showGridDialog()
-        }
-    }
-
-    private fun showGridDialog() {
-        val dialog = GridDialog()
-        dialog.setSelection(mSelection)
-        dialog.setData(mData!!)
-        dialog.show(supportFragmentManager, dialog.javaClass.name)
-    }
+  private fun showGridDialog() {
+    val dialog = GridDialog()
+    dialog.setSelection(mSelection)
+    dialog.setData(mData!!)
+    dialog.show(supportFragmentManager, dialog.javaClass.name)
+  }
 }

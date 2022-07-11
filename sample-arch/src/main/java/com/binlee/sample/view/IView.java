@@ -9,11 +9,11 @@ import com.binlee.sample.model.ArchDevice;
  */
 public interface IView {
 
-    void onDeviceChanged(ArchDevice device, boolean removed);
+  void onDeviceChanged(ArchDevice device, boolean removed);
 
-    void onScanTimeout();
+  void onScanTimeout();
 
-    void onConnectTimeout();
+  void onConnectTimeout();
 
-    void onClearInfo(ArchDevice device, boolean remote);
+  void onClearInfo(ArchDevice device, boolean remote);
 }

@@ -8,7 +8,7 @@ import com.sleticalboy.util.ListUtils
 import com.sleticalboy.weight.xrecycler.adapter.XBaseHolder
 import com.sleticalboy.weight.xrecycler.adapter.XRecyclerAdapter
 import com.sleticalboy.weight.xrecycler.helper.ItemTouchDragAdapter
-import java.util.*
+import java.util.ArrayList
 
 /**
  * Created on 18-2-7.
@@ -17,29 +17,29 @@ import java.util.*
  * @version 1.0
  * @description
  */
-class ItemTouchAdapter(context: Context, private val mObjects: Array<Int>)
-    : XRecyclerAdapter<Int>(context, mObjects), ItemTouchDragAdapter {
+class ItemTouchAdapter(context: Context, private val mObjects: Array<Int>) :
+  XRecyclerAdapter<Int>(context, mObjects), ItemTouchDragAdapter {
 
-    override fun onCreateItemHolder(parent: ViewGroup, viewType: Int): XBaseHolder<Int> {
-        return ViewHolder(parent, R.layout.item_wheel_layout)
+  override fun onCreateItemHolder(parent: ViewGroup, viewType: Int): XBaseHolder<Int> {
+    return ViewHolder(parent, R.layout.item_wheel_layout)
+  }
+
+  override fun onItemMove(from: Int, to: Int) {
+    relocationItem(ArrayList(listOf(*mObjects)), from, to)
+    notifyItemMoved(from, to)
+  }
+
+  private fun <T> relocationItem(source: List<T>, from: Int, to: Int) {
+    ListUtils.relocation(source.toMutableList(), from, to)
+  }
+
+  private class ViewHolder(parent: ViewGroup?, res: Int) : XBaseHolder<Int>(parent!!, res) {
+
+    private var mImageView: ImageView = getView(R.id.image_view)
+
+    override fun bindData(data: Int) {
+      data.let { mImageView.setImageResource(it) }
     }
 
-    override fun onItemMove(from: Int, to: Int) {
-        relocationItem(ArrayList(listOf(*mObjects)), from, to)
-        notifyItemMoved(from, to)
-    }
-
-    private fun <T> relocationItem(source: List<T>, from: Int, to: Int) {
-        ListUtils.relocation(source.toMutableList(), from, to)
-    }
-
-    private class ViewHolder(parent: ViewGroup?, res: Int) : XBaseHolder<Int>(parent!!, res) {
-
-        private var mImageView: ImageView = getView(R.id.image_view)
-
-        override fun bindData(data: Int) {
-            data.let { mImageView.setImageResource(it) }
-        }
-
-    }
+  }
 }

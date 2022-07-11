@@ -16,38 +16,41 @@ import com.sleticalboy.weight.xrefresh.interfaces.IFooterView
  * @version 1.0
  * @description
  */
-class FooterView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
-    : FrameLayout(context, attrs, defStyleAttr), IFooterView {
+class FooterView @JvmOverloads constructor(
+  context: Context,
+  attrs: AttributeSet? = null,
+  defStyleAttr: Int = 0
+) : FrameLayout(context, attrs, defStyleAttr), IFooterView {
 
-    init {
-        init()
-    }
+  init {
+    init()
+  }
 
-    private fun init() {
-        LayoutInflater.from(context).inflate(R.layout.layout_refresh_footer, this)
-    }
+  private fun init() {
+    LayoutInflater.from(context).inflate(R.layout.layout_refresh_footer, this)
+  }
 
-    override fun begin() {
+  override fun begin() {
 
-    }
+  }
 
-    override fun progress(progress: Long, total: Long) {
+  override fun progress(progress: Long, total: Long) {
 
-    }
+  }
 
-    override fun finish(progress: Long, total: Long) {
+  override fun finish(progress: Long, total: Long) {
 
-    }
+  }
 
-    override fun loading() {
+  override fun loading() {
 
-    }
+  }
 
-    override fun hidden() {
+  override fun hidden() {
 
-    }
+  }
 
-    override fun get(): View {
-        return this
-    }
+  override fun get(): View {
+    return this
+  }
 }

@@ -8,18 +8,20 @@ import androidx.fragment.app.Fragment
 
 abstract class BaseFragment : Fragment() {
 
-    final override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                                    savedInstanceState: Bundle?): View {
-        return layout(inflater, container)
-    }
+  final override fun onCreateView(
+    inflater: LayoutInflater, container: ViewGroup?,
+    savedInstanceState: Bundle?
+  ): View {
+    return layout(inflater, container)
+  }
 
-    final override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        initView(view)
-    }
+  final override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    initView(view)
+  }
 
-    abstract fun initView(view: View)
+  abstract fun initView(view: View)
 
-    abstract fun layout(inflater: LayoutInflater, container: ViewGroup?): View
+  abstract fun layout(inflater: LayoutInflater, container: ViewGroup?): View
 
-    protected open fun logTag(): String = "BaseFragment"
+  protected open fun logTag(): String = "BaseFragment"
 }

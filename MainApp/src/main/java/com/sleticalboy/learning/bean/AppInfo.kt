@@ -9,4 +9,5 @@ import java.io.Serializable
  * @version 1.0
  * @description
  */
-class AppInfo(var name: String, var category: String, var imgId: Int, var isGroup: Boolean) : Serializable
+class AppInfo(var name: String, var category: String, var imgId: Int, var isGroup: Boolean) :
+  Serializable

@@ -10,10 +10,10 @@ import androidx.recyclerview.widget.RecyclerView
  *
  * @author binlee sleticalboy@gmail.com
  */
-abstract class BaseRVHolder<DATA>(parent: ViewGroup, @LayoutRes layout: Int)
-    : RecyclerView.ViewHolder(
-        LayoutInflater.from(parent.context).inflate(layout, parent, false)
-) {
+abstract class BaseRVHolder<DATA>(parent: ViewGroup, @LayoutRes layout: Int) :
+  RecyclerView.ViewHolder(
+    LayoutInflater.from(parent.context).inflate(layout, parent, false)
+  ) {
 
-    abstract fun bindData(data: DATA, position: Int)
+  abstract fun bindData(data: DATA, position: Int)
 }

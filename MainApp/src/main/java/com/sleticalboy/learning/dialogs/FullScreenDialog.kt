@@ -13,21 +13,21 @@ import com.sleticalboy.learning.databinding.DialogFullScreenBinding
  */
 class FullScreenDialog : BaseDialog() {
 
-    private var bind: DialogFullScreenBinding? = null
+  private var bind: DialogFullScreenBinding? = null
 
-    override fun getTheme(): Int {
-        return R.style.DialogFullScreen
-    }
+  override fun getTheme(): Int {
+    return R.style.DialogFullScreen
+  }
 
-    override fun layout(inflater: LayoutInflater, parent: ViewGroup?): View {
-        bind = DialogFullScreenBinding.inflate(inflater, parent, false)
-        return bind!!.root
-    }
+  override fun layout(inflater: LayoutInflater, parent: ViewGroup?): View {
+    bind = DialogFullScreenBinding.inflate(inflater, parent, false)
+    return bind!!.root
+  }
 
-    override fun initView(view: View) {
-    }
+  override fun initView(view: View) {
+  }
 
-    companion object {
-        var TAG = "FullScreenDialog"
-    }
+  companion object {
+    var TAG = "FullScreenDialog"
+  }
 }

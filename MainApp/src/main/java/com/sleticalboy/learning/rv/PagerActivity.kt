@@ -20,74 +20,75 @@ import com.sleticalboy.weight.xrecycler.adapter.XRecyclerAdapter
  */
 class PagerActivity : AppCompatActivity() {
 
-    private val mImagesId = arrayOf(
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
-            R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher)
+  private val mImagesId = arrayOf(
+    R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
+    R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
+    R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
+    R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
+    R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
+    R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher,
+    R.mipmap.ic_launcher, R.mipmap.ic_launcher, R.mipmap.ic_launcher
+  )
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        //        setView();
-        setLayout()
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    //        setView();
+    setLayout()
+  }
+
+  private fun setLayout() {
+    setContentView(R.layout.activity_pager)
+    val pagerView = findViewById<PagerView>(R.id.pager_view)
+    pagerView.setTitle("已添加的应用")
+    pagerView.adapter = PagerAdapter(this, mImagesId)
+    pagerView.setIndicatorDrawable(R.drawable.mx_page_indicator)
+    findViewById<View>(R.id.btnShowPage).setOnClickListener {
+      pagerView.visibility = if (++sCounter % 2 == 0) View.GONE else View.VISIBLE
+    }
+  }
+
+  private fun setView() {
+    val rows = 3
+    val columns = 4
+    val pagerView = PagerView(this, rows, columns)
+    pagerView.setIndicatorSize(4)
+    pagerView.setIndicatorDrawable(R.drawable.mx_page_indicator)
+    pagerView.adapter = PagerAdapter(this, mImagesId)
+    setContentView(pagerView)
+  }
+
+  internal class PagerAdapter(context: Context, private var mIntegers: Array<Int>) :
+    XRecyclerAdapter<Int>(context) {
+
+    override fun onCreateItemHolder(parent: ViewGroup, viewType: Int): XBaseHolder<Int> {
+      return ItemHolder(parent, R.layout.item_common_layout)
     }
 
-    private fun setLayout() {
-        setContentView(R.layout.activity_pager)
-        val pagerView = findViewById<PagerView>(R.id.pager_view)
-        pagerView.setTitle("已添加的应用")
-        pagerView.adapter = PagerAdapter(this, mImagesId)
-        pagerView.setIndicatorDrawable(R.drawable.mx_page_indicator)
-        findViewById<View>(R.id.btnShowPage).setOnClickListener {
-            pagerView.visibility = if (++sCounter % 2 == 0) View.GONE else View.VISIBLE
-        }
+    override fun getItemData(position: Int): Int {
+      //            position %= mIntegers.length;
+      return mIntegers[position]
     }
 
-    private fun setView() {
-        val rows = 3
-        val columns = 4
-        val pagerView = PagerView(this, rows, columns)
-        pagerView.setIndicatorSize(4)
-        pagerView.setIndicatorDrawable(R.drawable.mx_page_indicator)
-        pagerView.adapter = PagerAdapter(this, mImagesId)
-        setContentView(pagerView)
+    override fun getCount(): Int {
+      return mIntegers.size
     }
 
-    internal class PagerAdapter(context: Context, private var mIntegers: Array<Int>)
-        : XRecyclerAdapter<Int>(context) {
+    internal class ItemHolder(parent: ViewGroup, res: Int) : XBaseHolder<Int>(parent, res) {
 
-        override fun onCreateItemHolder(parent: ViewGroup, viewType: Int): XBaseHolder<Int> {
-            return ItemHolder(parent, R.layout.item_common_layout)
-        }
+      private var mImageView: ImageView? = getView(R.id.image_view)
 
-        override fun getItemData(position: Int): Int {
-//            position %= mIntegers.length;
-            return mIntegers[position]
-        }
+      override fun bindData(data: Int) {
+        mImageView!!.setImageResource(data)
+      }
 
-        override fun getCount(): Int {
-            return mIntegers.size
-        }
-
-        internal class ItemHolder(parent: ViewGroup, res: Int) : XBaseHolder<Int>(parent, res) {
-
-            private var mImageView: ImageView? = getView(R.id.image_view)
-
-            override fun bindData(data: Int) {
-                mImageView!!.setImageResource(data)
-            }
-
-            init {
-                mImageView!!.adjustViewBounds = true
-            }
-        }
+      init {
+        mImageView!!.adjustViewBounds = true
+      }
     }
+  }
 
-    companion object {
-        private const val TAG = "PagerActivity"
-        private var sCounter = 0
-    }
+  companion object {
+    private const val TAG = "PagerActivity"
+    private var sCounter = 0
+  }
 }

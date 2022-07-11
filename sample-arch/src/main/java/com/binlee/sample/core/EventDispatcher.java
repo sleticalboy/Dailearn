@@ -9,34 +9,34 @@ import com.binlee.sample.event.IEvent;
  */
 public abstract class EventDispatcher {
 
-    private final EventDispatcher mNext;
-    private OnUnhandledCallback mCallback;
+  private final EventDispatcher mNext;
+  private OnUnhandledCallback mCallback;
 
-    public EventDispatcher(EventDispatcher next) {
-        mNext = next;
+  public EventDispatcher(EventDispatcher next) {
+    mNext = next;
+  }
+
+  public final void deliver(IEvent event) {
+    EventDispatcher next = this;
+    while (next != null) {
+      if (next.onProcess(event)) {
+        return;
+      }
+      next = next.mNext;
     }
-
-    public final void deliver(IEvent event) {
-        EventDispatcher next = this;
-        while (next != null) {
-            if (next.onProcess(event)) {
-                return;
-            }
-            next = next.mNext;
-        }
-        if (mCallback != null) {
-            mCallback.onUnhandled(event);
-        }
+    if (mCallback != null) {
+      mCallback.onUnhandled(event);
     }
+  }
 
-    public final void setOnUnhandledCallback(OnUnhandledCallback callback) {
-        mCallback = callback;
-    }
+  public final void setOnUnhandledCallback(OnUnhandledCallback callback) {
+    mCallback = callback;
+  }
 
-    protected abstract boolean onProcess(IEvent event);
+  protected abstract boolean onProcess(IEvent event);
 
-    public interface OnUnhandledCallback {
+  public interface OnUnhandledCallback {
 
-        void onUnhandled(IEvent event);
-    }
+    void onUnhandled(IEvent event);
+  }
 }

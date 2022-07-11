@@ -22,77 +22,83 @@ import com.sleticalboy.util.ThreadHelper
  */
 class NotificationsUI : BaseActivity() {
 
-    private var mManager: NotificationManager? = null
-    private var mHandler: Handler? = null
+  private var mManager: NotificationManager? = null
+  private var mHandler: Handler? = null
 
-    override fun prepareWork(savedInstanceState: Bundle?) {
-        mManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        mHandler = Handler(Looper.getMainLooper())
+  override fun prepareWork(savedInstanceState: Bundle?) {
+    mManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    mHandler = Handler(Looper.getMainLooper())
+  }
+
+  override fun layout(): View {
+    // R.layout.activity_notifications
+    return ActivityNotificationsBinding.inflate(layoutInflater).root
+  }
+
+  override fun initView() {
+    findViewById<View>(R.id.notifyDelayWithLight).setOnClickListener { v: View? -> notifyDelayWithLight() }
+    findViewById<View>(R.id.notifyWithProgress).setOnClickListener { v: View? -> notifyWithProgress() }
+  }
+
+  private fun notifyWithProgress() {
+    val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      Notification.Builder(this, "$TAG@${hashCode()}")
+    } else {
+      Notification.Builder(this)
     }
-
-    override fun layout(): View {
-        // R.layout.activity_notifications
-        return ActivityNotificationsBinding.inflate(layoutInflater).root
+    b.setContentTitle("test progress notification")
+    b.setSubText("progress: 0%")
+    b.setProgress(100, 0, false)
+    b.setSmallIcon(android.R.drawable.stat_sys_upload)
+    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O) {
+      mgr.createNotificationChannel(
+        NotificationChannel(
+          TAG,
+          TAG,
+          NotificationManager.IMPORTANCE_DEFAULT
+        )
+      )
+      b.setChannelId(TAG)
     }
-
-    override fun initView() {
-        findViewById<View>(R.id.notifyDelayWithLight).setOnClickListener { v: View? -> notifyDelayWithLight() }
-        findViewById<View>(R.id.notifyWithProgress).setOnClickListener { v: View? -> notifyWithProgress() }
-    }
-
-    private fun notifyWithProgress() {
-        val mgr = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, "$TAG@${hashCode()}")
-        } else {
-            Notification.Builder(this)
+    mgr.notify(this@NotificationsUI.hashCode(), b.build())
+    val progress = intArrayOf(0)
+    mHandler!!.postDelayed(object : Runnable {
+      override fun run() {
+        val p = progress[0]
+        if (p == 100) {
+          mgr.cancel(this@NotificationsUI.hashCode())
+          return
         }
-        b.setContentTitle("test progress notification")
-        b.setSubText("progress: 0%")
-        b.setProgress(100, 0, false)
-        b.setSmallIcon(android.R.drawable.stat_sys_upload)
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O) {
-            mgr.createNotificationChannel(NotificationChannel(TAG, TAG, NotificationManager.IMPORTANCE_DEFAULT))
-            b.setChannelId(TAG)
-        }
+        b.setSubText("progress: $p%")
+        b.setProgress(100, p, false)
         mgr.notify(this@NotificationsUI.hashCode(), b.build())
-        val progress = intArrayOf(0)
-        mHandler!!.postDelayed(object : Runnable {
-            override fun run() {
-                val p = progress[0]
-                if (p == 100) {
-                    mgr.cancel(this@NotificationsUI.hashCode())
-                    return
-                }
-                b.setSubText("progress: $p%")
-                b.setProgress(100, p, false)
-                mgr.notify(this@NotificationsUI.hashCode(), b.build())
-                progress[0] = p + 10
-                mHandler!!.postDelayed(this, 1000L)
-            }
-        }, 100L)
-    }
+        progress[0] = p + 10
+        mHandler!!.postDelayed(this, 1000L)
+      }
+    }, 100L)
+  }
 
-    private fun notifyDelayWithLight() {
-        val builder = Notification.Builder(this)
-        builder.setContentTitle("测试呼吸灯闪烁")
-        builder.setContentText("这是一个伴随着呼吸灯闪烁的通知.")
-        builder.setLights(Color.RED, 3000, 3000)
-        builder.setSmallIcon(R.drawable.ic_sms_light_24dp)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder.setChannelId(NotificationHelper.SPECIAL_TAG)
-        }
-        builder.setDefaults(Notification.DEFAULT_ALL)
-        val not = builder.build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            not.color = Color.RED
-        }
-        ThreadHelper.runOnMain(Runnable {
-            mManager!!.notify(NotificationHelper.SPECIAL_TAG, -1, not)
-        }, 3000L)
+  private fun notifyDelayWithLight() {
+    val builder = Notification.Builder(this)
+    builder.setContentTitle("测试呼吸灯闪烁")
+    builder.setContentText("这是一个伴随着呼吸灯闪烁的通知.")
+    builder.setLights(Color.RED, 3000, 3000)
+    builder.setSmallIcon(R.drawable.ic_sms_light_24dp)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      builder.setChannelId(NotificationHelper.SPECIAL_TAG)
     }
+    builder.setDefaults(Notification.DEFAULT_ALL)
+    val not = builder.build()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      not.color = Color.RED
+    }
+    ThreadHelper.runOnMain(Runnable {
+      mManager!!.notify(NotificationHelper.SPECIAL_TAG, -1, not)
+    }, 3000L)
+  }
 
-    companion object {
-        private const val TAG = "NotificationsUI"
-    }
+  companion object {
+    private const val TAG = "NotificationsUI"
+  }
 }

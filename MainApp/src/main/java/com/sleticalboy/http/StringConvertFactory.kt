@@ -17,24 +17,28 @@ private const val JSON = "application/json; charset=UTF-8"
 
 class StringConvertFactory : Converter.Factory() {
 
-    // 将 ResponseBody 转换成我们想要的类型
-    override fun responseBodyConverter(type: Type, annotations: Array<Annotation>,
-                                       retrofit: Retrofit)
-            : Converter<ResponseBody, String> {
-        return Converter { value: ResponseBody -> value.string() }
-    }
+  // 将 ResponseBody 转换成我们想要的类型
+  override fun responseBodyConverter(
+    type: Type, annotations: Array<Annotation>,
+    retrofit: Retrofit
+  )
+      : Converter<ResponseBody, String> {
+    return Converter { value: ResponseBody -> value.string() }
+  }
 
-    // 将我们输入的类型转换成 RequestBody
-    override fun requestBodyConverter(type: Type, parameterAnnotations: Array<Annotation>,
-                                      methodAnnotations: Array<Annotation>, retrofit: Retrofit)
-            : Converter<String, RequestBody> {
-        return Converter { value: String? -> RequestBody.create(MediaType.parse(JSON), value) }
-    }
+  // 将我们输入的类型转换成 RequestBody
+  override fun requestBodyConverter(
+    type: Type, parameterAnnotations: Array<Annotation>,
+    methodAnnotations: Array<Annotation>, retrofit: Retrofit
+  )
+      : Converter<String, RequestBody> {
+    return Converter { value: String? -> RequestBody.create(MediaType.parse(JSON), value) }
+  }
 
-    companion object {
+  companion object {
 
-        fun create(): StringConvertFactory {
-            return StringConvertFactory()
-        }
+    fun create(): StringConvertFactory {
+      return StringConvertFactory()
     }
+  }
 }

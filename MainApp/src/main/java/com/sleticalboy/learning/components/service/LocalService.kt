@@ -8,44 +8,44 @@ import android.util.Log
 
 class LocalService : Service() {
 
-    private var mBinder: LocalBinder? = null
+  private var mBinder: LocalBinder? = null
 
-    override fun onCreate() {
-        super.onCreate()
-        Log.d(TAG, "onCreate() called")
+  override fun onCreate() {
+    super.onCreate()
+    Log.d(TAG, "onCreate() called")
+  }
+
+  override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+    Log.d(TAG, "onStartCommand() called with startId: $startId")
+    return super.onStartCommand(intent, flags, startId)
+  }
+
+  override fun onBind(intent: Intent): IBinder? {
+    Log.d(TAG, "onBind() called intent: $intent")
+    if (mBinder == null) {
+      mBinder = LocalBinder(this)
     }
+    return mBinder
+  }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand() called with startId: $startId")
-        return super.onStartCommand(intent, flags, startId)
+  override fun onUnbind(intent: Intent): Boolean {
+    Log.d(TAG, "onUnbind() called with intent: $intent")
+    return super.onUnbind(intent)
+  }
+
+  override fun onDestroy() {
+    super.onDestroy()
+    Log.d(TAG, "onDestroy() called")
+  }
+
+  class LocalBinder(private val mService: LocalService) : Binder() {
+
+    fun getService(): LocalService {
+      return mService
     }
+  }
 
-    override fun onBind(intent: Intent): IBinder? {
-        Log.d(TAG, "onBind() called intent: $intent")
-        if (mBinder == null) {
-            mBinder = LocalBinder(this)
-        }
-        return mBinder
-    }
-
-    override fun onUnbind(intent: Intent): Boolean {
-        Log.d(TAG, "onUnbind() called with intent: $intent")
-        return super.onUnbind(intent)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d(TAG, "onDestroy() called")
-    }
-
-    class LocalBinder(private val mService: LocalService) : Binder() {
-
-        fun getService(): LocalService {
-            return mService
-        }
-    }
-
-    companion object {
-        private const val TAG = "LocalService"
-    }
+  companion object {
+    private const val TAG = "LocalService"
+  }
 }

@@ -14,38 +14,38 @@ import com.sleticalboy.learning.databinding.FragmentBaseListBinding
  */
 abstract class BaseListFragment<DATA> : BaseFragment() {
 
-    private var mAdapter: BaseRVAdapter<DATA>? = null
-    private var mBind: FragmentBaseListBinding? = null
+  private var mAdapter: BaseRVAdapter<DATA>? = null
+  private var mBind: FragmentBaseListBinding? = null
 
-    override fun logTag(): String = "BaseListFragment"
+  override fun logTag(): String = "BaseListFragment"
 
-    final override fun initView(view: View) {
-        initHeader(mBind!!.headerContainer)
+  final override fun initView(view: View) {
+    initHeader(mBind!!.headerContainer)
 
-        mBind!!.listContainer.layoutManager = LinearLayoutManager(context)
-        mBind!!.listContainer.adapter = getAdapter()
+    mBind!!.listContainer.layoutManager = LinearLayoutManager(context)
+    mBind!!.listContainer.adapter = getAdapter()
 
-        initFooter(mBind!!.footerContainer)
+    initFooter(mBind!!.footerContainer)
+  }
+
+  fun getAdapter(): BaseRVAdapter<DATA> {
+    if (mAdapter == null) {
+      mAdapter = createAdapter()
     }
+    return mAdapter!!
+  }
 
-    fun getAdapter(): BaseRVAdapter<DATA> {
-        if (mAdapter == null) {
-            mAdapter = createAdapter()
-        }
-        return mAdapter!!
-    }
+  protected abstract fun createAdapter(): BaseRVAdapter<DATA>
 
-    protected abstract fun createAdapter(): BaseRVAdapter<DATA>
+  protected open fun initHeader(headerContainer: FrameLayout) {
+  }
 
-    protected open fun initHeader(headerContainer: FrameLayout) {
-    }
+  protected open fun initFooter(footerContainer: FrameLayout) {
+  }
 
-    protected open fun initFooter(footerContainer: FrameLayout) {
-    }
-
-    final override fun layout(inflater: LayoutInflater, container: ViewGroup?): View {
-        // R.layout.fragment_base_list
-        mBind = FragmentBaseListBinding.inflate(inflater, container, false)
-        return mBind!!.root
-    }
+  final override fun layout(inflater: LayoutInflater, container: ViewGroup?): View {
+    // R.layout.fragment_base_list
+    mBind = FragmentBaseListBinding.inflate(inflater, container, false)
+    return mBind!!.root
+  }
 }
