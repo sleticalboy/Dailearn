@@ -20,6 +20,7 @@ class MainApp : Application() {
 
   override fun attachBaseContext(base: Context?) {
     super.attachBaseContext(base)
+    LibJni.loadJvmti(this)
     Log.d(TAG, "attachBaseContext() ${LibJni.nativeGetString()}")
   }
 

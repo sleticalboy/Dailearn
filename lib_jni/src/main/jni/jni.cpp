@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <string>
-#include <android/log.h>
+#include "jni_logger.h"
+#include "jvmti_loader.h"
 
 // Write C++ code here.
 //
@@ -14,14 +15,6 @@
 //    }
 
 #define LOG_TAG "LibJni"
-
-#ifndef ALOGD
-#define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__);
-#endif
-
-#ifndef ALOGE
-#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);
-#endif
 
 jstring LibJni_nativeGetString(JNIEnv *env, jclass clazz) {
   std::string string = "this string is from native via jni.";
@@ -41,10 +34,15 @@ void LibJni_nativeCallJava(JNIEnv *env, jclass clazz, jobject jContext) {
   env->DeleteLocalRef(toast);
 }
 
+void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jstring library) {
+  jvmti::attachAgent(env, library);
+}
+
 JNINativeMethod methods[] = {
   // com.binlee.sample.jni.LibJni.nativeGetString
   {"nativeGetString", "()Ljava/lang/String;",         (void *) LibJni_nativeGetString},
   {"nativeCallJava",  "(Landroid/content/Context;)V", (void *) LibJni_nativeCallJava},
+  {"nativeLoadJvmti", "(Ljava/lang/String;)V",        (void *) LibJni_nativeLoadJvmti}
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
