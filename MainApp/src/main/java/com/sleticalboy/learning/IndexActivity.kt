@@ -26,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.lang.RuntimeException
 import kotlin.concurrent.thread
 
 class IndexActivity : BaseActivity() {
@@ -71,6 +72,14 @@ class IndexActivity : BaseActivity() {
     // github()
     // coroutines()
     LibJni.nativeCallJava(this)
+    threadException()
+  }
+
+  private fun threadException() {
+    thread {
+      Thread.sleep(5000L)
+      throw RuntimeException("thread throw exception.")
+    }
   }
 
   private fun coroutines() {

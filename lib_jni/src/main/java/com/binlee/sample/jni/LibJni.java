@@ -24,7 +24,7 @@ public final class LibJni {
     final String[] libs = new File(nativeLibraryDir).list();
     Log.d("LibJni", "loadJvmti() native libraries: " + Arrays.toString(libs) + ", in " + nativeLibraryDir);
     // 这个路径中有 '='，系统会检测 lib 路径中是否包含 '='，如果包含会直接报错，因此要拷贝到私有目录中
-    final File dest = new File(context.getFilesDir(), "jvmti-aggent.so");
+    final File dest = new File(context.getFilesDir(), "jvmti-agent.so");
     try {
       copyFile(new File(nativeLibraryDir, "libjni.so"), dest);
     } catch (IOException e) {
@@ -36,11 +36,11 @@ public final class LibJni {
   }
 
   private static void copyFile(File src, File dest) throws IOException {
-    if (dest.exists()) return;
+    if (dest.exists()) dest.delete();
     dest.createNewFile();
     final FileInputStream input = new FileInputStream(src);
     final FileOutputStream output = new FileOutputStream(dest);
-    final byte[] buffer = new byte[8192];
+    final byte[] buffer = new byte[8 * 1024];
     int len;
     while ((len = input.read(buffer)) != -1) {
       output.write(buffer, 0, len);

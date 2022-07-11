@@ -13,7 +13,7 @@ void jvmti::attachAgent(JNIEnv *env, jstring library) {
     env->CallStaticVoidMethod(cls_debug, method,
                               library/*library*/,
                               (jstring) nullptr /*options*/,
-                              (jobject) nullptr/*classloader*/);
+                              (jobject) nullptr /*classloader*/);
   } else {
     jclass cls_vm_debug = env->FindClass("dalvik/system/VMDebug");
     jmethodID method = env->GetStaticMethodID(cls_vm_debug, "attachAent", "(Ljava/lang/String;)V");
