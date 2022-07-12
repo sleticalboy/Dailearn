@@ -5,11 +5,22 @@
 #include <cstring>
 #include "jvmti_impl.h"
 #include "jni_logger.h"
+#include <sys/mman.h>
+#include <sys/fcntl.h>
+#include <unistd.h>
 
 #define LOG_TAG "JVMTI_IMPL"
 
 void callbackVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread) {
   ALOGE("%s", __func__)
+  int fd = open("", O_RDWR | O_CREAT);
+  int page_size = getpagesize();
+  ftruncate(fd, page_size);
+  void *buffer = mmap(nullptr, 1024 * 1024 * 4, PROT_WRITE, MAP_SHARED, fd, 0);
+  close(fd);
+  lseek(fd, 4, SEEK_END);
+  memcpy(buffer, "", 0);
+  munmap(buffer, 1024 * 1024 * 4);
 }
 
 void callbackVMDeath(jvmtiEnv *jvmti, JNIEnv *env) {
