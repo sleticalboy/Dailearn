@@ -35,7 +35,7 @@ void LibJni_nativeCallJava(JNIEnv *env, jclass clazz, jobject jContext) {
 }
 
 void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jstring library) {
-  jvmti::attachAgent(env, library);
+  jvmti::attachAgent(env, env->GetStringUTFChars(library, JNI_FALSE));
 }
 
 JNINativeMethod methods[] = {

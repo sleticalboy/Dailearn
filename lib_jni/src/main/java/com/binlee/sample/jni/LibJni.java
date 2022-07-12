@@ -1,11 +1,15 @@
 package com.binlee.sample.jni;
 
 import android.content.Context;
+import android.os.Build;
+import android.os.Debug;
 import android.util.Log;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 /**
@@ -33,6 +37,26 @@ public final class LibJni {
     }
     Log.d("LibJni", "loadJvmti() jvmti agent: " + dest);
     nativeLoadJvmti(dest.getAbsolutePath());
+    // javaLoadJvmti(context, dest.getAbsolutePath());
+  }
+
+  private static void javaLoadJvmti(Context context, String library) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      try {
+        Debug.attachJvmtiAgent(library, null, context.getClassLoader());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    } else {
+      try {
+        final Class<?> clazz = Class.forName("dalvik.system.VMDebug");
+        final Method method = clazz.getDeclaredMethod("attachAgent", String.class);
+        method.setAccessible(true);
+        method.invoke(null, library);
+      } catch (Throwable e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   private static void copyFile(File src, File dest) throws IOException {

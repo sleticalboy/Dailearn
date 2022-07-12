@@ -26,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.lang.NullPointerException
 import java.lang.RuntimeException
 import kotlin.concurrent.thread
 
@@ -78,7 +79,11 @@ class IndexActivity : BaseActivity() {
   private fun threadException() {
     thread {
       Thread.sleep(5000L)
-      throw RuntimeException("thread throw exception.")
+      try {
+        throw NullPointerException("thread throw exception.")
+      } catch (e: Exception) {
+        e.printStackTrace()
+      }
     }
   }
 

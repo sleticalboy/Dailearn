@@ -8,30 +8,32 @@
 
 #define LOG_TAG "JVMTI_IMPL"
 
-void jvmti::callbackVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread) {
+void callbackVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread) {
   ALOGE("%s", __func__)
 }
 
-void jvmti::callbackVMDeath(jvmtiEnv *jvmti, JNIEnv *env) {
+void callbackVMDeath(jvmtiEnv *jvmti, JNIEnv *env) {
   ALOGE("%s", __func__)
 }
 
-void jvmti::callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject object,
+void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject object,
                            jclass klass, jlong size) {
-  ALOGE("%s", __func__)
-  if (size < 50) return;
+  if (size < 150) return;
   char *className = {};
   jvmtiError error = jvmti->GetClassSignature(klass, &className, nullptr);
   if (error == JVMTI_ERROR_NONE && className != nullptr) {
-    ALOGE("%s %s object is allocated with size %ld", __func__, className, size)
+    ALOGD("%s %s object is allocated with size %ld", __func__, className, size)
   }
   delete className;
 }
 
-void jvmti::callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
+void callbackObjectFree(jvmtiEnv *jvmti, jlong tag) {
+  ALOGD("%s tag: %ld", __func__, tag)
+}
+
+void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
                        jlocation location, jobject exception, jmethodID catch_method,
                        jlocation catch_location) {
-  ALOGE("%s", __func__)
   char *name = {};
   char *sig = {};
   char *gsig = {};
@@ -50,21 +52,31 @@ void jvmti::callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmet
   if (error == JVMTI_ERROR_NONE) {
     ALOGE("%s ", __func__)
   }
-  ALOGE("%s exception in method: %s%s%s", __func__, name, sig, gsig)
+  ALOGE("%s in method: %s%s generic signature: %s", __func__, name, sig, gsig)
 }
 
-bool isAgentInit = false;
+void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
+                            jlocation location, jobject exception) {
+  char *name = {};
+  char *sig = {};
+  char *gsig = {};
+  jvmtiError error = jvmti->GetMethodName(method, &name, &sig, &gsig);
+  if (error != JVMTI_ERROR_NONE) {
+    ALOGE("%s GetMethodName error: %d", __func__, error)
+    return;
+  }
+  ALOGE("%s in method: %s%s generic signature: %s", __func__, name, sig, gsig)
+}
 
 int Agent_Init(JavaVM *vm) {
-
-  if (isAgentInit) return JNI_TRUE;
-
   ALOGD("%s start GetJvmtiEnv", __func__)
   jvmtiEnv *jvmti = nullptr;
-  if (vm->GetEnv((void **) &jvmti, JNI_VERSION_1_6) != JNI_OK || jvmti == nullptr) {
+  // 支持的 jvmti 版本：JVMTI_VERSION_1_0、JVMTI_VERSION_1_1、JVMTI_VERSION_1_2
+  if (vm->GetEnv((void **) &jvmti, JVMTI_VERSION_1_2) != JNI_OK || jvmti == nullptr) {
     ALOGE("%s GetJvmtiEnv error", __func__)
     return JNI_FALSE;
   }
+  ALOGD("%s jvmti env: %p", __func__, jvmti)
 
   ALOGD("%s start GetJNIEnv", __func__)
   JNIEnv *env = nullptr;
@@ -72,27 +84,30 @@ int Agent_Init(JavaVM *vm) {
     ALOGE("%s GetJNIEnv error", __func__)
     return JNI_FALSE;
   }
+  ALOGD("%s JNI env: %p", __func__, env)
 
-  isAgentInit = true;
-
-  static jvmti::AgentData data;
+  jvmti::AgentData data;
   memset(&data, 0, sizeof(jvmti::AgentData));
   jvmti::gdata = &data;
-
+  jvmti::gdata->isAgentInit = true;
   jvmti::gdata->jvmti = jvmti;
 
-  ALOGD("%s start CreateRawMonitor", __func__)
-  // fixme: 这里创建会失败
   jvmtiError error = JVMTI_ERROR_NONE;
-  // error= jvmti->CreateRawMonitor("agent data", &data.lock);
-  // jvmti::gdata->lock = env->NewGlobalRef(data.lock);
+
+  ALOGD("%s start CreateRawMonitor", __func__)
+  error= jvmti->CreateRawMonitor("agent data", &data.lock);
   if (error != JVMTI_ERROR_NONE) {
     ALOGE("%s CreateRawMonitor error: %d", __func__, error)
     return JNI_FALSE;
   }
+  ALOGD("%s raw monitor: %p", __func__, jvmti::gdata->lock)
 
   jvmtiCapabilities capa;
   memset(&capa, 0, sizeof(jvmtiCapabilities));
+  error = jvmti->GetCapabilities(&capa);
+  if (error != JVMTI_ERROR_NONE) {
+    ALOGE("%s GetCapabilities error: %d", __func__, error)
+  }
   capa.can_signal_thread = 1;
   capa.can_get_owned_monitor_info = 1;
   capa.can_generate_method_entry_events = 1;
@@ -101,29 +116,42 @@ int Agent_Init(JavaVM *vm) {
   capa.can_tag_objects = 1;
   error = jvmti->AddCapabilities(&capa);
   // check_jvmti_error(jvmti, error, "Unable to get necessary JVMTI capabilities");
-  ALOGD("%s AddCapabilities: %d", __func__, error)
+  if (error != JVMTI_ERROR_NONE) {
+    ALOGE("%s AddCapabilities error: %d", __func__, error)
+  }
 
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_INIT, nullptr);
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_DEATH, nullptr);
+
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_OBJECT_ALLOC, nullptr);
+  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_OBJECT_FREE, nullptr);
+
+  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, nullptr);
+  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION_CATCH, nullptr);
   // check_jvmti_error(jvmti, error, "Can not set event notification");
-  ALOGD("%s SetEventNotificationMode: %d", __func__, error)
+  if (error != JVMTI_ERROR_NONE) {
+    ALOGE("%s SetEventNotificationMode error: %d", __func__, error)
+  }
 
   jvmtiEventCallbacks callbacks = {};
   memset(&callbacks, 0, sizeof(jvmtiEventCallbacks));
-  callbacks.VMInit = &jvmti::callbackVMInit;
-  callbacks.VMDeath = &jvmti::callbackVMDeath;
-  callbacks.VMObjectAlloc = &jvmti::callbackVMObjectAlloc;
-  callbacks.Exception = &jvmti::callbackException;
+  callbacks.VMInit = &callbackVMInit;
+  callbacks.VMDeath = &callbackVMDeath;
+  callbacks.VMObjectAlloc = &callbackVMObjectAlloc;
+  callbacks.ObjectFree = &callbackObjectFree;
+  callbacks.Exception = &callbackException;
+  callbacks.ExceptionCatch = &callbackExceptionCatch;
   error = jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
   // check_jvmti_error(jvmti, error, "Can not set JVMTI callbacks");
-  ALOGD("%s SetEventCallbacks: %d", __func__, error)
+  if (error != JVMTI_ERROR_NONE) {
+    ALOGE("%s SetEventCallbacks error: %d", __func__, error)
+  }
   return JNI_OK;
 }
 
 jint Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
   ALOGD("%s options: %s", __func__, options)
-  return Agent_Init(vm);
+  return JNI_TRUE;
 }
 
 jint Agent_OnAttach(JavaVM* vm, char* options, void* reserved) {

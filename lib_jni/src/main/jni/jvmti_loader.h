@@ -8,7 +8,7 @@
 #define DAILEARN_JVMTI_LOADER_H
 
 namespace jvmti {
-  void attachAgent(JNIEnv *env, jstring pJstring);
+  void attachAgent(JNIEnv *env, const char *library);
 }
 
 #endif //DAILEARN_JVMTI_LOADER_H
