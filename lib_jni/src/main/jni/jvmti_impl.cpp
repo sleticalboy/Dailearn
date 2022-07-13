@@ -10,19 +10,34 @@
 #include <unistd.h>
 #include <string>
 #include <map>
+#include <cerrno>
 
 #define LOG_TAG "JVMTI_IMPL"
 
+void dispatchDataPersist(const char *tag, const char *data) {
+  int fd = open("/sdcard/ttt.txt", O_RDWR);
+  ALOGD("%s open fd: %d, err: %d", __func__, fd, errno)
+  if (errno) {
+    ALOGE("%s abort as errno: %d", __func__, errno)
+    return;
+  }
+  int page_size = getpagesize();
+  ALOGD("%s page size: %d", __func__, page_size)
+  int res = ftruncate(fd, page_size);
+  ALOGD("%s ftruncate res: %d", __func__, res)
+  void *buffer = mmap(nullptr, 1024 * 1024 * 4, PROT_WRITE, MAP_SHARED, fd, 0);
+  ALOGD("%s mmap buffer: %p", __func__, buffer)
+  res = lseek(fd, 4, SEEK_END);
+  ALOGD("%s lseek res: %d", __func__, res)
+  res = close(fd);
+  ALOGD("%s close res: %d", __func__, res)
+  memcpy(buffer, data, strlen(data));
+  res = munmap(buffer, 1024 * 1024 * 4);
+  ALOGD("%s munmap res: %d", __func__, res)
+}
+
 void callbackVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread) {
   ALOGE("%s", __func__)
-  int fd = open("", O_RDWR);
-  int page_size = getpagesize();
-  ftruncate(fd, page_size);
-  void *buffer = mmap(nullptr, 1024 * 1024 * 4, PROT_WRITE, MAP_SHARED, fd, 0);
-  close(fd);
-  lseek(fd, 4, SEEK_END);
-  memcpy(buffer, "", 0);
-  munmap(buffer, 1024 * 1024 * 4);
 }
 
 void callbackVMDeath(jvmtiEnv *jvmti, JNIEnv *env) {
@@ -81,14 +96,23 @@ std::string fillClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size = 0) {
 }
 
 // 将数据持久化
-void persistJson(std::map<std::string, std::string> json, const char *tag) {
+void persistJson(std::map<std::string, std::string> *json, const char *tag) {
   std::string buffer;
   std::map<std::string, std::string>::iterator it;
-  for (it = json.begin(); it != json.end(); it++) {
+  for (it = json->begin(); it != json->end(); it++) {
     buffer.append(it->first).append(": ").append(it->second).append("\n");
+  }
+  // 数据持久化
+  try {
+    dispatchDataPersist(tag, buffer.c_str());
+  } catch (const std::exception &e) {
+    ALOGE("%s error: %s", __func__, e.what())
   }
   // 这里打印日志到控制台
   ALOGD("%s %s", tag, buffer.c_str())
+  // 释放内存
+  json->clear();
+  free(json);
 }
 
 void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject object,
@@ -109,7 +133,7 @@ void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject
   jvmti->GetObjectHashCode(object, &hc);
   jvmti->SetTag(object, hc);
 
-  persistJson(json, __func__);
+  persistJson(&json, __func__);
 }
 
 void callbackObjectFree(jvmtiEnv *jvmti, jlong tag) {
@@ -153,7 +177,7 @@ void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID m
   // if (error == JVMTI_ERROR_NONE) {
   //   ALOGE("%s ", __func__)
   // }
-  persistJson(json, __func__);
+  persistJson(&json, __func__);
 }
 
 void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
@@ -169,7 +193,7 @@ void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmetho
   // 填充线程信息
   json["thread"] = fillThreadInfo(jvmti, thread);
 
-  persistJson(json, __func__);
+  persistJson(&json, __func__);
 }
 
 int Agent_Init(JavaVM *vm) {

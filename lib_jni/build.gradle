@@ -13,7 +13,7 @@ android {
 
     externalNativeBuild {
       cmake {
-        cppFlags '-fno-rtti -fno-exceptions'
+        cppFlags '-fno-rtti -fexceptions'
         abiFilters 'arm64-v8a', 'armeabi-v7a'
       }
     }
