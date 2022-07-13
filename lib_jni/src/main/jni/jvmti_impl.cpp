@@ -14,26 +14,72 @@
 
 #define LOG_TAG "JVMTI_IMPL"
 
+int *mem_buf = nullptr;
+int buf_size = 0;
+
 void dispatchDataPersist(const char *tag, const char *data) {
   int fd = open("/sdcard/ttt.txt", O_RDWR);
   ALOGD("%s open fd: %d, err: %d", __func__, fd, errno)
-  if (errno) {
-    ALOGE("%s abort as errno: %d", __func__, errno)
+  if (errno || fd == -1) {
+    ALOGE("%s abort as errno: %d, fd: %d", __func__, errno, fd)
+    if (fd != -1) close(fd);
     return;
   }
+
+  // 读取文件长度
+  int file_size = lseek(fd, 0, SEEK_END);
+  ALOGD("%s lseek file size: %d", __func__, file_size)
+  // 内存映射大小位 4M
+  int buffer_size = 4 * 1024 * 1024;
   int page_size = getpagesize();
-  ALOGD("%s page size: %d", __func__, page_size)
-  int res = ftruncate(fd, page_size);
-  ALOGD("%s ftruncate res: %d", __func__, res)
-  void *buffer = mmap(nullptr, 1024 * 1024 * 4, PROT_WRITE, MAP_SHARED, fd, 0);
-  ALOGD("%s mmap buffer: %p", __func__, buffer)
-  res = lseek(fd, 4, SEEK_END);
-  ALOGD("%s lseek res: %d", __func__, res)
+  ALOGD("%s page size: %d, buffer size is %d times of page size", __func__, page_size, buffer_size / page_size)
+
+  // 写入数据的长度
+  int write_size = strlen(data);
+  ALOGD("%s write data size: %d", __func__, write_size)
+
+  // 文件已经存在的情况下，认为 buf size 就是文件大小
+  if (buf_size == 0) {
+    buf_size = file_size;
+  }
+
+  // 扩展文件大小到指定尺寸，最好是 page size 整数倍
+  int res = -1;
+  if (buf_size + write_size > file_size) {
+    // 文件过小要扩容
+    if (write_size <= page_size) {
+      // 扩容一个 page size
+      res = ftruncate(fd, file_size + page_size);
+    } else {
+      // 扩容 (write_size / page_size + 1) * page_size
+      res = ftruncate(fd, file_size + (write_size / page_size + 1) * page_size);
+    }
+    if (res != 0) {
+      ALOGE("%s ftruncate res: %d", __func__, res)
+      return;
+    }
+  }
+
+  if (mem_buf == nullptr) {
+    mem_buf = (int *) mmap(nullptr, buffer_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    ALOGD("%s mmap mem_buf: %p", __func__, mem_buf)
+  }
+
   res = close(fd);
-  ALOGD("%s close res: %d", __func__, res)
-  memcpy(buffer, data, strlen(data));
-  res = munmap(buffer, 1024 * 1024 * 4);
-  ALOGD("%s munmap res: %d", __func__, res)
+  if (res != 0) {
+    ALOGE("%s close res: %d", __func__, res)
+  }
+
+  ALOGD("%s mem_buf pos: %p", __func__, mem_buf + buf_size)
+  // 从文件尾部开始追加
+  memcpy(mem_buf + buf_size, data, write_size);
+  buf_size += write_size;
+  ALOGD("%s memcpy finished, real size: %d", __func__, buf_size)
+
+  // res = munmap(buffer, buffer_size);
+  // if (res != 0) {
+  //   ALOGE("%s munmap res: %d", __func__, res)
+  // }
 }
 
 void callbackVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread) {
@@ -97,11 +143,12 @@ std::string fillClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size = 0) {
 
 // 将数据持久化
 void persistJson(std::map<std::string, std::string> *json, const char *tag) {
-  std::string buffer;
   std::map<std::string, std::string>::iterator it;
+  std::string buffer("{");
   for (it = json->begin(); it != json->end(); it++) {
-    buffer.append(it->first).append(": ").append(it->second).append("\n");
+    buffer.append("\"").append(it->first).append("\": \"").append(it->second).append("\",");
   }
+  buffer.erase(buffer.length() - 1).append("}");
   // 数据持久化
   try {
     dispatchDataPersist(tag, buffer.c_str());
@@ -112,7 +159,6 @@ void persistJson(std::map<std::string, std::string> *json, const char *tag) {
   ALOGD("%s %s", tag, buffer.c_str())
   // 释放内存
   json->clear();
-  free(json);
 }
 
 void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject object,
