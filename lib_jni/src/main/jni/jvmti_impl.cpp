@@ -8,12 +8,14 @@
 #include <sys/mman.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
+#include <string>
+#include <map>
 
 #define LOG_TAG "JVMTI_IMPL"
 
 void callbackVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread) {
   ALOGE("%s", __func__)
-  int fd = open("", O_RDWR | O_CREAT);
+  int fd = open("", O_RDWR);
   int page_size = getpagesize();
   ftruncate(fd, page_size);
   void *buffer = mmap(nullptr, 1024 * 1024 * 4, PROT_WRITE, MAP_SHARED, fd, 0);
@@ -27,56 +29,147 @@ void callbackVMDeath(jvmtiEnv *jvmti, JNIEnv *env) {
   ALOGE("%s", __func__)
 }
 
-void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject object,
-                           jclass klass, jlong size) {
-  if (size < 150) return;
+// 线程信息：名字、组、id
+std::string fillThreadInfo(jvmtiEnv *jvmti, jthread thread) {
+  std::string buffer;
+  jvmtiThreadInfo info = {};
+  jvmtiError error = jvmti->GetThreadInfo(thread, &info);
+  if (error == JVMTI_ERROR_NONE) {
+    buffer.append("thread(").append(info.name) += "), priority: "
+      + std::to_string(info.priority) + ", daemon: " + (info.is_daemon ? "true" : "false");
+    jvmtiThreadGroupInfo gInfo = {};
+    error = jvmti->GetThreadGroupInfo(info.thread_group, &gInfo);
+    if (error == JVMTI_ERROR_NONE) {
+      buffer.append(", group(").append(gInfo.name) += ") priority: "
+        + std::string(gInfo.name) + ", daemon: " + (gInfo.is_daemon ? "true" : "false");
+    } else {
+      ALOGE("%s GetThreadGroupInfo error: %d", __func__, error)
+    }
+  } else {
+    ALOGE("%s GetThreadInfo error: %d", __func__, error)
+  }
+  return buffer;
+}
+
+std::string fillMethodInfo(jvmtiEnv *jvmti, jmethodID method) {
+  std::string buffer;
+  char *name = {};
+  char *sig = {};
+  char *gsig = {};
+  jvmtiError error = jvmti->GetMethodName(method, &name, &sig, &gsig);
+  if (error == JVMTI_ERROR_NONE) {
+    buffer.append(name).append(sig).append(gsig == nullptr ? "" : gsig);
+  } else {
+    ALOGE("%s GetMethodName error: %d", __func__, error)
+  }
+  return buffer;
+}
+
+std::string fillClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size = 0) {
+  std::string buffer;
+
   char *className = {};
   jvmtiError error = jvmti->GetClassSignature(klass, &className, nullptr);
-  if (error == JVMTI_ERROR_NONE && className != nullptr) {
-    ALOGD("%s %s object is allocated with size %ld", __func__, className, size)
+  if (error == JVMTI_ERROR_NONE) {
+    buffer.append("class: ").append(className);
+  }
+  if (size > 0) {
+    buffer.append(", size: ") += std::to_string(size);
   }
   delete className;
+  return buffer;
+}
+
+// 将数据持久化
+void persistJson(std::map<std::string, std::string> json, const char *tag) {
+  std::string buffer;
+  std::map<std::string, std::string>::iterator it;
+  for (it = json.begin(); it != json.end(); it++) {
+    buffer.append(it->first).append(": ").append(it->second).append("\n");
+  }
+  // 这里打印日志到控制台
+  ALOGD("%s %s", tag, buffer.c_str())
+}
+
+void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject object,
+                           jclass klass, jlong size) {
+  // 哪个线程创建了哪个类的实例对象、分配了多少空间、
+  if (size < 1024) return;
+
+  // 声明 map 存储信息
+  std::map<std::string, std::string> json = {};
+
+  // 填充类信息
+  json["class_info"] = fillClassInfo(jvmti, klass, size);
+  // 填充线程信息
+  json["thread"] = fillThreadInfo(jvmti, thread);
+  
+  // 给 object 打标记
+  jint hc;
+  jvmti->GetObjectHashCode(object, &hc);
+  jvmti->SetTag(object, hc);
+
+  persistJson(json, __func__);
 }
 
 void callbackObjectFree(jvmtiEnv *jvmti, jlong tag) {
+  jint count;
+  jobject *objs = {};
+  jlong *tags = {};
+  jvmtiError error = jvmti->GetObjectsWithTags(1, &tag, &count, &objs, &tags);
+  if (error != JVMTI_ERROR_NONE) {
+    if (count > 0) {
+      // 遍历所有获取的对象
+      for (int i = 0; i < count; ++i) {
+        // 输出被释放的对象信息
+      }
+    } else {
+      ALOGE("%s GetObjectsWithTags count %d", __func__, count)
+    }
+  } else {
+    ALOGE("%s GetObjectsWithTags error %d", __func__, error)
+  }
   ALOGD("%s tag: %ld", __func__, tag)
 }
 
 void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
                        jlocation location, jobject exception, jmethodID catch_method,
                        jlocation catch_location) {
-  char *name = {};
-  char *sig = {};
-  char *gsig = {};
-  jvmtiError error = jvmti->GetMethodName(method, &name, &sig, &gsig);
-  jvmtiThreadInfo info = {};
-  error = jvmti->GetThreadInfo(thread, &info);
-  if (error == JVMTI_ERROR_NONE) {
-    jvmtiThreadGroupInfo grouInfo = {};
-    error = jvmti->GetThreadGroupInfo(info.thread_group, &grouInfo);
-    if (error == JVMTI_ERROR_NONE) {
-      ALOGE("%s Got exception event, thread: %s, group: %s", __func__, info.name, grouInfo.name)
-    }
-  }
-  jobject *monitors = {};
-  error = jvmti->GetOwnedMonitorInfo(thread, 0, &monitors);
-  if (error == JVMTI_ERROR_NONE) {
-    ALOGE("%s ", __func__)
-  }
-  ALOGE("%s in method: %s%s generic signature: %s", __func__, name, sig, gsig)
+  // 声明 map 存储信息
+  std::map<std::string, std::string> json = {};
+  // 填充方法信息
+  json["method"] = fillMethodInfo(jvmti, method);
+  // 填充异常信息
+  jclass klazz = env->GetObjectClass(exception);
+  json["exception"] = fillClassInfo(jvmti, klazz);
+  env->DeleteLocalRef(klazz);
+  // 在哪个方法中被 catch 的
+  json["catch_method"] = fillMethodInfo(jvmti, catch_method);
+  // 填充线程信息
+  json["thread"] = fillThreadInfo(jvmti, thread);
+
+  // jobject *monitors = {};
+  // error = jvmti->GetOwnedMonitorInfo(thread, 0, &monitors);
+  // if (error == JVMTI_ERROR_NONE) {
+  //   ALOGE("%s ", __func__)
+  // }
+  persistJson(json, __func__);
 }
 
 void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
                             jlocation location, jobject exception) {
-  char *name = {};
-  char *sig = {};
-  char *gsig = {};
-  jvmtiError error = jvmti->GetMethodName(method, &name, &sig, &gsig);
-  if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s GetMethodName error: %d", __func__, error)
-    return;
-  }
-  ALOGE("%s in method: %s%s generic signature: %s", __func__, name, sig, gsig)
+  // 声明 map 存储信息
+  std::map<std::string, std::string> json = {};
+  // 填充方法信息
+  json["method"] = fillMethodInfo(jvmti, method);
+  // 填充异常信息
+  jclass klazz = env->GetObjectClass(exception);
+  json["exception"] = fillClassInfo(jvmti, klazz);
+  env->DeleteLocalRef(klazz);
+  // 填充线程信息
+  json["thread"] = fillThreadInfo(jvmti, thread);
+
+  persistJson(json, __func__);
 }
 
 int Agent_Init(JavaVM *vm) {
@@ -97,7 +190,7 @@ int Agent_Init(JavaVM *vm) {
   }
   ALOGD("%s JNI env: %p", __func__, env)
 
-  jvmti::AgentData data;
+  static jvmti::AgentData data;
   memset(&data, 0, sizeof(jvmti::AgentData));
   jvmti::gdata = &data;
   jvmti::gdata->isAgentInit = true;
