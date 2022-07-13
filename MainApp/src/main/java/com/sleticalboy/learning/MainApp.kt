@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
-import com.binlee.sample.jni.LibJni
 import com.sleticalboy.learning.components.receiver.GlobalReceiver
 import com.sleticalboy.util.NotificationHelper
 
@@ -17,12 +16,6 @@ import com.sleticalboy.util.NotificationHelper
  * @version 1.0
  */
 class MainApp : Application() {
-
-  override fun attachBaseContext(base: Context?) {
-    super.attachBaseContext(base)
-    LibJni.loadJvmti(this)
-    Log.d(TAG, "attachBaseContext() ${LibJni.nativeGetString()}")
-  }
 
   override fun onCreate() {
     super.onCreate()

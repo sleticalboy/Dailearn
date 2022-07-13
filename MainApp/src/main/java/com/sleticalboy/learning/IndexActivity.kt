@@ -1,7 +1,11 @@
 package com.sleticalboy.learning
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
+import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -34,6 +38,26 @@ class IndexActivity : BaseActivity() {
 
   private val dataSet = arrayListOf<ModuleItem>()
   private var mBind: ActivityIndexBinding? = null
+
+  override fun prepareWork(savedInstanceState: Bundle?) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
+    } else {
+      loadJvmti()
+    }
+  }
+
+  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    if (requestCode == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      loadJvmti();
+    }
+  }
+
+  private fun loadJvmti() {
+    LibJni.loadJvmti(this)
+    Log.d(TAG, "loadJvmti() ${LibJni.nativeGetString()}")
+  }
 
   override fun layout(): View {
     // R.layout.activity_index
