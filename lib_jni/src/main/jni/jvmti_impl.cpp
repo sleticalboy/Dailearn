@@ -15,66 +15,112 @@
 #define LOG_TAG "JVMTI_IMPL"
 
 int *mem_buf = nullptr;
+// buffer 偏移
+int buf_offset = 0;
+// 内存映射大小指定为页大小的整数倍, 首次指定为一个页大小
 int buf_size = 0;
+int fd = -1;
 
-void dispatchDataPersist(const char *tag, const char *data) {
-  int fd = open("/sdcard/ttt.txt", O_RDWR);
-  ALOGD("%s open fd: %d, err: %d", __func__, fd, errno)
+std::string root_dir;
+
+bool ensure_open() {
+  if (fd > 0) return true;
+
+  if (root_dir.empty()) root_dir = std::string("/data/data/com.sleticalboy.learning/files");
+  ALOGD("%s root dir: %s", __func__, root_dir.c_str())
+
+  std::string file_path = root_dir + "/ttt.txt";
+  FILE *fp = fopen(file_path.c_str(), "w+");
+  if (fp == nullptr) {
+    ALOGE("%s create file error: %p", __func__, fp)
+    return false;
+  }
+  fclose(fp);
+  // 找个时机把文件句柄关闭了，否则会内存泄露
+  fd = open(file_path.c_str(), O_RDWR);
   if (errno || fd == -1) {
-    ALOGE("%s abort as errno: %d, fd: %d", __func__, errno, fd)
+    ALOGE("%s failed as errno: %d, fd: %d", __func__, errno, fd)
     if (fd != -1) close(fd);
-    return;
+    fd = -1;
+    return false;
+  }
+  if (buf_size == 0) {
+    buf_size = getpagesize();
+    // 必须先 ftruncate 再 mmap，否则映射出来的内存地址不能 write
+    int res = ftruncate(fd, buf_size);
+    if (res != 0) {
+      ALOGE("%s ftruncate res: %d", __func__, res)
+      return false;
+    }
   }
 
-  // 读取文件长度
-  int file_size = lseek(fd, 0, SEEK_END);
-  ALOGD("%s lseek file size: %d", __func__, file_size)
-  // 内存映射大小位 4M
-  int buffer_size = 4 * 1024 * 1024;
-  int page_size = getpagesize();
-  ALOGD("%s page size: %d, buffer size is %d times of page size", __func__, page_size, buffer_size / page_size)
+  // 如果文件已有内容，要覆盖还是要追加？
+  // 如果追加的话，如何追加？
+  // 1、将原文件内容全部读取出来，上传到服务器/加载到内存中；
+  // 2、将原内容使用内存数据进行覆盖；
+  mem_buf = (int *) mmap(nullptr, buf_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (mem_buf == MAP_FAILED) {
+    close(fd);
+    ALOGE("%s mmap failed: %d", __func__, errno)
+    return false;
+  }
+  ALOGD("%s mmap mem_buf: %p, fd: %d", __func__, mem_buf, fd)
+  return true;
+}
+
+// 扩展文件大小到指定尺寸，最好是 page size 整数倍
+bool resize_mmap(int resize) {
+  int old_size = buf_size;
+  do {
+    buf_size *= 2;
+  } while (buf_size < resize);
+  // 文件扩容
+  int res = ftruncate(fd, buf_size);
+  if (res != 0) {
+    ALOGE("%s ftruncate res: %d", __func__, res)
+    return false;
+  }
+  // 解除原有映射并重新映射
+  munmap(mem_buf, old_size);
+  mem_buf = (int *) mmap(nullptr, buf_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (mem_buf == MAP_FAILED) {
+    ALOGE("%s mmap failed: %d", __func__, errno)
+    return false;
+  }
+  ALOGD("%s buf_size: %d", __func__, buf_size)
+  return true;
+}
+
+void dispatchDataPersist(const char *tag, const char *data) {
+  if (!ensure_open()) {
+    ALOGE("%s abort fd: %d", __func__, fd)
+    return;
+  }
+  ALOGD("%s page size: %d, buffer size is %d", __func__, getpagesize(), buf_size)
 
   // 写入数据的长度
   int write_size = strlen(data);
   ALOGD("%s write data size: %d", __func__, write_size)
 
-  // 文件已经存在的情况下，认为 buf size 就是文件大小
-  if (buf_size == 0) {
-    buf_size = file_size;
-  }
-
-  // 扩展文件大小到指定尺寸，最好是 page size 整数倍
-  int res = -1;
-  if (buf_size + write_size > file_size) {
+  if (buf_offset + write_size >= buf_size) {
     // 文件过小要扩容
-    if (write_size <= page_size) {
-      // 扩容一个 page size
-      res = ftruncate(fd, file_size + page_size);
-    } else {
-      // 扩容 (write_size / page_size + 1) * page_size
-      res = ftruncate(fd, file_size + (write_size / page_size + 1) * page_size);
-    }
-    if (res != 0) {
-      ALOGE("%s ftruncate res: %d", __func__, res)
-      return;
-    }
+    resize_mmap(buf_offset + write_size);
   }
 
-  if (mem_buf == nullptr) {
-    mem_buf = (int *) mmap(nullptr, buffer_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    ALOGD("%s mmap mem_buf: %p", __func__, mem_buf)
-  }
+  // res = close(fd);
+  // if (res != 0) {
+  //   ALOGE("%s close res: %d", __func__, res)
+  // }
 
-  res = close(fd);
-  if (res != 0) {
-    ALOGE("%s close res: %d", __func__, res)
-  }
-
-  ALOGD("%s mem_buf pos: %p", __func__, mem_buf + buf_size)
+  ALOGD("%s start write to mem_buf, offset: %d", __func__, buf_offset)
   // 从文件尾部开始追加
-  memcpy(mem_buf + buf_size, data, write_size);
-  buf_size += write_size;
-  ALOGD("%s memcpy finished, real size: %d", __func__, buf_size)
+  memcpy(mem_buf + buf_offset / 4, data, write_size);
+  buf_offset += write_size;
+  // 内存对齐
+  if (write_size % 4 != 0) {
+    buf_offset += (4 - write_size % 4);
+  }
+  ALOGD("%s write to mem_buf by memcpy done, offset: %d", __func__, buf_offset)
 
   // res = munmap(buffer, buffer_size);
   // if (res != 0) {
@@ -173,7 +219,7 @@ void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject
   json["class_info"] = fillClassInfo(jvmti, klass, size);
   // 填充线程信息
   json["thread"] = fillThreadInfo(jvmti, thread);
-  
+
   // 给 object 打标记
   jint hc;
   jvmti->GetObjectHashCode(object, &hc);
@@ -269,7 +315,7 @@ int Agent_Init(JavaVM *vm) {
   jvmtiError error = JVMTI_ERROR_NONE;
 
   ALOGD("%s start CreateRawMonitor", __func__)
-  error= jvmti->CreateRawMonitor("agent data", &data.lock);
+  error = jvmti->CreateRawMonitor("agent data", &data.lock);
   if (error != JVMTI_ERROR_NONE) {
     ALOGE("%s CreateRawMonitor error: %d", __func__, error)
     return JNI_FALSE;
@@ -328,7 +374,7 @@ jint Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
   return JNI_TRUE;
 }
 
-jint Agent_OnAttach(JavaVM* vm, char* options, void* reserved) {
+jint Agent_OnAttach(JavaVM *vm, char *options, void *reserved) {
   ALOGD("%s options: %s", __func__, options)
   return Agent_Init(vm);
 }

@@ -3,12 +3,16 @@ package com.binlee.sample.jni;
 import android.content.Context;
 import android.os.Build;
 import android.os.Debug;
+import android.os.FileUtils;
 import android.util.Log;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
@@ -23,6 +27,16 @@ public final class LibJni {
   }
 
   public static void loadJvmti(Context context) {
+    final File file = new File(context.getFilesDir(), "ttt.txt");
+    ByteArrayOutputStream memory = null;
+    try {
+      memory = new ByteArrayOutputStream();
+      FileUtils.copy(new FileInputStream(file), memory);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    Log.d("LibJni", "loadJvmti() " + memory);
+
     final String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
     final String[] libs = new File(nativeLibraryDir).list();
     Log.d("LibJni", "loadJvmti() native libraries: " + Arrays.toString(libs) + ", in " + nativeLibraryDir);
