@@ -4,11 +4,11 @@
 
 #include <cstring>
 #include "jvmti_impl.h"
+#include "jvmti_util.h"
 #include "jni_logger.h"
 #include <sys/mman.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
-#include <string>
 #include <map>
 #include <cerrno>
 
@@ -136,57 +136,6 @@ void callbackVMDeath(jvmtiEnv *jvmti, JNIEnv *env) {
   ALOGE("%s", __func__)
 }
 
-// 线程信息：名字、组、id
-std::string fillThreadInfo(jvmtiEnv *jvmti, jthread thread) {
-  std::string buffer;
-  jvmtiThreadInfo info = {};
-  jvmtiError error = jvmti->GetThreadInfo(thread, &info);
-  if (error == JVMTI_ERROR_NONE) {
-    buffer.append("thread(").append(info.name) += "), priority: "
-      + std::to_string(info.priority) + ", daemon: " + (info.is_daemon ? "true" : "false");
-    jvmtiThreadGroupInfo gInfo = {};
-    error = jvmti->GetThreadGroupInfo(info.thread_group, &gInfo);
-    if (error == JVMTI_ERROR_NONE) {
-      buffer.append(", group(").append(gInfo.name) += ") priority: "
-        + std::string(gInfo.name) + ", daemon: " + (gInfo.is_daemon ? "true" : "false");
-    } else {
-      ALOGE("%s GetThreadGroupInfo error: %d", __func__, error)
-    }
-  } else {
-    ALOGE("%s GetThreadInfo error: %d", __func__, error)
-  }
-  return buffer;
-}
-
-std::string fillMethodInfo(jvmtiEnv *jvmti, jmethodID method) {
-  std::string buffer;
-  char *name = {};
-  char *sig = {};
-  char *gsig = {};
-  jvmtiError error = jvmti->GetMethodName(method, &name, &sig, &gsig);
-  if (error == JVMTI_ERROR_NONE) {
-    buffer.append(name).append(sig).append(gsig == nullptr ? "" : gsig);
-  } else {
-    ALOGE("%s GetMethodName error: %d", __func__, error)
-  }
-  return buffer;
-}
-
-std::string fillClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size = 0) {
-  std::string buffer;
-
-  char *className = {};
-  jvmtiError error = jvmti->GetClassSignature(klass, &className, nullptr);
-  if (error == JVMTI_ERROR_NONE) {
-    buffer.append("class: ").append(className);
-  }
-  if (size > 0) {
-    buffer.append(", size: ") += std::to_string(size);
-  }
-  delete className;
-  return buffer;
-}
-
 // 将数据持久化
 void persistJson(std::map<std::string, std::string> *json, const char *tag) {
   std::map<std::string, std::string>::iterator it;
@@ -216,9 +165,9 @@ void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject
   std::map<std::string, std::string> json = {};
 
   // 填充类信息
-  json["class_info"] = fillClassInfo(jvmti, klass, size);
+  json["class_info"] = jvmti::getClassInfo(jvmti, klass, size);
   // 填充线程信息
-  json["thread"] = fillThreadInfo(jvmti, thread);
+  json["thread"] = jvmti::getThreadInfo(jvmti, thread);
 
   // 给 object 打标记
   jint hc;
@@ -254,15 +203,15 @@ void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID m
   // 声明 map 存储信息
   std::map<std::string, std::string> json = {};
   // 填充方法信息
-  json["method"] = fillMethodInfo(jvmti, method);
+  json["method"] = jvmti::getMethodInfo(jvmti, method);
   // 填充异常信息
   jclass klazz = env->GetObjectClass(exception);
-  json["exception"] = fillClassInfo(jvmti, klazz);
+  json["exception"] = jvmti::getClassInfo(jvmti, klazz);
   env->DeleteLocalRef(klazz);
   // 在哪个方法中被 catch 的
-  json["catch_method"] = fillMethodInfo(jvmti, catch_method);
+  json["catch_method"] = jvmti::getMethodInfo(jvmti, catch_method);
   // 填充线程信息
-  json["thread"] = fillThreadInfo(jvmti, thread);
+  json["thread"] = jvmti::getThreadInfo(jvmti, thread);
 
   // jobject *monitors = {};
   // error = jvmti->GetOwnedMonitorInfo(thread, 0, &monitors);
@@ -277,13 +226,13 @@ void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmetho
   // 声明 map 存储信息
   std::map<std::string, std::string> json = {};
   // 填充方法信息
-  json["method"] = fillMethodInfo(jvmti, method);
+  json["method"] = jvmti::getMethodInfo(jvmti, method);
   // 填充异常信息
   jclass klazz = env->GetObjectClass(exception);
-  json["exception"] = fillClassInfo(jvmti, klazz);
+  json["exception"] = jvmti::getClassInfo(jvmti, klazz);
   env->DeleteLocalRef(klazz);
   // 填充线程信息
-  json["thread"] = fillThreadInfo(jvmti, thread);
+  json["thread"] = jvmti::getThreadInfo(jvmti, thread);
 
   persistJson(&json, __func__);
 }
