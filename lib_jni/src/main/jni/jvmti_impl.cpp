@@ -6,6 +6,7 @@
 #include "jvmti_impl.h"
 #include "jvmti_util.h"
 #include "jni_logger.h"
+#include "mem_file.h"
 #include <sys/mman.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
@@ -23,11 +24,21 @@ int fd = -1;
 
 std::string root_dir;
 
+jvmti::MemFile *memFile = nullptr;
+
 bool ensure_open() {
+
+  if (memFile != nullptr) return true;
+
+
   if (fd > 0) return true;
 
   if (root_dir.empty()) root_dir = std::string("/data/data/com.sleticalboy.learning/files");
   ALOGD("%s root dir: %s", __func__, root_dir.c_str())
+
+  memFile = new jvmti::MemFile(root_dir.c_str());
+
+  return true;
 
   std::string file_path = root_dir + "/ttt.txt";
   FILE *fp = fopen(file_path.c_str(), "w+");
@@ -92,11 +103,14 @@ bool resize_mmap(int resize) {
 }
 
 void dispatchDataPersist(const char *tag, const char *data) {
+
   if (!ensure_open()) {
     ALOGE("%s abort fd: %d", __func__, fd)
     return;
   }
   ALOGD("%s page size: %d, buffer size is %d", __func__, getpagesize(), buf_size)
+
+  memFile->Append(data, strlen(data));
 
   // 写入数据的长度
   int write_size = strlen(data);
