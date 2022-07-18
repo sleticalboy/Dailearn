@@ -3,17 +3,16 @@ package com.binlee.sample.jni;
 import android.content.Context;
 import android.os.Build;
 import android.os.Debug;
-import android.os.FileUtils;
 import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Created on 2022-07-09.
@@ -31,11 +30,22 @@ public final class LibJni {
     ByteArrayOutputStream memory = null;
     try {
       memory = new ByteArrayOutputStream();
-      FileUtils.copy(new FileInputStream(file), memory);
+      final FileInputStream stream = new FileInputStream(file);
+      byte b;
+      while ((b = (byte) stream.read()) != -1) {
+        // 重置 buffer
+        if (b == '{') memory = new ByteArrayOutputStream();
+        // 读数据的时候，跳过 '\0'
+        if (memory != null && b != '\0') memory.write(b);
+        // 一个 buffer 结束
+        if (memory != null && b == '}') {
+          parseJson(memory.toString().trim());
+          memory = null;
+        }
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
-    Log.d("LibJni", "loadJvmti() " + memory);
 
     final String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
     final String[] libs = new File(nativeLibraryDir).list();
@@ -51,6 +61,20 @@ public final class LibJni {
     Log.d("LibJni", "loadJvmti() jvmti agent: " + dest);
     nativeLoadJvmti(dest.getAbsolutePath());
     // javaLoadJvmti(context, dest.getAbsolutePath());
+  }
+
+  private static void parseJson(String jsonString) {
+    Log.d("LibJni", "parseJson() " + jsonString);
+    try {
+      JSONObject json = new JSONObject(jsonString);
+      Log.d("LibJni", "class_info -> " + json.optString("class_info"));
+      Log.d("LibJni", "thread -> " + json.optString("thread"));
+      Log.d("LibJni", "exception -> " + json.optString("exception"));
+      Log.d("LibJni", "method -> " + json.optString("method"));
+      Log.d("LibJni", "catch_method -> " + json.optString("catch_method"));
+    } catch (JSONException e) {
+      e.printStackTrace();
+    }
   }
 
   private static void javaLoadJvmti(Context context, String library) {

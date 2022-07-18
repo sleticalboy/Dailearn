@@ -17,25 +17,19 @@ void jvmti::MemFile::Append(const char *data, int length) {
     ALOGE("%s abort fd: %d", __func__, _fd)
     return;
   }
-  ALOGD("%s page size: %d, buffer size is %d", __func__, getpagesize(), buf_size)
 
   // 写入数据的长度
-  ALOGD("%s write data size: %d", __func__, length)
+  // ALOGD("%s write data size: %d", __func__, length)
 
   if (buf_offset + length >= buf_size) {
     // 文件过小要扩容
     Resize(buf_offset + length);
   }
-
-  ALOGD("%s start write to mem_buf, offset: %d", __func__, buf_offset)
-  // 从文件尾部开始追加
+  // 从文件尾部开始追加，补齐后写入
   memcpy(mem_buf + buf_offset / 4, data, length);
-  buf_offset += length;
-  // 内存对齐
-  if (length % 4 != 0) {
-    buf_offset += (4 - length % 4);
-  }
-  ALOGD("%s write to mem_buf by memcpy done, offset: %d", __func__, buf_offset)
+  int mod = length % 4;
+  buf_offset += mod != 0 ? length + 4 - mod : length;
+  // ALOGD("%s write to mem_buf by memcpy done, offset: %d", __func__, buf_offset)
 }
 
 bool jvmti::MemFile::Open() {
@@ -103,8 +97,10 @@ bool jvmti::MemFile::Resize(int resize) {
 }
 
 void jvmti::MemFile::Close() {
+  munmap(mem_buf, buf_size);
   close(_fd);
   _fd = -1;
   mem_buf = nullptr;
+  _path = nullptr;
 }
 
