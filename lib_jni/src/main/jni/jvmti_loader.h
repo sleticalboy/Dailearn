@@ -3,6 +3,7 @@
 //
 
 #include <jni.h>
+#include "jvmti_config.h"
 
 #ifndef DAILEARN_JVMTI_LOADER_H
 #define DAILEARN_JVMTI_LOADER_H

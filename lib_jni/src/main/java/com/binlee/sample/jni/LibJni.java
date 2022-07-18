@@ -27,24 +27,25 @@ public final class LibJni {
 
   public static void loadJvmti(Context context) {
     final File file = new File(context.getFilesDir(), "ttt.txt");
-    ByteArrayOutputStream memory = null;
-    try {
-      memory = new ByteArrayOutputStream();
-      final FileInputStream stream = new FileInputStream(file);
-      byte b;
-      while ((b = (byte) stream.read()) != -1) {
-        // 重置 buffer
-        if (b == '{') memory = new ByteArrayOutputStream();
-        // 读数据的时候，跳过 '\0'
-        if (memory != null && b != '\0') memory.write(b);
-        // 一个 buffer 结束
-        if (memory != null && b == '}') {
-          parseJson(memory.toString().trim());
-          memory = null;
+    if (file.exists()) {
+      try {
+        ByteArrayOutputStream memory = null;
+        final FileInputStream stream = new FileInputStream(file);
+        byte b;
+        while ((b = (byte) stream.read()) != -1) {
+          // 重置 buffer
+          if (b == '{') memory = new ByteArrayOutputStream();
+          // 读数据的时候，跳过 '\0'
+          if (memory != null && b != '\0') memory.write(b);
+          // 一个 buffer 结束
+          if (memory != null && b == '}') {
+            parseJson(memory.toString().trim());
+            memory = null;
+          }
         }
+      } catch (IOException e) {
+        e.printStackTrace();
       }
-    } catch (IOException e) {
-      e.printStackTrace();
     }
 
     final String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
@@ -59,7 +60,9 @@ public final class LibJni {
       return;
     }
     Log.d("LibJni", "loadJvmti() jvmti agent: " + dest);
-    nativeLoadJvmti(dest.getAbsolutePath());
+    final JvmtiConfig config = new JvmtiConfig(context.getFilesDir().getAbsolutePath());
+    config.agentFile = dest.getAbsolutePath();
+    nativeLoadJvmti(config);
     // javaLoadJvmti(context, dest.getAbsolutePath());
   }
 
@@ -115,5 +118,5 @@ public final class LibJni {
 
   public static native void nativeCallJava(Context context);
 
-  private static native void nativeLoadJvmti(String library);
+  private static native void nativeLoadJvmti(JvmtiConfig config);
 }

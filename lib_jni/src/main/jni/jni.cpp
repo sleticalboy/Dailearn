@@ -2,6 +2,7 @@
 #include <string>
 #include "jni_logger.h"
 #include "jvmti_loader.h"
+#include "jvmti_util.h"
 
 // Write C++ code here.
 //
@@ -34,15 +35,25 @@ void LibJni_nativeCallJava(JNIEnv *env, jclass clazz, jobject jContext) {
   env->DeleteLocalRef(toast);
 }
 
-void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jstring library) {
-  jvmti::attachAgent(env, env->GetStringUTFChars(library, JNI_FALSE));
+void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jobject jConfig) {
+  static jvmti::Config config;
+  memset(&config, 0, sizeof(jvmti::Config));
+  jvmti::fromJavaConfig(env, jConfig, &config);
+  jvmti::gConfig = &config;
+
+  jclass cls_config = env->GetObjectClass(jConfig);
+  jfieldID field_agent_file = env->GetFieldID(cls_config, "agentFile", "Ljava/lang/String;");
+  auto j_str = (jstring) env->GetObjectField(jConfig, field_agent_file);
+  const char *library = env->GetStringUTFChars(j_str, JNI_FALSE);
+  jvmti::attachAgent(env, library);
+  env->ReleaseStringUTFChars(j_str, library);
 }
 
 JNINativeMethod methods[] = {
   // com.binlee.sample.jni.LibJni.nativeGetString
-  {"nativeGetString", "()Ljava/lang/String;",         (void *) LibJni_nativeGetString},
-  {"nativeCallJava",  "(Landroid/content/Context;)V", (void *) LibJni_nativeCallJava},
-  {"nativeLoadJvmti", "(Ljava/lang/String;)V",        (void *) LibJni_nativeLoadJvmti}
+  {"nativeGetString", "()Ljava/lang/String;",                   (void *) LibJni_nativeGetString},
+  {"nativeCallJava",  "(Landroid/content/Context;)V",           (void *) LibJni_nativeCallJava},
+  {"nativeLoadJvmti", "(Lcom/binlee/sample/jni/JvmtiConfig;)V", (void *) LibJni_nativeLoadJvmti}
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {

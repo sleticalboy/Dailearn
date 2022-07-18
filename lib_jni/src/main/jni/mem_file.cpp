@@ -38,7 +38,7 @@ bool jvmti::MemFile::Open() {
 
   FILE *fp = fopen(_path, "w+");
   if (fp == nullptr) {
-    ALOGE("%s create file error: %p", __func__, fp)
+    ALOGE("%s create file %s error: %d", __func__, _path, errno)
     return false;
   }
   fclose(fp);
