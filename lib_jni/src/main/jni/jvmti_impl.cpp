@@ -3,144 +3,18 @@
 //
 
 #include <cstring>
+#include <map>
 #include "jvmti_impl.h"
 #include "jvmti_util.h"
 #include "jni_logger.h"
 #include "mem_file.h"
-#include <sys/mman.h>
-#include <sys/fcntl.h>
-#include <unistd.h>
-#include <map>
-#include <cerrno>
 
 #define LOG_TAG "JVMTI_IMPL"
 
-int *mem_buf = nullptr;
-// buffer 偏移
-int buf_offset = 0;
-// 内存映射大小指定为页大小的整数倍, 首次指定为一个页大小
-int buf_size = 0;
-int fd = -1;
-
-std::string root_dir;
+// string/map
+using namespace std;
 
 jvmti::MemFile *memFile = nullptr;
-
-bool ensure_open() {
-
-  if (memFile != nullptr) return true;
-
-
-  if (fd > 0) return true;
-
-  if (root_dir.empty()) root_dir = std::string("/data/data/com.sleticalboy.learning/files");
-  ALOGD("%s root dir: %s", __func__, root_dir.c_str())
-
-  memFile = new jvmti::MemFile(root_dir.c_str());
-
-  return true;
-
-  std::string file_path = root_dir + "/ttt.txt";
-  FILE *fp = fopen(file_path.c_str(), "w+");
-  if (fp == nullptr) {
-    ALOGE("%s create file error: %p", __func__, fp)
-    return false;
-  }
-  fclose(fp);
-  // 找个时机把文件句柄关闭了，否则会内存泄露
-  fd = open(file_path.c_str(), O_RDWR);
-  if (errno || fd == -1) {
-    ALOGE("%s failed as errno: %d, fd: %d", __func__, errno, fd)
-    if (fd != -1) close(fd);
-    fd = -1;
-    return false;
-  }
-  if (buf_size == 0) {
-    buf_size = getpagesize();
-    // 必须先 ftruncate 再 mmap，否则映射出来的内存地址不能 write
-    int res = ftruncate(fd, buf_size);
-    if (res != 0) {
-      ALOGE("%s ftruncate res: %d", __func__, res)
-      return false;
-    }
-  }
-
-  // 如果文件已有内容，要覆盖还是要追加？
-  // 如果追加的话，如何追加？
-  // 1、将原文件内容全部读取出来，上传到服务器/加载到内存中；
-  // 2、将原内容使用内存数据进行覆盖；
-  mem_buf = (int *) mmap(nullptr, buf_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (mem_buf == MAP_FAILED) {
-    close(fd);
-    ALOGE("%s mmap failed: %d", __func__, errno)
-    return false;
-  }
-  ALOGD("%s mmap mem_buf: %p, fd: %d", __func__, mem_buf, fd)
-  return true;
-}
-
-// 扩展文件大小到指定尺寸，最好是 page size 整数倍
-bool resize_mmap(int resize) {
-  int old_size = buf_size;
-  do {
-    buf_size *= 2;
-  } while (buf_size < resize);
-  // 文件扩容
-  int res = ftruncate(fd, buf_size);
-  if (res != 0) {
-    ALOGE("%s ftruncate res: %d", __func__, res)
-    return false;
-  }
-  // 解除原有映射并重新映射
-  munmap(mem_buf, old_size);
-  mem_buf = (int *) mmap(nullptr, buf_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (mem_buf == MAP_FAILED) {
-    ALOGE("%s mmap failed: %d", __func__, errno)
-    return false;
-  }
-  ALOGD("%s buf_size: %d", __func__, buf_size)
-  return true;
-}
-
-void dispatchDataPersist(const char *tag, const char *data) {
-
-  if (!ensure_open()) {
-    ALOGE("%s abort fd: %d", __func__, fd)
-    return;
-  }
-  ALOGD("%s page size: %d, buffer size is %d", __func__, getpagesize(), buf_size)
-
-  memFile->Append(data, strlen(data));
-
-  // 写入数据的长度
-  int write_size = strlen(data);
-  ALOGD("%s write data size: %d", __func__, write_size)
-
-  if (buf_offset + write_size >= buf_size) {
-    // 文件过小要扩容
-    resize_mmap(buf_offset + write_size);
-  }
-
-  // res = close(fd);
-  // if (res != 0) {
-  //   ALOGE("%s close res: %d", __func__, res)
-  // }
-
-  ALOGD("%s start write to mem_buf, offset: %d", __func__, buf_offset)
-  // 从文件尾部开始追加
-  memcpy(mem_buf + buf_offset / 4, data, write_size);
-  buf_offset += write_size;
-  // 内存对齐
-  if (write_size % 4 != 0) {
-    buf_offset += (4 - write_size % 4);
-  }
-  ALOGD("%s write to mem_buf by memcpy done, offset: %d", __func__, buf_offset)
-
-  // res = munmap(buffer, buffer_size);
-  // if (res != 0) {
-  //   ALOGE("%s munmap res: %d", __func__, res)
-  // }
-}
 
 void callbackVMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thread) {
   ALOGE("%s", __func__)
@@ -151,17 +25,21 @@ void callbackVMDeath(jvmtiEnv *jvmti, JNIEnv *env) {
 }
 
 // 将数据持久化
-void persistJson(std::map<std::string, std::string> *json, const char *tag) {
-  std::map<std::string, std::string>::iterator it;
-  std::string buffer("{");
+void persistJson(map<string, string> *json, const char *tag) {
+  map<string, string>::iterator it;
+  string buffer("{");
   for (it = json->begin(); it != json->end(); it++) {
     buffer.append("\"").append(it->first).append("\": \"").append(it->second).append("\",");
   }
   buffer.erase(buffer.length() - 1).append("}");
   // 数据持久化
   try {
-    dispatchDataPersist(tag, buffer.c_str());
-  } catch (const std::exception &e) {
+    if (memFile == nullptr) {
+      memFile = new jvmti::MemFile("/data/data/com.sleticalboy.learning/files/ttt.txt");
+      ALOGD("%s create MemFile from %s", __func__, tag)
+    }
+    memFile->Append(buffer.c_str(), buffer.length());
+  } catch (const exception &e) {
     ALOGE("%s error: %s", __func__, e.what())
   }
   // 这里打印日志到控制台
@@ -176,7 +54,7 @@ void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject
   if (size < 1024) return;
 
   // 声明 map 存储信息
-  std::map<std::string, std::string> json = {};
+  map<string, string> json = {};
 
   // 填充类信息
   json["class_info"] = jvmti::getClassInfo(jvmti, klass, size);
@@ -215,7 +93,7 @@ void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID m
                        jlocation location, jobject exception, jmethodID catch_method,
                        jlocation catch_location) {
   // 声明 map 存储信息
-  std::map<std::string, std::string> json = {};
+  map<string, string> json = {};
   // 填充方法信息
   json["method"] = jvmti::getMethodInfo(jvmti, method);
   // 填充异常信息
@@ -238,7 +116,7 @@ void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID m
 void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
                             jlocation location, jobject exception) {
   // 声明 map 存储信息
-  std::map<std::string, std::string> json = {};
+  map<string, string> json = {};
   // 填充方法信息
   json["method"] = jvmti::getMethodInfo(jvmti, method);
   // 填充异常信息

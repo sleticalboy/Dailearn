@@ -22,6 +22,7 @@ namespace jvmti {
   private:
     const char *_path = nullptr;
     int _fd = -1;
+    // 内存映射出的起始地址
     int *mem_buf = nullptr;
     // buffer 偏移
     int buf_offset = 0;

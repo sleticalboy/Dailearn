@@ -20,33 +20,22 @@ void jvmti::MemFile::Append(const char *data, int length) {
   ALOGD("%s page size: %d, buffer size is %d", __func__, getpagesize(), buf_size)
 
   // 写入数据的长度
-  int write_size = strlen(data);
-  ALOGD("%s write data size: %d", __func__, write_size)
+  ALOGD("%s write data size: %d", __func__, length)
 
-  if (buf_offset + write_size >= buf_size) {
+  if (buf_offset + length >= buf_size) {
     // 文件过小要扩容
-    Resize(buf_offset + write_size);
+    Resize(buf_offset + length);
   }
-
-  // res = close(fd);
-  // if (res != 0) {
-  //   ALOGE("%s close res: %d", __func__, res)
-  // }
 
   ALOGD("%s start write to mem_buf, offset: %d", __func__, buf_offset)
   // 从文件尾部开始追加
-  memcpy(mem_buf + buf_offset / 4, data, write_size);
-  buf_offset += write_size;
+  memcpy(mem_buf + buf_offset / 4, data, length);
+  buf_offset += length;
   // 内存对齐
-  if (write_size % 4 != 0) {
-    buf_offset += (4 - write_size % 4);
+  if (length % 4 != 0) {
+    buf_offset += (4 - length % 4);
   }
   ALOGD("%s write to mem_buf by memcpy done, offset: %d", __func__, buf_offset)
-
-  // res = munmap(buffer, buffer_size);
-  // if (res != 0) {
-  //   ALOGE("%s munmap res: %d", __func__, res)
-  // }
 }
 
 bool jvmti::MemFile::Open() {
@@ -56,7 +45,7 @@ bool jvmti::MemFile::Open() {
     return false;
   }
   fclose(fp);
-  // 找个时机把文件句柄关闭了，否则会内存泄露
+  // 文件句柄会在 MemFile 析构的时候关闭
   _fd = open(_path, O_RDWR);
   if (errno || _fd == -1) {
     ALOGE("%s failed as errno: %d, fd: %d", __func__, errno, _fd)
@@ -80,7 +69,7 @@ bool jvmti::MemFile::Open() {
   // 2、将原内容使用内存数据进行覆盖；
   mem_buf = (int *) mmap(nullptr, buf_size, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
   if (mem_buf == MAP_FAILED) {
-    close(_fd);
+    Close();
     ALOGE("%s mmap failed: %d", __func__, errno)
     return false;
   }
