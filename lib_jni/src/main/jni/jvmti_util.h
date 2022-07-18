@@ -3,6 +3,7 @@
 //
 
 #include <string>
+#include "jvmti.h"
 
 #ifndef DAILY_WORK_JVMTI_UTIL_H
 #define DAILY_WORK_JVMTI_UTIL_H

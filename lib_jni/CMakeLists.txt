@@ -24,6 +24,7 @@ add_library( # Sets the name of the library.
         # Provides a relative path to your source file(s).
         src/main/jni/jvmti_loader.cpp
         src/main/jni/jvmti_impl.cpp
+        src/main/jni/jvmti_util.cpp
         src/main/jni/mem_file.cpp
         src/main/jni/jni.cpp)
 

@@ -3,6 +3,9 @@
 //
 
 #include "jvmti_util.h"
+#include "jni_logger.h"
+
+#define LOG_TAG "JVMTI_UTIL"
 
 // 线程信息：名字、组、id
 std::string jvmti::getThreadInfo(jvmtiEnv *jvmti, jthread thread) {
@@ -40,7 +43,7 @@ std::string jvmti::getMethodInfo(jvmtiEnv *jvmti, jmethodID method) {
   return buffer;
 }
 
-std::string jvmti::getClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size = 0) {
+std::string jvmti::getClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size) {
   std::string buffer;
 
   char *className = {};

@@ -39,6 +39,9 @@ void jvmti::MemFile::Append(const char *data, int length) {
 }
 
 bool jvmti::MemFile::Open() {
+
+  if (_fd > 0 && mem_buf != nullptr) return true;
+
   FILE *fp = fopen(_path, "w+");
   if (fp == nullptr) {
     ALOGE("%s create file error: %p", __func__, fp)

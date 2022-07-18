@@ -36,7 +36,7 @@ void persistJson(map<string, string> *json, const char *tag) {
   try {
     if (memFile == nullptr) {
       memFile = new jvmti::MemFile("/data/data/com.sleticalboy.learning/files/ttt.txt");
-      ALOGD("%s create MemFile from %s", __func__, tag)
+      ALOGD("%s#%s() create MemFile from %s()", __FILE_NAME__, __func__, tag)
     }
     memFile->Append(buffer.c_str(), buffer.length());
   } catch (const exception &e) {
