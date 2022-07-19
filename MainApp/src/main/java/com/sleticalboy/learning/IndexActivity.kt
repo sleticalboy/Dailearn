@@ -55,8 +55,8 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun loadJvmti() {
-    LibJni.loadJvmti(this)
     Log.d(TAG, "loadJvmti() ${LibJni.nativeGetString()}")
+    LibJni.loadJvmti(this)
   }
 
   override fun layout(): View {

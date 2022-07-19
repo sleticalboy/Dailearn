@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper
 
 class StoreManager private constructor(context: Context? = null) {
 
-  private val mHelper: DbHelper?
+  private val mHelper: DbHelper? = context?.let { DbHelper(it) }
 
   private object SingletonHolder {
     val MANAGER = StoreManager()
@@ -65,16 +65,15 @@ class StoreManager private constructor(context: Context? = null) {
   }
 
   companion object {
+    @JvmStatic
     fun init(context: Context?) {
       StoreManager(context)
     }
 
+    @JvmStatic
     fun get(): StoreManager {
       return SingletonHolder.MANAGER
     }
   }
 
-  init {
-    mHelper = context?.let { DbHelper(it) }
-  }
 }

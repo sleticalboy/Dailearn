@@ -41,6 +41,8 @@ void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jobject jConfig) {
   jvmti::fromJavaConfig(env, jConfig, &config);
   jvmti::gConfig = &config;
 
+  ALOGI("%s, jvmti::gConfig: %p", __func__, jvmti::gConfig)
+
   jclass cls_config = env->GetObjectClass(jConfig);
   jfieldID field_agent_file = env->GetFieldID(cls_config, "agentFile", "Ljava/lang/String;");
   auto j_str = (jstring) env->GetObjectField(jConfig, field_agent_file);

@@ -145,21 +145,29 @@ void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmetho
 }
 
 void callbackMethodEntry(jvmtiEnv *jvmti, JNIEnv* env, jthread thread, jmethodID method) {
-  string thread_info = jvmti::getThreadInfo(jvmti, thread);
-  string method_info = jvmti::getMethodInfo(jvmti, method);
-  string class_info;
-  jclass clazz = nullptr;
-  jvmtiError error = jvmti->GetMethodDeclaringClass(method, &clazz);
-  if (error == JVMTI_ERROR_NONE && clazz != nullptr) {
-    class_info = jvmti::getClassInfo(jvmti, clazz);
-  }
-  ALOGD("%s thread: %s, method: %s%s", __func__, thread_info.c_str(), class_info.c_str(), method_info.c_str())
+  // string thread_info = jvmti::getThreadInfo(jvmti, thread);
+  // string method_info = jvmti::getMethodInfo(jvmti, method);
+  // string class_info;
+  // jclass clazz = nullptr;
+  // jvmtiError error = jvmti->GetMethodDeclaringClass(method, &clazz);
+  // if (error == JVMTI_ERROR_NONE && clazz != nullptr) {
+  //   class_info = jvmti::getClassInfo(jvmti, clazz);
+  // }
+  // 日志打印量有点恐怖，先关掉
+  // ALOGD("%s thread: %s, method: %s%s", __func__, thread_info.c_str(), class_info.c_str(), method_info.c_str())
+
+  // 一个莫名奇妙的 crash
+  // 2022-07-19 22:18:58.544 A: decStrong() called on 0x7ffa5c000 too many times
+  // --------- beginning of crash
+  // 2022-07-19 22:18:58.545 A: Fatal signal 6 (SIGABRT), code -6 (SI_TKILL) in tid 5764 (RenderThread), pid 5733 (calboy.learning)
+  // 2022-07-19 22:28:24.566 A: Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x200000000 in tid 6879 (RenderThread), pid 6848 (calboy.learning)
+  // 2022-07-19 22:28:24.571 E: getThreadInfo GetThreadGroupInfo error: JVMTI_ERROR_INVALID_THREAD_GROUP
 }
 void callbackMethodExit(jvmtiEnv *jvmti, JNIEnv* env, jthread thread, jmethodID method,
      jboolean was_popped_by_exception, jvalue return_value) {
-  string thread_info = jvmti::getThreadInfo(jvmti, thread);
-  string method_info = jvmti::getMethodInfo(jvmti, method);
-  ALOGD("%s thread: %s, method: %s", __func__, thread_info.c_str(), method_info.c_str())
+  // string thread_info = jvmti::getThreadInfo(jvmti, thread);
+  // string method_info = jvmti::getMethodInfo(jvmti, method);
+  // ALOGD("%s thread: %s, method: %s", __func__, thread_info.c_str(), method_info.c_str())
 }
 
 int Agent_Init(JavaVM *vm) {
@@ -186,6 +194,8 @@ int Agent_Init(JavaVM *vm) {
   jvmti::gData->isAgentInit = true;
   jvmti::gData->jvmti = jvmti;
 
+  ALOGI("%s, jvmti::gData: %p", __func__, jvmti::gData)
+
   jvmtiError error = JVMTI_ERROR_NONE;
 
   ALOGD("%s start CreateRawMonitor", __func__)
@@ -202,6 +212,8 @@ int Agent_Init(JavaVM *vm) {
   if (error != JVMTI_ERROR_NONE) {
     ALOGE("%s GetCapabilities error: %s", __func__, jvmti::getErrorName(jvmti, error))
   }
+
+  ALOGI("%s, jvmti::gConfig: %p", __func__, jvmti::gConfig)
 
   // if (jvmti::gConfig != nullptr) {
   //   if (jvmti::gConfig->object_alloc) {
@@ -249,9 +261,9 @@ int Agent_Init(JavaVM *vm) {
   // 对象分配与释放
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_OBJECT_ALLOC, nullptr);
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_OBJECT_FREE, nullptr);
-  // 方法进入与退出，日志打印量有点恐怖，先关闭吧
-  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_ENTRY, nullptr);
-  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_EXIT, nullptr);
+  // 方法进入与退出
+  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_ENTRY, nullptr);
+  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_EXIT, nullptr);
   // 异常
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, nullptr);
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION_CATCH, nullptr);
@@ -281,11 +293,13 @@ int Agent_Init(JavaVM *vm) {
   return JNI_OK;
 }
 
+// 在 JVM 启动时就指定 agent 路径，会回调此方法
 jint Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
   ALOGD("%s options: %s", __func__, options)
   return JNI_TRUE;
 }
 
+// 在 JVM 启动后动态绑定 agent ，会回调此方法
 jint Agent_OnAttach(JavaVM *vm, char *options, void *reserved) {
   ALOGD("%s options: %s", __func__, options)
   return Agent_Init(vm);

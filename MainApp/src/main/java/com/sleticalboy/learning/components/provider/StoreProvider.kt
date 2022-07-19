@@ -36,14 +36,14 @@ class StoreProvider : ContentProvider() {
   override fun onCreate(): Boolean {
     // 此方法会比 Application 的 onCreate() 方法先执行
     Log.d(TAG, "onCreate() start --->")
-    StoreManager.Companion.init(context)
+    StoreManager.init(context)
     return true
   }
 
   override fun query(
     uri: Uri, projection: Array<String>?, selection: String?,
     selectionArgs: Array<String>?, sortOrder: String?
-  ): Cursor? {
+  ): Cursor {
     val cursor = MatrixCursor(projection)
     var value = 0
     val table = uri.lastPathSegment
