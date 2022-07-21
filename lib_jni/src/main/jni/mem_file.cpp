@@ -12,7 +12,9 @@
 
 #define LOG_TAG "MemFile"
 
-void jvmti::MemFile::Append(const char *data, int length) {
+namespace jvmti {
+
+void MemFile::Append(const char *data, int length) {
   if (!Open()) {
     ALOGE("%s abort fd: %d", __func__, _fd)
     return;
@@ -32,7 +34,7 @@ void jvmti::MemFile::Append(const char *data, int length) {
   // ALOGD("%s write to mem_buf by memcpy done, offset: %d", __func__, buf_offset)
 }
 
-bool jvmti::MemFile::Open() {
+bool MemFile::Open() {
 
   if (_fd > 0 && mem_buf != nullptr) return true;
 
@@ -74,7 +76,7 @@ bool jvmti::MemFile::Open() {
   return true;
 }
 
-bool jvmti::MemFile::Resize(int resize) {
+bool MemFile::Resize(int resize) {
   int old_size = buf_size;
   do {
     buf_size *= 2;
@@ -96,11 +98,13 @@ bool jvmti::MemFile::Resize(int resize) {
   return true;
 }
 
-void jvmti::MemFile::Close() {
+void MemFile::Close() {
   munmap(mem_buf, buf_size);
   close(_fd);
   _fd = -1;
   mem_buf = nullptr;
   _path = nullptr;
+}
+
 }
 

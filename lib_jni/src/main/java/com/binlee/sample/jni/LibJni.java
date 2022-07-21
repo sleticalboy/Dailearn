@@ -3,6 +3,7 @@ package com.binlee.sample.jni;
 import android.content.Context;
 import android.os.Build;
 import android.os.Debug;
+import android.text.TextUtils;
 import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -69,12 +70,17 @@ public final class LibJni {
   private static void parseJson(String jsonString) {
     Log.d("LibJni", "parseJson() " + jsonString);
     try {
-      JSONObject json = new JSONObject(jsonString);
-      Log.d("LibJni", "class_info -> " + json.optString("class_info"));
-      Log.d("LibJni", "thread -> " + json.optString("thread"));
-      Log.d("LibJni", "exception -> " + json.optString("exception"));
-      Log.d("LibJni", "method -> " + json.optString("method"));
-      Log.d("LibJni", "catch_method -> " + json.optString("catch_method"));
+      final JSONObject json = new JSONObject(jsonString);
+      String value = json.optString("alloc_info");
+      if (!TextUtils.isEmpty(value)) Log.d("LibJni", "alloc_info -> " + value);
+      value = json.optString("thread");
+      if (!TextUtils.isEmpty(value)) Log.d("LibJni", "thread -> " + value);
+      value = json.optString("exception");
+      if (!TextUtils.isEmpty(value)) Log.d("LibJni", "exception -> " + value);
+      value = json.optString("method");
+      if (!TextUtils.isEmpty(value)) Log.d("LibJni", "method -> " + value);
+      value = json.optString("catch_method");
+      if (!TextUtils.isEmpty(value)) Log.d("LibJni", "catch_method -> " + value);
     } catch (JSONException e) {
       e.printStackTrace();
     }

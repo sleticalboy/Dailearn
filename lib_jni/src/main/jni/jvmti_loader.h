@@ -9,7 +9,9 @@
 #define DAILEARN_JVMTI_LOADER_H
 
 namespace jvmti {
+namespace loader {
 void attachAgent(JNIEnv *env, const char *library);
-}
+} // namespace loader
+} // namespace jvmti
 
 #endif //DAILEARN_JVMTI_LOADER_H

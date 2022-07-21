@@ -4,17 +4,6 @@
 #include "jvmti_loader.h"
 #include "jvmti_util.h"
 
-// Write C++ code here.
-//
-// Do not forget to dynamically load the C++ library into your application.
-//
-// For instance,
-//
-// In MainActivity.java:
-//    static {
-//       System.loadLibrary("jni");
-//    }
-
 #define LOG_TAG "LibJni"
 
 jstring LibJni_nativeGetString(JNIEnv *env, jclass clazz) {
@@ -38,16 +27,15 @@ void LibJni_nativeCallJava(JNIEnv *env, jclass clazz, jobject jContext) {
 void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jobject jConfig) {
   static jvmti::Config config;
   memset(&config, 0, sizeof(jvmti::Config));
-  jvmti::fromJavaConfig(env, jConfig, &config);
-  jvmti::gConfig = &config;
-
-  ALOGI("%s, jvmti::gConfig: %p", __func__, jvmti::gConfig)
+  jvmti::util::fromJavaConfig(env, jConfig, &config);
+  jvmti::g_config = &config;
+  ALOGI("%s, jvmti::g_config: %p, config: %p", __func__, jvmti::g_config, &config)
 
   jclass cls_config = env->GetObjectClass(jConfig);
   jfieldID field_agent_file = env->GetFieldID(cls_config, "agentFile", "Ljava/lang/String;");
   auto j_str = (jstring) env->GetObjectField(jConfig, field_agent_file);
   const char *library = env->GetStringUTFChars(j_str, JNI_FALSE);
-  jvmti::attachAgent(env, library);
+  jvmti::loader::attachAgent(env, library);
   env->ReleaseStringUTFChars(j_str, library);
 }
 

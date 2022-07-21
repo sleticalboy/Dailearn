@@ -7,33 +7,82 @@
 
 #define LOG_TAG "JVMTI_UTIL"
 
+namespace jvmti {
+namespace util {
+
 // 线程信息：名字、组、id
-std::string jvmti::getThreadInfo(jvmtiEnv *jvmti, jthread thread) {
+string getThreadInfo(jvmtiEnv *jvmti, jthread thread) {
   std::string buffer;
+  jvmtiError error;
   // 先判断一下线程状态再获取信息，可以规避一些错误
-  jint thread_state = 0;
-  jvmtiError error = jvmti->GetThreadState(thread, &thread_state);
-  if (error == JVMTI_ERROR_NONE) {
-    // JVMTI_THREAD_STATE_ALIVE = 0x0001,
-    // JVMTI_THREAD_STATE_TERMINATED = 0x0002,
-    // JVMTI_THREAD_STATE_RUNNABLE = 0x0004,
-    // JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER = 0x0400,
-    // JVMTI_THREAD_STATE_WAITING = 0x0080,
-    // JVMTI_THREAD_STATE_WAITING_INDEFINITELY = 0x0010,
-    // JVMTI_THREAD_STATE_WAITING_WITH_TIMEOUT = 0x0020,
-    // JVMTI_THREAD_STATE_SLEEPING = 0x0040,
-    // JVMTI_THREAD_STATE_IN_OBJECT_WAIT = 0x0100,
-    // JVMTI_THREAD_STATE_PARKED = 0x0200,
-    // JVMTI_THREAD_STATE_SUSPENDED = 0x100000,
-    // JVMTI_THREAD_STATE_INTERRUPTED = 0x200000,
-    // JVMTI_THREAD_STATE_IN_NATIVE = 0x400000,
-    // JVMTI_THREAD_STATE_VENDOR_1 = 0x10000000,
-    // JVMTI_THREAD_STATE_VENDOR_2 = 0x20000000,
-    // JVMTI_THREAD_STATE_VENDOR_3 = 0x40000000
-    if (thread_state == JVMTI_THREAD_STATE_ALIVE) {
-      //
-    }
-  }
+  // unsigned int state;
+  // error = jvmti->GetThreadState(thread, (jint *) &state);
+  // if (error == JVMTI_ERROR_NONE) {
+  //   // JVMTI_THREAD_STATE_ALIVE = 0x0001,
+  //   // JVMTI_THREAD_STATE_TERMINATED = 0x0002,
+  //   // JVMTI_THREAD_STATE_RUNNABLE = 0x0004,
+  //   // JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER = 0x0400,
+  //   // JVMTI_THREAD_STATE_WAITING = 0x0080,
+  //   // JVMTI_THREAD_STATE_WAITING_INDEFINITELY = 0x0010,
+  //   // JVMTI_THREAD_STATE_WAITING_WITH_TIMEOUT = 0x0020,
+  //   // JVMTI_THREAD_STATE_SLEEPING = 0x0040,
+  //   // JVMTI_THREAD_STATE_IN_OBJECT_WAIT = 0x0100,
+  //   // JVMTI_THREAD_STATE_PARKED = 0x0200,
+  //   // JVMTI_THREAD_STATE_SUSPENDED = 0x100000,
+  //   // JVMTI_THREAD_STATE_INTERRUPTED = 0x200000,
+  //   // JVMTI_THREAD_STATE_IN_NATIVE = 0x400000,
+  //   if (state & JVMTI_THREAD_STATE_ALIVE) {
+  //     ALOGI("%s thread is ALIVE", __func__)
+  //   }
+  //   if (state & JVMTI_THREAD_STATE_RUNNABLE) {
+  //     ALOGI("%s thread is RUNNABLE", __func__)
+  //   }
+  //   if (state & JVMTI_THREAD_STATE_BLOCKED_ON_MONITOR_ENTER) {
+  //     ALOGI("%s thread is BLOCKED_ON_MONITOR_ENTER", __func__)
+  //   }
+  //   if (state & JVMTI_THREAD_STATE_WAITING) {
+  //     if (state & JVMTI_THREAD_STATE_IN_OBJECT_WAIT) {
+  //       if (state & JVMTI_THREAD_STATE_WAITING_WITH_TIMEOUT) {
+  //         ALOGI("%s thread in Object.wait(long timeout)", __func__)
+  //       } else {
+  //         ALOGI("%s thread in Object.wait()", __func__)
+  //       }
+  //     } else if (state & JVMTI_THREAD_STATE_PARKED) {
+  //       ALOGI("%s thread in LockSupport.park*()", __func__)
+  //     } else if (state & JVMTI_THREAD_STATE_SLEEPING) {
+  //       ALOGI("%s thread in Thread.sleep()", __func__)
+  //     }
+  //   }
+  //   if ((state & (JVMTI_THREAD_STATE_ALIVE | JVMTI_THREAD_STATE_TERMINATED)) == 0) {
+  //     ALOGI("%s thread is CREATED but not STARTED", __func__)
+  //   }
+  //   switch (state & JVMTI_JAVA_LANG_THREAD_STATE_MASK) {
+  //     case JVMTI_JAVA_LANG_THREAD_STATE_NEW:
+  //       buffer.append("NEW ");
+  //       break;
+  //     case JVMTI_JAVA_LANG_THREAD_STATE_TERMINATED:
+  //       buffer.append("TERMINATED ");
+  //       break;
+  //     case JVMTI_JAVA_LANG_THREAD_STATE_RUNNABLE:
+  //       buffer.append("RUNNABLE ");
+  //       break;
+  //     case JVMTI_JAVA_LANG_THREAD_STATE_BLOCKED:
+  //       buffer.append("BLOCKED ");
+  //       break;
+  //     case JVMTI_JAVA_LANG_THREAD_STATE_WAITING:
+  //       buffer.append("WAITING ");
+  //       break;
+  //     case JVMTI_JAVA_LANG_THREAD_STATE_TIMED_WAITING:
+  //       buffer.append("TIMED_WAITING ");
+  //       break;
+  //     default:
+  //       buffer.append("UNKNOWN ");
+  //       break;
+  //   }
+  //   ALOGI("%s GetThreadState %s(%d)", __func__, buffer.c_str(), state)
+  // } else {
+  //   ALOGE("%s GetThreadState error: %s", __func__, getErrorName(jvmti, error))
+  // }
   jvmtiThreadInfo info = {};
   error = jvmti->GetThreadInfo(thread, &info);
   if (error == JVMTI_ERROR_NONE) {
@@ -53,8 +102,8 @@ std::string jvmti::getThreadInfo(jvmtiEnv *jvmti, jthread thread) {
   return buffer;
 }
 
-std::string jvmti::getMethodInfo(jvmtiEnv *jvmti, jmethodID method) {
-  std::string buffer;
+string getMethodInfo(jvmtiEnv *jvmti, jmethodID method) {
+  string buffer;
   char *name = {};
   char *sig = {};
   char *gsig = {};
@@ -67,8 +116,8 @@ std::string jvmti::getMethodInfo(jvmtiEnv *jvmti, jmethodID method) {
   return buffer;
 }
 
-std::string jvmti::getClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size) {
-  std::string buffer;
+string getClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size) {
+  string buffer;
 
   char *className = {};
   jvmtiError error = jvmti->GetClassSignature(klass, &className, nullptr);
@@ -84,7 +133,7 @@ std::string jvmti::getClassInfo(jvmtiEnv *jvmti, jclass klass, jlong size) {
   return buffer;
 }
 
-const char *jvmti::getErrorName(jvmtiEnv *jvmti, jvmtiError &error) {
+const char *getErrorName(jvmtiEnv *jvmti, jvmtiError &error) {
   char *error_name = nullptr;
   jvmtiError err = jvmti->GetErrorName(error, &error_name);
   if (err != JVMTI_ERROR_NONE) {
@@ -93,9 +142,9 @@ const char *jvmti::getErrorName(jvmtiEnv *jvmti, jvmtiError &error) {
   return error_name;
 }
 
-void jvmti::fromJavaConfig(JNIEnv *env, jobject jConfig, Config *config) {
+void fromJavaConfig(JNIEnv *env, jobject jConfig, Config *config) {
   jclass cls_config = env->FindClass("com/binlee/sample/jni/JvmtiConfig");
-  
+
   jfieldID field = env->GetFieldID(cls_config, "rootDir", "Ljava/lang/String;");
   auto root_dir = (jstring) env->GetObjectField(jConfig, field);
   config->root_dir = env->GetStringUTFChars(root_dir, JNI_FALSE);
@@ -115,3 +164,5 @@ void jvmti::fromJavaConfig(JNIEnv *env, jobject jConfig, Config *config) {
   field = env->GetFieldID(cls_config, "methodExit", "Z");
   config->method_exit = env->GetBooleanField(jConfig, field);
 }
+} // namespace util
+} // namespace jvmti

@@ -8,7 +8,10 @@
 
 #define LOG_TAG "JVMTI_LOADER"
 
-void jvmti::attachAgent(JNIEnv *env, const char *library) {
+namespace jvmti {
+namespace loader {
+
+void attachAgent(JNIEnv *env, const char *library) {
   jstring _library = env->NewStringUTF(library);
   ALOGD("%s start attaching jvmti agent via reflect: %s \nenv: %p, lib: %p", __func__, library, env, _library)
   if (android_get_device_api_level() >= __ANDROID_API_P__) {
@@ -35,3 +38,6 @@ void jvmti::attachAgent(JNIEnv *env, const char *library) {
   env->ReleaseStringUTFChars(_library, library);
   ALOGD("%s attach jvmti agent finished", __func__)
 }
+
+} // namespace loader
+} // namespace jvmti

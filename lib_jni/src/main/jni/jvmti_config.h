@@ -32,35 +32,6 @@ typedef struct Config {
 } Config;
 
 static Config *g_config;
-
-class ThreadInfo {
-private:
-  jvmtiEnv *jvmti_;
-  jthread thread_;
-  jint state_;
-  char *content_;
-  jvmtiThreadInfo thread_info_;
-  jvmtiThreadGroupInfo group_info_;
-public:
-
-  ThreadInfo(jvmtiEnv *jvmti, jthread thread);
-
-  const char *ToString() {
-    if (content_ == nullptr) {
-      content_ = new char[1024];
-      strcpy(content_, "thread:");
-      strcpy(content_, thread_info_.name);
-      strcpy(content_, ", thread group:");
-      strcpy(content_, group_info_.name);
-    }
-    return content_;
-  }
-
-  ~ThreadInfo() {
-    free(content_);
-    content_ = nullptr;
-  }
-};
 } // namespace jvmti
 
 #endif //DAILEARN_JVMTI_IMPL_H
