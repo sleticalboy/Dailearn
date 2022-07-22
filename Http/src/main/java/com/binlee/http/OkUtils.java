@@ -52,7 +52,7 @@ public final class OkUtils {
       while ((len = in.read(buffer)) != -1) {
         baos.write(buffer, 0, len);
       }
-      return new String(baos.toByteArray());
+      return baos.toString();
     } catch (IOException e) {
       return "";
     } finally {
@@ -170,13 +170,10 @@ public final class OkUtils {
   }
 
   public static ThreadFactory threadFactory(final String name, final boolean daemon) {
-    return new ThreadFactory() {
-      @Override
-      public Thread newThread(@NonNull Runnable runnable) {
-        Thread result = new Thread(runnable, name);
-        result.setDaemon(daemon);
-        return result;
-      }
+    return runnable -> {
+      Thread result = new Thread(runnable, name);
+      result.setDaemon(daemon);
+      return result;
     };
   }
 
@@ -208,9 +205,7 @@ public final class OkUtils {
   }
 
   public static Proxy createProxy(String hostname, final int port) {
-    if (port < 0) {
-      return null;
-    }
+    if (port < 0) return null;
     if (hostname == null) {
       hostname = "127.0.0.1";
     }
@@ -227,7 +222,7 @@ public final class OkUtils {
 
   @NonNull
   public static <E> String listToString(@NonNull List<E> list, String startSplit, String split) {
-    return arrayToString(list.toArray(new Object[list.size()]), startSplit, split);
+    return arrayToString(list.toArray(new Object[0]), startSplit, split);
   }
 
   /**
@@ -239,15 +234,11 @@ public final class OkUtils {
   @NonNull
   public static String arrayToString(@NonNull Object[] a, String startSplit, String split) {
     int iMax = a.length - 1;
-    if (iMax == -1) {
-      return "";
-    }
+    if (iMax == -1) return "";
     final StringBuilder b = new StringBuilder(startSplit);
     for (int i = 0; ; i++) {
       b.append(a[i]);
-      if (i == iMax) {
-        return b.toString();
-      }
+      if (i == iMax) return b.toString();
       b.append(split);
     }
   }
@@ -267,6 +258,6 @@ public final class OkUtils {
   }
 
   public static boolean empty(final String target) {
-    return target == null || target.replace(" ", "").length() == 0;
+    return target == null || target.trim().length() == 0;
   }
 }

@@ -97,10 +97,8 @@ public final class TaskDispatcher {
 
   public synchronized ExecutorService executorService() {
     if (executorService == null) {
-      executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
-        60, TimeUnit.SECONDS, new SynchronousQueue<>(),
-        OkUtils.threadFactory("Task Dispatcher", false)
-      );
+      executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+        new SynchronousQueue<>(), OkUtils.threadFactory("Task Dispatcher", false));
     }
     return executorService;
   }

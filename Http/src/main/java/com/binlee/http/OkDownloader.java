@@ -1,5 +1,6 @@
 package com.binlee.http;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 import com.binlee.http.builder.GetBuilder;
 import com.binlee.http.builder.RequestBuilder;
@@ -89,14 +90,14 @@ public final class OkDownloader {
       .breakPoint(startPoint, null);
     HttpClient.get().getOkHttpClient().newCall(getBuilder.build()).enqueue(new Callback() {
       @Override
-      public void onFailure(final Call call, final IOException e) {
+      public void onFailure(@NonNull final Call call, @NonNull final IOException e) {
         if (mCallback != null) {
           HttpClient.get().getMainHandler().post(() -> mCallback.onError(e));
         }
       }
 
       @Override
-      public void onResponse(final Call call, final Response response) throws IOException {
+      public void onResponse(@NonNull final Call call, @NonNull final Response response) {
         final ResponseBody responseBody = response.body();
         if (response.isSuccessful() && responseBody != null) {
           saveFile(responseBody, startPoint);
@@ -175,9 +176,9 @@ public final class OkDownloader {
         resetDownloader();
         HttpClient.get().getMainHandler().post(() -> mCallback.onComplete(mSaveFile));
       }
-    } catch (IOException ignored) {
+    } catch (IOException e) {
       if (mCallback != null) {
-        HttpClient.get().getMainHandler().post(() -> mCallback.onError(ignored));
+        HttpClient.get().getMainHandler().post(() -> mCallback.onError(e));
       }
     } finally {
       OkUtils.closeSilently(inputStream);
