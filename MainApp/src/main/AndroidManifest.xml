@@ -42,7 +42,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-        android:name="com.sleticalboy.learning.MainApp"
+        android:name="com.binlee.learning.MainApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -51,7 +51,7 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:usesCleartextTraffic="true">
         <activity
-            android:name="com.sleticalboy.learning.IndexActivity"
+            android:name="com.binlee.learning.IndexActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -60,35 +60,35 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.sleticalboy.learning.rv.WheelRVActivity" />
-        <activity android:name="com.sleticalboy.learning.rv.DecorationActivity" />
-        <activity android:name="com.sleticalboy.learning.rv.PagerActivity" />
-        <activity android:name="com.sleticalboy.learning.rv.ClassifyActivity" />
-        <activity android:name="com.sleticalboy.learning.camera.v1.LiveCameraActivity" />
+        <activity android:name="com.binlee.learning.rv.WheelRVActivity" />
+        <activity android:name="com.binlee.learning.rv.DecorationActivity" />
+        <activity android:name="com.binlee.learning.rv.PagerActivity" />
+        <activity android:name="com.binlee.learning.rv.ClassifyActivity" />
+        <activity android:name="com.binlee.learning.camera.v1.LiveCameraActivity" />
         <!--custom view -->
-        <activity android:name="com.sleticalboy.learning.csv.PathActivity" />
-        <activity android:name="com.sleticalboy.learning.csv.AlphaActivity" />
-        <activity android:name="com.sleticalboy.learning.csv.HeaderActivity" />
-        <activity android:name="com.sleticalboy.learning.csv.CustomViewActivity" />
-        <activity android:name="com.sleticalboy.learning.csv.ScrollerActivity" />
-        <activity android:name="com.sleticalboy.learning.csv.GridViewActivity" />
+        <activity android:name="com.binlee.learning.csv.PathActivity" />
+        <activity android:name="com.binlee.learning.csv.AlphaActivity" />
+        <activity android:name="com.binlee.learning.csv.HeaderActivity" />
+        <activity android:name="com.binlee.learning.csv.CustomViewActivity" />
+        <activity android:name="com.binlee.learning.csv.ScrollerActivity" />
+        <activity android:name="com.binlee.learning.csv.GridViewActivity" />
         <!--others-->
-        <activity android:name="com.sleticalboy.learning.others.AlarmActivity" />
-        <activity android:name="com.sleticalboy.learning.others.ImageConvertUI" />
+        <activity android:name="com.binlee.learning.others.AlarmActivity" />
+        <activity android:name="com.binlee.learning.others.ImageConvertUI" />
         <activity
-            android:name="com.sleticalboy.learning.csv.AutoSwitchUI"
+            android:name="com.binlee.learning.csv.AutoSwitchUI"
             android:label="@string/title_activity_auto_switch_view" />
         <!-- 转场动画 -->
-        <activity android:name="com.sleticalboy.learning.anims.TransitionUI" />
+        <activity android:name="com.binlee.learning.anims.TransitionUI" />
         <!--lottie json anim-->
-        <activity android:name="com.sleticalboy.learning.anims.JsonAnimUI" />
+        <activity android:name="com.binlee.learning.anims.JsonAnimUI" />
         <!-- 设备管理 -->
-        <activity android:name="com.sleticalboy.learning.devices.DeviceAdminUI" />
+        <activity android:name="com.binlee.learning.devices.DeviceAdminUI" />
 
-        <activity android:name="com.sleticalboy.learning.components.ServicePractise" />
+        <activity android:name="com.binlee.learning.components.ServicePractise" />
         <!-- authenticator for account -->
         <activity
-            android:name="com.sleticalboy.learning.accounts.auth.AuthenticatorActivity"
+            android:name="com.binlee.learning.accounts.auth.AuthenticatorActivity"
             android:excludeFromRecents="true">
             <!--
                 No intent-filter here! This activity is only ever launched by
@@ -96,30 +96,30 @@
             -->
         </activity>
         <!--activity for debug-->
-        <activity android:name="com.sleticalboy.learning.debug.DebugUI" />
+        <activity android:name="com.binlee.learning.debug.DebugUI" />
         <!--activity for bluetooth-->
-        <activity android:name="com.sleticalboy.learning.bt.BluetoothUI" />
-        <activity android:name="com.sleticalboy.learning.others.NotificationsUI" />
-        <activity android:name=".components.ProviderPractise" />
-        <activity android:name=".dialogs.DialogsUI" />
-        <activity android:name=".rv.NestedRvActivity" />
+        <activity android:name="com.binlee.learning.bt.BluetoothUI" />
+        <activity android:name="com.binlee.learning.others.NotificationsUI" />
+        <activity android:name="com.binlee.learning.components.ProviderPractise" />
+        <activity android:name="com.binlee.learning.dialogs.DialogsUI" />
+        <activity android:name="com.binlee.learning.rv.NestedRvActivity" />
 
         <provider
-            android:name="com.sleticalboy.learning.accounts.ContactsProvider"
+            android:name="com.binlee.learning.accounts.ContactsProvider"
             android:authorities="@string/account_authority"
             android:label="@string/contacts_provider_label" />
         <provider
-            android:name="com.sleticalboy.learning.accounts.RoutinesProvider"
+            android:name="com.binlee.learning.accounts.RoutinesProvider"
             android:authorities="@string/routine_authority"
             android:label="@string/routines_provider_label" />
         <provider
-            android:name="com.sleticalboy.learning.components.provider.StoreProvider"
+            android:name="com.binlee.learning.components.provider.StoreProvider"
             android:authorities="com.sleticalboy.learning.store"
             android:enabled="true"
             android:exported="false" />
 
         <receiver
-            android:name="com.sleticalboy.learning.devices.DevicesReceiver"
+            android:name="com.binlee.learning.devices.DevicesReceiver"
             android:exported="true"
             android:permission="android.permission.BIND_DEVICE_ADMIN">
             <intent-filter>
@@ -132,7 +132,7 @@
                 android:resource="@xml/devices_admin" />
         </receiver>
         <receiver
-            android:name="com.sleticalboy.learning.components.receiver.GlobalReceiver"
+            android:name="com.binlee.learning.components.receiver.GlobalReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SCREEN_ON" />
@@ -141,7 +141,7 @@
         </receiver>
 
         <service
-            android:name="com.sleticalboy.learning.accounts.auth.AuthenticationService"
+            android:name="com.binlee.learning.accounts.auth.AuthenticationService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -152,7 +152,7 @@
                 android:resource="@xml/authenticator" />
         </service>
         <service
-            android:name="com.sleticalboy.learning.accounts.sync.ContactsSyncService"
+            android:name="com.binlee.learning.accounts.sync.ContactsSyncService"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.content.SyncAdapter" />
@@ -162,7 +162,7 @@
                 android:resource="@xml/sync_adapter_accounts" />
         </service>
         <service
-            android:name="com.sleticalboy.learning.accounts.sync.RoutineSyncService"
+            android:name="com.binlee.learning.accounts.sync.RoutineSyncService"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.content.SyncAdapter" />
@@ -172,11 +172,11 @@
                 android:resource="@xml/sync_adapter_routines" />
         </service>
         <!-- service practice -->
-        <service android:name="com.sleticalboy.learning.components.service.LocalService" />
-        <service android:name="com.sleticalboy.learning.bt.ble.BleService" />
+        <service android:name="com.binlee.learning.components.service.LocalService" />
+        <service android:name="com.binlee.learning.bt.ble.BleService" />
 
         <service
-            android:name=".components.service.UpgradeService"
+            android:name="com.binlee.learning.components.service.UpgradeService"
             android:exported="true"
             android:permission="com.sleticalboy.permissions.REMOTE_UPGRADE" />
     </application>
