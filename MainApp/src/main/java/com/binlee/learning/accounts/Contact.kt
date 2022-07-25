@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.accounts
+package com.binlee.learning.accounts
 
 data class Contact(
   var firstName: String? = null,

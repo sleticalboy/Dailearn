@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sleticalboy.weight.circle
+package com.binlee.weight.circle
 
 import android.content.Context
 import android.content.res.TypedArray
@@ -29,7 +29,7 @@ import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageView
 
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 
 class CircleImageView @JvmOverloads constructor(
   context: Context,

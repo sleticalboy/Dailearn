@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrefresh.interfaces
+package com.binlee.weight.xrefresh.interfaces
 
 /**
  * Created on 18-2-3.

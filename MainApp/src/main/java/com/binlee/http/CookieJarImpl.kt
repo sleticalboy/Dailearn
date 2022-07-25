@@ -1,4 +1,4 @@
-package com.sleticalboy.http
+package com.binlee.http
 
 import android.content.Context
 import android.content.SharedPreferences

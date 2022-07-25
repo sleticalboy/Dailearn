@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.accounts
+package com.binlee.learning.accounts
 
 import android.content.ContentProvider
 import android.content.ContentValues

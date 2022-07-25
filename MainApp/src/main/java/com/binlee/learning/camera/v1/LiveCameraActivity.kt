@@ -1,13 +1,13 @@
-package com.sleticalboy.learning.camera.v1
+package com.binlee.learning.camera.v1
 
 import android.graphics.SurfaceTexture
 import android.util.Log
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.camera.CameraManager
-import com.sleticalboy.learning.camera.CameraManager.OnPictureTakenCallback
-import com.sleticalboy.learning.camera.CameraManager.SimpleSurfaceTextureListener
-import com.sleticalboy.learning.databinding.ActivityLiveCameraBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.camera.CameraManager
+import com.binlee.learning.camera.CameraManager.OnPictureTakenCallback
+import com.binlee.learning.camera.CameraManager.SimpleSurfaceTextureListener
+import com.binlee.learning.databinding.ActivityLiveCameraBinding
 import java.io.File
 
 /**

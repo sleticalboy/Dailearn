@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bt.ble
+package com.binlee.learning.bt.ble
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothProfile

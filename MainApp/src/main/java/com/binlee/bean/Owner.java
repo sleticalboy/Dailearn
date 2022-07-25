@@ -1,4 +1,4 @@
-package com.sleticalboy.bean;
+package com.binlee.bean;
 
 import com.google.gson.annotations.SerializedName;
 

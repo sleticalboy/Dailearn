@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.view
+package com.binlee.weight.view
 
 import android.content.Context
 import android.content.res.TypedArray
@@ -8,7 +8,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.ColorRes
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 
 /**
  * Created on 18-3-1.

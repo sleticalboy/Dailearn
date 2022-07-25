@@ -1,29 +1,29 @@
-package com.sleticalboy.learning.data
+package com.binlee.learning.data
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.sleticalboy.learning.anims.JsonAnimUI
-import com.sleticalboy.learning.anims.TransitionUI
-import com.sleticalboy.learning.bean.ModuleItem
-import com.sleticalboy.learning.bt.BluetoothUI
-import com.sleticalboy.learning.camera.v1.LiveCameraActivity
-import com.sleticalboy.learning.components.ProviderPractise
-import com.sleticalboy.learning.components.ServicePractise
-import com.sleticalboy.learning.csv.AlphaActivity
-import com.sleticalboy.learning.csv.AutoSwitchUI
-import com.sleticalboy.learning.csv.CustomViewActivity
-import com.sleticalboy.learning.csv.HeaderActivity
-import com.sleticalboy.learning.debug.DebugUI
-import com.sleticalboy.learning.devices.DeviceAdminUI
-import com.sleticalboy.learning.dialogs.DialogsUI
-import com.sleticalboy.learning.others.AlarmActivity
-import com.sleticalboy.learning.others.ImageConvertUI
-import com.sleticalboy.learning.others.NotificationsUI
-import com.sleticalboy.learning.rv.ClassifyActivity
-import com.sleticalboy.learning.rv.DecorationActivity
-import com.sleticalboy.learning.rv.NestedRvActivity
-import com.sleticalboy.learning.rv.PagerActivity
-import com.sleticalboy.learning.rv.WheelRVActivity
+import com.binlee.learning.anims.JsonAnimUI
+import com.binlee.learning.anims.TransitionUI
+import com.binlee.learning.bean.ModuleItem
+import com.binlee.learning.bt.BluetoothUI
+import com.binlee.learning.camera.v1.LiveCameraActivity
+import com.binlee.learning.components.ProviderPractise
+import com.binlee.learning.components.ServicePractise
+import com.binlee.learning.csv.AlphaActivity
+import com.binlee.learning.csv.AutoSwitchUI
+import com.binlee.learning.csv.CustomViewActivity
+import com.binlee.learning.csv.HeaderActivity
+import com.binlee.learning.debug.DebugUI
+import com.binlee.learning.devices.DeviceAdminUI
+import com.binlee.learning.dialogs.DialogsUI
+import com.binlee.learning.others.AlarmActivity
+import com.binlee.learning.others.ImageConvertUI
+import com.binlee.learning.others.NotificationsUI
+import com.binlee.learning.rv.ClassifyActivity
+import com.binlee.learning.rv.DecorationActivity
+import com.binlee.learning.rv.NestedRvActivity
+import com.binlee.learning.rv.PagerActivity
+import com.binlee.learning.rv.WheelRVActivity
 
 /**
  * Created on 20-3-30.

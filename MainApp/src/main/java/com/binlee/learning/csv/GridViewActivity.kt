@@ -1,10 +1,10 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.util.Log
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.bean.AudioItem
-import com.sleticalboy.learning.databinding.ActivityGridViewBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.bean.AudioItem
+import com.binlee.learning.databinding.ActivityGridViewBinding
 
 /**
  * Created on 20-9-1.

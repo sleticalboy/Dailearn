@@ -1,8 +1,8 @@
-package com.sleticalboy.learning.anims
+package com.binlee.learning.anims
 
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityJsonAnimBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityJsonAnimBinding
 
 /**
  * Created on 20-9-9.

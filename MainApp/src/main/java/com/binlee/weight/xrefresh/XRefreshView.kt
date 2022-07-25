@@ -1,11 +1,11 @@
-package com.sleticalboy.weight.xrefresh
+package com.binlee.weight.xrefresh
 
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 
 /**
  * Created on 18-2-3.

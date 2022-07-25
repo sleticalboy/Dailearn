@@ -8,7 +8,7 @@ android {
   compileSdkVersion rootProject.ext.compile_version
   buildToolsVersion rootProject.ext.build_version
   defaultConfig {
-    applicationId "com.sleticalboy.learning"
+    applicationId "com.binlee.learning"
     minSdkVersion rootProject.ext.min_version
     targetSdkVersion rootProject.ext.target_version
     versionCode 2
@@ -33,7 +33,7 @@ android {
     abortOnError = true
     disable 'TypographyFractions', 'TypographyQuotes'
   }
-  // namespace 'com.sleticalboy.learning'
+  // namespace 'com.binlee.learning'
 }
 
 project.configurations.all {

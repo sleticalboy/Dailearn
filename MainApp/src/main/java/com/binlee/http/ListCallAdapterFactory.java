@@ -1,4 +1,4 @@
-package com.sleticalboy.http;
+package com.binlee.http;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;

@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrefresh
+package com.binlee.weight.xrefresh
 
 import android.animation.ValueAnimator
 import android.content.Context
@@ -13,9 +13,9 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.Scroller
-import com.sleticalboy.util.UiUtils.dp2px
-import com.sleticalboy.weight.xrefresh.interfaces.IFooterView
-import com.sleticalboy.weight.xrefresh.interfaces.IHeaderView
+import com.binlee.util.UiUtils.dp2px
+import com.binlee.weight.xrefresh.interfaces.IFooterView
+import com.binlee.weight.xrefresh.interfaces.IHeaderView
 
 /**
  * Created on 18-2-2.

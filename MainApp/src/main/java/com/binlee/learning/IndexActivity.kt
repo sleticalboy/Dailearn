@@ -1,4 +1,4 @@
-package com.sleticalboy.learning
+package com.binlee.learning
 
 import android.Manifest
 import android.content.Intent
@@ -13,15 +13,15 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.binlee.apm.jvmti.JvmtiLoader
-import com.sleticalboy.bean.Apis
-import com.sleticalboy.http.IDemo
-import com.sleticalboy.http.RetrofitClient
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.bean.ModuleItem
-import com.sleticalboy.learning.data.DataEngine
-import com.sleticalboy.learning.data.Result
-import com.sleticalboy.learning.databinding.ActivityIndexBinding
-import com.sleticalboy.learning.others.KeyboardHeightProvider
+import com.binlee.bean.Apis
+import com.binlee.http.IDemo
+import com.binlee.http.RetrofitClient
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.bean.ModuleItem
+import com.binlee.learning.data.DataEngine
+import com.binlee.learning.data.Result
+import com.binlee.learning.databinding.ActivityIndexBinding
+import com.binlee.learning.others.KeyboardHeightProvider
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay

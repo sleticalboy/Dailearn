@@ -1,4 +1,4 @@
-package com.sleticalboy.http
+package com.binlee.http
 
 import okhttp3.MediaType
 import okhttp3.RequestBody

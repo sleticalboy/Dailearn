@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.encryption
+package com.binlee.learning.encryption
 
 import org.bouncycastle.crypto.generators.ECKeyPairGenerator
 import org.bouncycastle.crypto.params.ECDomainParameters

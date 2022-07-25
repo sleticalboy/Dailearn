@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.accounts.auth
+package com.binlee.learning.accounts.auth
 
 import android.accounts.AbstractAccountAuthenticator
 import android.accounts.Account
@@ -11,7 +11,7 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.text.TextUtils
 import android.util.Log
-import com.sleticalboy.learning.accounts.Constants
+import com.binlee.learning.accounts.Constants
 
 /**
  * Created by AndroidStudio on 20-2-23.

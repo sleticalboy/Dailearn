@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.devices
+package com.binlee.learning.devices
 
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 
 /**
  * Created on 20-2-17.

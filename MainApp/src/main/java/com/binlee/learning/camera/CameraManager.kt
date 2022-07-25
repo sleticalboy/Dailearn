@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.camera
+package com.binlee.learning.camera
 
 import android.content.Context
 import android.graphics.ImageFormat

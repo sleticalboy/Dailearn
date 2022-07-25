@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.base
+package com.binlee.learning.base
 
 import android.app.Dialog
 import android.graphics.Color

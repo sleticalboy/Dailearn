@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrefresh
+package com.binlee.weight.xrefresh
 
 import android.content.Context
 import android.util.AttributeSet
@@ -9,8 +9,8 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 
-import com.sleticalboy.learning.R
-import com.sleticalboy.weight.xrefresh.interfaces.IHeaderView
+import com.binlee.learning.R
+import com.binlee.weight.xrefresh.interfaces.IHeaderView
 
 /**
  * Created on 18-2-3.

@@ -1,4 +1,4 @@
-package com.sleticalboy.util
+package com.binlee.util
 
 import android.Manifest.permission
 import android.annotation.SuppressLint
@@ -6,7 +6,7 @@ import android.content.Context
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import androidx.annotation.RequiresPermission
-import com.sleticalboy.util.ShellUtils.CommandResult
+import com.binlee.util.ShellUtils.CommandResult
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.net.SocketException

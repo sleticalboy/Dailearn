@@ -1,11 +1,11 @@
-package com.sleticalboy.learning.dialogs
+package com.binlee.learning.dialogs
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseDialog
-import com.sleticalboy.learning.databinding.DialogFullScreenBinding
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseDialog
+import com.binlee.learning.databinding.DialogFullScreenBinding
 
 /**
  * Created on 2021-08-14.

@@ -1,11 +1,11 @@
-package com.sleticalboy.learning.base
+package com.binlee.learning.base
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.sleticalboy.learning.databinding.FragmentBaseListBinding
+import com.binlee.learning.databinding.FragmentBaseListBinding
 
 /**
  * Created on 20-8-23.

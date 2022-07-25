@@ -1,4 +1,4 @@
-package com.sleticalboy.http
+package com.binlee.http
 
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import okhttp3.OkHttpClient

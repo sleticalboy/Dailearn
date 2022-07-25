@@ -1,9 +1,9 @@
-package com.sleticalboy.learning.devices
+package com.binlee.learning.devices
 
 import android.os.Bundle
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityDevicesBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityDevicesBinding
 
 /**
  * Created on 20-2-17.

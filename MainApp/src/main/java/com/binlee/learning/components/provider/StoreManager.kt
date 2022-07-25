@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.components.provider
+package com.binlee.learning.components.provider
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase

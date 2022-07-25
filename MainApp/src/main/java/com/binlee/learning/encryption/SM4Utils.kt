@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.encryption
+package com.binlee.learning.encryption
 
 import sun.misc.BASE64Decoder
 import sun.misc.BASE64Encoder

@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.base
+package com.binlee.learning.base
 
 import android.view.LayoutInflater
 import android.view.ViewGroup

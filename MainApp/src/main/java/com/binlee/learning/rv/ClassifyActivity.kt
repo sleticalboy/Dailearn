@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.rv
+package com.binlee.learning.rv
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -10,11 +10,11 @@ import android.widget.Toast
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.bean.AppInfo
-import com.sleticalboy.learning.databinding.ActivityClassifyBinding
-import com.sleticalboy.weight.xrecycler.decoration.DividerGridItemDecoration
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.bean.AppInfo
+import com.binlee.learning.databinding.ActivityClassifyBinding
+import com.binlee.weight.xrecycler.decoration.DividerGridItemDecoration
 import java.util.ArrayList
 
 /**

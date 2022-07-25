@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.view
+package com.binlee.weight.view
 
 import android.content.Context
 import android.graphics.Canvas

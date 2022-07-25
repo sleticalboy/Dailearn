@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.encryption
+package com.binlee.learning.encryption
 
 class SM4Context {
 

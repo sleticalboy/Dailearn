@@ -1,4 +1,4 @@
-package com.sleticalboy.util
+package com.binlee.util
 
 import android.os.Handler
 import android.os.HandlerThread

@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,10 +9,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.AppBarLayout.OnOffsetChangedListener
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.csv.HeaderActivity.RecyclerAdapter.MyViewHolder
-import com.sleticalboy.learning.databinding.ActivityHeaderBinding
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.csv.HeaderActivity.RecyclerAdapter.MyViewHolder
+import com.binlee.learning.databinding.ActivityHeaderBinding
 import java.util.ArrayList
 import java.util.Random
 

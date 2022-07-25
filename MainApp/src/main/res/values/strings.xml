@@ -54,10 +54,10 @@
     <string name="invalid_username">Not a valid username</string>
     <string name="invalid_password">Password must be >5 characters</string>
     <string name="login_failed">"Login failed"</string>
-    <string name="common_account_type">com.sleticalboy.dailywork</string>
-    <string name="routine_account_type">com.sleticalboy.dailywork.routines</string>
-    <string name="routine_authority">com.sleticalboy.dailywork.routines</string>
-    <string name="account_authority">com.sleticalboy.dailywork.contacts</string>
+    <string name="common_account_type">com.binlee.dailywork</string>
+    <string name="routine_account_type">com.binlee.dailywork.routines</string>
+    <string name="routine_authority">com.binlee.dailywork.routines</string>
+    <string name="account_authority">com.binlee.dailywork.contacts</string>
     <string name="authenticator_label">Daily Work</string>
     <string name="contacts_provider_label">Contacts</string>
     <string name="routines_provider_label">Routines</string>

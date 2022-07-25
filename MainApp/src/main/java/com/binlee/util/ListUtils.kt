@@ -1,4 +1,4 @@
-package com.sleticalboy.util
+package com.binlee.util
 
 /**
  * Created on 18-2-7.

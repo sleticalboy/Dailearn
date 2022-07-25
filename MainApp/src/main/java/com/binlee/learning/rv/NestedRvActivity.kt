@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.rv
+package com.binlee.learning.rv
 
 import android.util.Log
 import android.view.LayoutInflater
@@ -6,10 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityRvNestedBinding
-import com.sleticalboy.learning.databinding.ItemNestedRvBinding
-import com.sleticalboy.learning.databinding.ItemRvTextBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityRvNestedBinding
+import com.binlee.learning.databinding.ItemNestedRvBinding
+import com.binlee.learning.databinding.ItemRvTextBinding
 
 /**
  * Created on 2021/8/17

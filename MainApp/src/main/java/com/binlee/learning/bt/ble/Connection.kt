@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bt.ble
+package com.binlee.learning.bt.ble
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -7,7 +7,7 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.os.Build
 import android.util.Log
-import com.sleticalboy.learning.bt.BtUtils
+import com.binlee.learning.bt.BtUtils
 import java.util.Objects
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.RejectedExecutionException

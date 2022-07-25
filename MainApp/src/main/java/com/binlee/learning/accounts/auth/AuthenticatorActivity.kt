@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.accounts.auth
+package com.binlee.learning.accounts.auth
 
 import android.accounts.Account
 import android.accounts.AccountAuthenticatorResponse
@@ -16,10 +16,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.accounts.Constants
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityLoginBinding
+import com.binlee.learning.R
+import com.binlee.learning.accounts.Constants
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityLoginBinding
 
 class AuthenticatorActivity : BaseActivity(), Constants {
 

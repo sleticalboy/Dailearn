@@ -1,4 +1,4 @@
-package com.sleticalboy.util
+package com.binlee.util
 
 import android.annotation.TargetApi
 import android.app.NotificationChannel

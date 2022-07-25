@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.components.service
+package com.binlee.learning.components.service
 
 import android.app.Service
 import android.content.Intent

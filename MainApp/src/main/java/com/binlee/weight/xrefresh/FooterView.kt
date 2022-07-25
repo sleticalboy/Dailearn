@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrefresh
+package com.binlee.weight.xrefresh
 
 import android.content.Context
 import android.util.AttributeSet
@@ -6,8 +6,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 
-import com.sleticalboy.learning.R
-import com.sleticalboy.weight.xrefresh.interfaces.IFooterView
+import com.binlee.learning.R
+import com.binlee.weight.xrefresh.interfaces.IFooterView
 
 /**
  * Created on 18-2-3.

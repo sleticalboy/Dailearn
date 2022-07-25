@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.view
+package com.binlee.weight.view
 
 import android.content.Context
 import android.content.res.TypedArray
@@ -12,11 +12,11 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.sleticalboy.learning.R
-import com.sleticalboy.util.UiUtils.dp2px
-import com.sleticalboy.weight.xrecycler.helper.PageScrollHelper
-import com.sleticalboy.weight.xrecycler.helper.PageScrollHelper.OnPageSelectedListener
-import com.sleticalboy.weight.xrecycler.helper.PagerLayoutManager
+import com.binlee.learning.R
+import com.binlee.util.UiUtils.dp2px
+import com.binlee.weight.xrecycler.helper.PageScrollHelper
+import com.binlee.weight.xrecycler.helper.PageScrollHelper.OnPageSelectedListener
+import com.binlee.weight.xrecycler.helper.PagerLayoutManager
 
 /**
  * 使用 RecyclerView 实现的 ViewPager，支持单页翻动，支持自适应高度

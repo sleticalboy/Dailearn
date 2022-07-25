@@ -1,10 +1,10 @@
-package com.sleticalboy.learning.camera.v1
+package com.binlee.learning.camera.v1
 
 import android.Manifest
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.camera.CameraCompat
-import com.sleticalboy.learning.databinding.ActivityEmptyBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.camera.CameraCompat
+import com.binlee.learning.databinding.ActivityEmptyBinding
 
 /**
  * Created on 18-2-26.

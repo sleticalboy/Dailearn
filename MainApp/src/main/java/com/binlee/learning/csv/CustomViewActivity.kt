@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.app.ListActivity
 import android.content.Intent

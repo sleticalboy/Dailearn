@@ -1,4 +1,4 @@
-package com.sleticalboy.util
+package com.binlee.util
 
 import android.content.Intent
 import android.os.Bundle

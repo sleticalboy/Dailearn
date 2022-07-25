@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrecycler.helper
+package com.binlee.weight.xrecycler.helper
 
 import android.graphics.Rect
 import android.util.SparseArray

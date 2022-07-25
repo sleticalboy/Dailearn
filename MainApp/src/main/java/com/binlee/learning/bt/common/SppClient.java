@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bt.common;
+package com.binlee.learning.bt.common;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;

@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.others
+package com.binlee.learning.others
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,11 +9,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityNotificationsBinding
-import com.sleticalboy.util.NotificationHelper
-import com.sleticalboy.util.ThreadHelper
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityNotificationsBinding
+import com.binlee.util.NotificationHelper
+import com.binlee.util.ThreadHelper
 
 /**
  * Created on 20-4-2.

@@ -1,4 +1,4 @@
-package com.sleticalboy.http
+package com.binlee.http
 
 /**
  * Created on 18-3-26.

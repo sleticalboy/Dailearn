@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.camera;
+package com.binlee.learning.camera;
 
 import android.Manifest;
 import android.content.Context;

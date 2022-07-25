@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.camera;
+package com.binlee.learning.camera;
 
 /**
  * Created on 20-11-13.

@@ -1,13 +1,13 @@
-package com.sleticalboy.learning.others
+package com.binlee.learning.others
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import android.view.View
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ImageConvertActivityBinding
-import com.sleticalboy.util.ImageUtils
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ImageConvertActivityBinding
+import com.binlee.util.ImageUtils
 
 /**
  * Created on 18-9-26.

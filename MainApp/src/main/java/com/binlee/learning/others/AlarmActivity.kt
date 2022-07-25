@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.others
+package com.binlee.learning.others
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -10,11 +10,11 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityAlarmBinding
-import com.sleticalboy.util.DevicesUtils
-import com.sleticalboy.util.TimeUtils
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityAlarmBinding
+import com.binlee.util.DevicesUtils
+import com.binlee.util.TimeUtils
 
 /**
  * Created on 18-5-11.

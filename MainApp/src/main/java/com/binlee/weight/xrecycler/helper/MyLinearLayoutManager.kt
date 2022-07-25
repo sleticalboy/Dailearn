@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrecycler.helper
+package com.binlee.weight.xrecycler.helper
 
 import android.content.Context
 import android.view.View.MeasureSpec

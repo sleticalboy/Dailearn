@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.accounts.auth
+package com.binlee.learning.accounts.auth
 
 import android.app.Service
 import android.content.Intent

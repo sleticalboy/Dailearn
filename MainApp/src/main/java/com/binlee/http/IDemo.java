@@ -1,6 +1,6 @@
-package com.sleticalboy.http;
+package com.binlee.http;
 
-import com.sleticalboy.bean.Apis;
+import com.binlee.bean.Apis;
 import io.reactivex.Observable;
 import java.util.List;
 import retrofit2.Call;

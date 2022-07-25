@@ -1,4 +1,4 @@
-package com.sleticalboy.util
+package com.binlee.util
 
 import java.io.BufferedReader
 import java.io.DataOutputStream

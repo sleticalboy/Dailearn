@@ -1,12 +1,12 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityAlphaBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityAlphaBinding
 
 /**
  * Created on 18-5-29.

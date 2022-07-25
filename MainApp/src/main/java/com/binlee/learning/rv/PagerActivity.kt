@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.rv
+package com.binlee.learning.rv
 
 import android.content.Context
 import android.os.Bundle
@@ -6,10 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
-import com.sleticalboy.learning.R
-import com.sleticalboy.weight.view.PagerView
-import com.sleticalboy.weight.xrecycler.adapter.XBaseHolder
-import com.sleticalboy.weight.xrecycler.adapter.XRecyclerAdapter
+import com.binlee.learning.R
+import com.binlee.weight.view.PagerView
+import com.binlee.weight.xrecycler.adapter.XBaseHolder
+import com.binlee.weight.xrecycler.adapter.XRecyclerAdapter
 
 /**
  * Created on 18-2-11.

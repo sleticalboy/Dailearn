@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bt.ble
+package com.binlee.learning.bt.ble
 
 /**
  * Created on 20-8-13.

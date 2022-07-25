@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.rv
+package com.binlee.learning.rv
 
 import android.os.Handler
 import android.view.MotionEvent
@@ -6,10 +6,10 @@ import android.view.View
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityWheelRvBinding
-import com.sleticalboy.learning.rv.adapter.ItemAdapter
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityWheelRvBinding
+import com.binlee.learning.rv.adapter.ItemAdapter
 
 /**
  * Created on 18-2-7.

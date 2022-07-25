@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrefresh.interfaces
+package com.binlee.weight.xrefresh.interfaces
 
 import android.view.View
 

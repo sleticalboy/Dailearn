@@ -1,4 +1,4 @@
-package com.sleticalboy.util
+package com.binlee.util
 
 import android.content.Context
 import android.graphics.ImageFormat
@@ -8,7 +8,7 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.widget.ImageView
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream

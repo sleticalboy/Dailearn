@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.components
+package com.binlee.learning.components
 
 import android.content.ComponentName
 import android.content.Context
@@ -7,9 +7,9 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import android.util.Log
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.components.service.LocalService
-import com.sleticalboy.learning.databinding.ActivityServiceBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.components.service.LocalService
+import com.binlee.learning.databinding.ActivityServiceBinding
 
 class ServicePractise : BaseActivity() {
 

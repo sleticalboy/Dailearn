@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrecycler.decoration
+package com.binlee.weight.xrecycler.decoration
 
 import android.content.Context
 import android.graphics.Canvas

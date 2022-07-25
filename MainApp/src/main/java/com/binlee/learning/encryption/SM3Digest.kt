@@ -1,7 +1,7 @@
-package com.sleticalboy.learning.encryption
+package com.binlee.learning.encryption
 
-import com.sleticalboy.util.OperationUtils
-import com.sleticalboy.util.UnicodeUtils.string2char
+import com.binlee.util.OperationUtils
+import com.binlee.util.UnicodeUtils.string2char
 import org.bouncycastle.util.encoders.Hex
 
 class SM3Digest {

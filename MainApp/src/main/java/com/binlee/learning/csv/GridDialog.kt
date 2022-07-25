@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.app.Dialog
 import android.util.Log
@@ -9,10 +9,10 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.BaseAdapter
 import android.widget.TextView
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseDialog
-import com.sleticalboy.learning.bean.AudioItem
-import com.sleticalboy.learning.databinding.LayoutGridDialogBinding
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseDialog
+import com.binlee.learning.bean.AudioItem
+import com.binlee.learning.databinding.LayoutGridDialogBinding
 
 /**
  * Created on 20-9-3.

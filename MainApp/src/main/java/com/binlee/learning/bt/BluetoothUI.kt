@@ -1,11 +1,11 @@
-package com.sleticalboy.learning.bt
+package com.binlee.learning.bt
 
 import android.Manifest
 import android.util.Log
 import android.view.View
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityBluetoothMainBinding
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityBluetoothMainBinding
 
 class BluetoothUI : BaseActivity() {
 

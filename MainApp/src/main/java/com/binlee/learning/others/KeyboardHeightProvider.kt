@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.others
+package com.binlee.learning.others
 
 import android.app.Activity
 import android.app.Application
@@ -15,7 +15,7 @@ import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.view.Window
 import android.view.WindowManager
 import android.widget.PopupWindow
-import com.sleticalboy.util.UiUtils.getStatusBarHeight
+import com.binlee.util.UiUtils.getStatusBarHeight
 
 /**
  * The keyboard height provider, this class uses a PopupWindow

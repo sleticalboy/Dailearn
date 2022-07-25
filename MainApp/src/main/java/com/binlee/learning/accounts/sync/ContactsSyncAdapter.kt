@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.accounts.sync
+package com.binlee.learning.accounts.sync
 
 import android.accounts.Account
 import android.accounts.AccountManager
@@ -14,7 +14,7 @@ import android.os.SystemClock
 import android.provider.ContactsContract
 import android.text.TextUtils
 import android.util.Log
-import com.sleticalboy.learning.accounts.Constants
+import com.binlee.learning.accounts.Constants
 import java.io.IOException
 
 /**
@@ -81,7 +81,7 @@ internal class ContactsSyncAdapter(context: Context?) : AbstractThreadedSyncAdap
 
   companion object {
     private const val TAG = "ContactsSyncAdapter"
-    private const val SYNC_MARKER_KEY = "com.sleticalboy.sync.marker"
+    private const val SYNC_MARKER_KEY = "com.binlee.sync.marker"
     private const val NOTIFY_AUTH_FAILURE = true
     fun printObj(obj: Any?) {
       if (obj == null) {

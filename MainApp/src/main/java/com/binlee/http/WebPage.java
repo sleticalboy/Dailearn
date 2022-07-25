@@ -1,4 +1,4 @@
-package com.sleticalboy.http;
+package com.binlee.http;
 
 import com.google.gson.annotations.SerializedName;
 

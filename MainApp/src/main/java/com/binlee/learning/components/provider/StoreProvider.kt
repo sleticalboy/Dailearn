@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.components.provider
+package com.binlee.learning.components.provider
 
 import android.content.ContentProvider
 import android.content.ContentValues
@@ -12,7 +12,7 @@ class StoreProvider : ContentProvider() {
 
   companion object {
     private const val TAG = "StoreProvider"
-    private const val AUTHORITY = "com.sleticalboy.dailywork.store"
+    private const val AUTHORITY = "com.binlee.dailywork.store"
     private val URI_MATCHER = UriMatcher(UriMatcher.NO_MATCH)
 
     init {

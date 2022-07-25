@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.sleticalboy.learning"
+    package="com.binlee.learning"
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -114,7 +114,7 @@
             android:label="@string/routines_provider_label" />
         <provider
             android:name="com.binlee.learning.components.provider.StoreProvider"
-            android:authorities="com.sleticalboy.learning.store"
+            android:authorities="com.binlee.learning.store"
             android:enabled="true"
             android:exported="false" />
 
@@ -178,7 +178,7 @@
         <service
             android:name="com.binlee.learning.components.service.UpgradeService"
             android:exported="true"
-            android:permission="com.sleticalboy.permissions.REMOTE_UPGRADE" />
+            android:permission="com.binlee.permissions.REMOTE_UPGRADE" />
     </application>
 
 </manifest>

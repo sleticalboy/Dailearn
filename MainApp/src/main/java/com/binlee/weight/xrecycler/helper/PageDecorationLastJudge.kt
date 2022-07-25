@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrecycler.helper
+package com.binlee.weight.xrecycler.helper
 
 /**
  * Created on 2016/11/15.

@@ -1,10 +1,10 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.view.View
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityPathBinding
-import com.sleticalboy.weight.view.TestView
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityPathBinding
+import com.binlee.weight.view.TestView
 
 /**
  * Created on 18-3-1.

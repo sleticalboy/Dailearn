@@ -1,4 +1,4 @@
-package com.sleticalboy.weight
+package com.binlee.weight
 
 import android.content.Context
 import android.os.Handler
@@ -12,7 +12,7 @@ import android.view.animation.TranslateAnimation
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.ViewSwitcher
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 import java.lang.ref.SoftReference
 import java.util.ArrayList
 

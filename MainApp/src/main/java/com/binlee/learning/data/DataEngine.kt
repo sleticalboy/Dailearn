@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.data
+package com.binlee.learning.data
 
 /**
  * Created on 20-3-27.

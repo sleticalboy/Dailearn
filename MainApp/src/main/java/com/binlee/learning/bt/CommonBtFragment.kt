@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bt
+package com.binlee.learning.bt
 
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -10,12 +10,12 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseListFragment
-import com.sleticalboy.learning.base.BaseRVAdapter
-import com.sleticalboy.learning.base.BaseRVHolder
-import com.sleticalboy.learning.bt.common.BtScanner
-import com.sleticalboy.learning.databinding.BtCommonHeaderBinding
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseListFragment
+import com.binlee.learning.base.BaseRVAdapter
+import com.binlee.learning.base.BaseRVHolder
+import com.binlee.learning.bt.common.BtScanner
+import com.binlee.learning.databinding.BtCommonHeaderBinding
 
 /**
  * Created on 20-8-18.

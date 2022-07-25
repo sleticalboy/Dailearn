@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bean
+package com.binlee.learning.bean
 
 import java.io.Serializable
 

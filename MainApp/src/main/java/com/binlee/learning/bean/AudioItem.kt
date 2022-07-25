@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bean
+package com.binlee.learning.bean
 
 /**
  * Created on 20-9-3.

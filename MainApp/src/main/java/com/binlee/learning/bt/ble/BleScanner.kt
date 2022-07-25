@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.bt.ble
+package com.binlee.learning.bt.ble
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothAdapter.LeScanCallback

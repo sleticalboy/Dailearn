@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.view
+package com.binlee.weight.view
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -14,7 +14,7 @@ import android.os.Build
 import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.RequiresApi
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 
 /**
  * Created on 18-3-1.

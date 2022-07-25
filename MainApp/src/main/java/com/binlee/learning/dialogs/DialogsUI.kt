@@ -1,8 +1,8 @@
-package com.sleticalboy.learning.dialogs
+package com.binlee.learning.dialogs
 
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityDialogsBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityDialogsBinding
 
 /**
  * Created on 2021-08-14.

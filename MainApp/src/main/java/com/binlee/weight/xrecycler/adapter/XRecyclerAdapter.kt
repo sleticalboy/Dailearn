@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrecycler.adapter
+package com.binlee.weight.xrecycler.adapter
 
 import android.content.Context
 import android.view.View

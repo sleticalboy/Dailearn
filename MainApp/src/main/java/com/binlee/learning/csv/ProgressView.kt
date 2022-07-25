@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.animation.AnimatorSet
 import android.animation.ValueAnimator
@@ -12,7 +12,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.ContextCompat
-import com.sleticalboy.learning.R
+import com.binlee.learning.R
 
 class ProgressView @JvmOverloads constructor(
   context: Context,

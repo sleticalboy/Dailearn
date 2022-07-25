@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrefresh.adapter
+package com.binlee.weight.xrefresh.adapter
 
 /**
  * Created on 18-2-4.

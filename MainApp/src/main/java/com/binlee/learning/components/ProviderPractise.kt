@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.components
+package com.binlee.learning.components
 
 import android.net.Uri
 import android.text.TextUtils
@@ -6,9 +6,9 @@ import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityProviderBinding
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityProviderBinding
 
 class ProviderPractise : BaseActivity() {
 
@@ -49,6 +49,6 @@ class ProviderPractise : BaseActivity() {
 
   companion object {
     private const val TAG = "MainActivity"
-    private const val BASE_URI = "com.sleticalboy.dailywork.store"
+    private const val BASE_URI = "com.binlee.dailywork.store"
   }
 }

@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.devices
+package com.binlee.learning.devices
 
 import android.app.admin.DeviceAdminReceiver
 import android.content.Context

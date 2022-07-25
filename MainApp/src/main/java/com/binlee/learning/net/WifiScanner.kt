@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.net
+package com.binlee.learning.net
 
 /**
  * Created on 20-8-16.

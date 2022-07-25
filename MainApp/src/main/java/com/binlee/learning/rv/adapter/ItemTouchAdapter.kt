@@ -1,13 +1,13 @@
-package com.sleticalboy.learning.rv.adapter
+package com.binlee.learning.rv.adapter
 
 import android.content.Context
 import android.view.ViewGroup
 import android.widget.ImageView
-import com.sleticalboy.learning.R
-import com.sleticalboy.util.ListUtils
-import com.sleticalboy.weight.xrecycler.adapter.XBaseHolder
-import com.sleticalboy.weight.xrecycler.adapter.XRecyclerAdapter
-import com.sleticalboy.weight.xrecycler.helper.ItemTouchDragAdapter
+import com.binlee.learning.R
+import com.binlee.util.ListUtils
+import com.binlee.weight.xrecycler.adapter.XBaseHolder
+import com.binlee.weight.xrecycler.adapter.XRecyclerAdapter
+import com.binlee.weight.xrecycler.helper.ItemTouchDragAdapter
 import java.util.ArrayList
 
 /**

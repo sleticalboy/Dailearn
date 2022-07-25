@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.skin
+package com.binlee.learning.skin
 
 import android.content.Context
 import android.content.pm.PackageManager

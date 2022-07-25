@@ -1,12 +1,12 @@
-package com.sleticalboy.learning.anims
+package com.binlee.learning.anims
 
 import android.content.Intent
 import android.view.View
 import androidx.core.app.ActivityOptionsCompat
 import androidx.fragment.app.Fragment
-import com.sleticalboy.learning.R
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityTransitionBinding
+import com.binlee.learning.R
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityTransitionBinding
 
 /**
  * Created by AS 3.3 on 19-1-6.

@@ -1,4 +1,4 @@
-package com.sleticalboy.weight.xrecycler.decoration
+package com.binlee.weight.xrecycler.decoration
 
 import android.graphics.Rect
 import android.view.View
@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ItemDecoration
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
-import com.sleticalboy.weight.xrecycler.adapter.XRecyclerAdapter
+import com.binlee.weight.xrecycler.adapter.XRecyclerAdapter
 
 /**
  * Date: 2017/2/16 0016.

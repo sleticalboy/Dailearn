@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.components.receiver
+package com.binlee.learning.components.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context

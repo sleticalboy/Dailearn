@@ -1,4 +1,4 @@
-package com.sleticalboy.learning
+package com.binlee.learning
 
 import android.app.Application
 import android.content.Context
@@ -6,8 +6,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
-import com.sleticalboy.learning.components.receiver.GlobalReceiver
-import com.sleticalboy.util.NotificationHelper
+import com.binlee.learning.components.receiver.GlobalReceiver
+import com.binlee.util.NotificationHelper
 
 /**
  * Created on 18-3-5.

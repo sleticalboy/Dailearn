@@ -1,4 +1,4 @@
-package com.sleticalboy.learning.accounts.sync
+package com.binlee.learning.accounts.sync
 
 import android.accounts.Account
 import android.content.AbstractThreadedSyncAdapter

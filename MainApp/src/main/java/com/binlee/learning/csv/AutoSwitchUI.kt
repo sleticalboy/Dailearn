@@ -1,8 +1,8 @@
-package com.sleticalboy.learning.csv
+package com.binlee.learning.csv
 
 import android.view.View
-import com.sleticalboy.learning.base.BaseActivity
-import com.sleticalboy.learning.databinding.ActivityAutoSwitchBinding
+import com.binlee.learning.base.BaseActivity
+import com.binlee.learning.databinding.ActivityAutoSwitchBinding
 import java.util.ArrayList
 
 /**
