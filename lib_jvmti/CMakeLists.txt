@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.10.2)
 
 # Declares and names the project.
 
-project("jni")
+project("jvmti")
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -16,17 +16,16 @@ project("jni")
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-        jni
+        jvmti
 
         # Sets the library as a shared library.
         SHARED
 
         # Provides a relative path to your source file(s).
-        src/main/jni/jvmti_loader.cpp
-        src/main/jni/jvmti_impl.cpp
-        src/main/jni/jvmti_util.cpp
         src/main/jni/mem_file.cpp
-        src/main/jni/jni.cpp)
+        src/main/jni/jvmti_util.cpp
+        src/main/jni/jvmti_impl.cpp
+        src/main/jni/jvmti_loader_jni.cpp)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -46,7 +45,7 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-        jni
+        jvmti
 
         # Links the target library to the log library
         # included in the NDK.

@@ -64,7 +64,7 @@ dependencies {
   implementation("com.airbnb.android:lottie:$lottie_version")
   compileOnly("com.google.code.gson:gson:$gson")
 
-  implementation project(path: ':lib_jni')
+  implementation project(path: ':lib_jvmti')
 
   //coroutines
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3"

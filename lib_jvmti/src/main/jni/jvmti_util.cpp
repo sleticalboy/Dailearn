@@ -143,7 +143,7 @@ const char *getErrorName(jvmtiEnv *jvmti, jvmtiError &error) {
 }
 
 void fromJavaConfig(JNIEnv *env, jobject jConfig, Config *config) {
-  jclass cls_config = env->FindClass("com/binlee/sample/jni/JvmtiConfig");
+  jclass cls_config = env->FindClass("com/binlee/apm/jvmti/JvmtiConfig");
 
   jfieldID field = env->GetFieldID(cls_config, "rootDir", "Ljava/lang/String;");
   auto root_dir = (jstring) env->GetObjectField(jConfig, field);

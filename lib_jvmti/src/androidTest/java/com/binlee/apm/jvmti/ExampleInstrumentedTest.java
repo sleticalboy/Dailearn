@@ -1,4 +1,4 @@
-package com.binlee.sample.jni;
+package com.binlee.apm.jvmti;
 
 import android.content.Context;
 import androidx.test.platform.app.InstrumentationRegistry;

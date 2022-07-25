@@ -1,4 +1,4 @@
-package com.binlee.sample.jni;
+package com.binlee.apm.jvmti;
 
 /**
  * Created on 2022/7/18

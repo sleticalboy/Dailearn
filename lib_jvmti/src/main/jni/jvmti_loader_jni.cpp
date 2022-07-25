@@ -1,10 +1,10 @@
 #include <jni.h>
 #include <string>
+#include <android/api-level.h>
 #include "jni_logger.h"
-#include "jvmti_loader.h"
 #include "jvmti_util.h"
 
-#define LOG_TAG "LibJni"
+#define LOG_TAG "JvmtiLoader"
 
 jstring LibJni_nativeGetString(JNIEnv *env, jclass clazz) {
   std::string string = "this string is from native via jni.";
@@ -24,7 +24,35 @@ void LibJni_nativeCallJava(JNIEnv *env, jclass clazz, jobject jContext) {
   env->DeleteLocalRef(toast);
 }
 
-void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jobject jConfig) {
+void attachAgent(JNIEnv *env, const char *library) {
+  jstring _library = env->NewStringUTF(library);
+  ALOGD("%s start attaching jvmti agent via reflect: %s \nenv: %p, lib: %p", __func__, library, env, _library)
+  if (android_get_device_api_level() >= __ANDROID_API_P__) {
+    jclass cls_debug = env->FindClass("android/os/Debug");
+    jmethodID method = env->GetStaticMethodID(cls_debug, "attachJvmtiAgent",
+                                              "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)V");
+    ALOGD("%s start call Debug#attachJvmtiAgent()", __func__)
+    env->CallStaticVoidMethod(cls_debug, method,
+                              _library/*library*/,
+                              (jstring) nullptr /*options*/,
+                              (jobject) nullptr /*classloader*/);
+  } else {
+    jclass cls_vm_debug = env->FindClass("dalvik/system/VMDebug");
+    jmethodID method = env->GetStaticMethodID(cls_vm_debug, "attachAgent", "(Ljava/lang/String;)V");
+    ALOGD("%s start call VMDebug#attachAgent()", __func__)
+    env->CallStaticVoidMethod(cls_vm_debug, method,
+                              _library/*library*/);
+  }
+  if (env->ExceptionCheck()) {
+    ALOGE("%s exception checked:", __func__)
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+  }
+  env->ReleaseStringUTFChars(_library, library);
+  ALOGD("%s attach jvmti agent finished", __func__)
+}
+
+void JvmtiLoader_nativeAttachAgent(JNIEnv *env, jclass clazz, jobject jConfig) {
   static jvmti::Config config;
   memset(&config, 0, sizeof(jvmti::Config));
   jvmti::util::fromJavaConfig(env, jConfig, &config);
@@ -35,15 +63,13 @@ void LibJni_nativeLoadJvmti(JNIEnv *env, jclass clazz, jobject jConfig) {
   jfieldID field_agent_file = env->GetFieldID(cls_config, "agentFile", "Ljava/lang/String;");
   auto j_str = (jstring) env->GetObjectField(jConfig, field_agent_file);
   const char *library = env->GetStringUTFChars(j_str, JNI_FALSE);
-  jvmti::loader::attachAgent(env, library);
+  attachAgent(env, library);
   env->ReleaseStringUTFChars(j_str, library);
 }
 
 JNINativeMethod methods[] = {
   // com.binlee.sample.jni.LibJni.nativeGetString
-  {"nativeGetString", "()Ljava/lang/String;",                   (void *) LibJni_nativeGetString},
-  {"nativeCallJava",  "(Landroid/content/Context;)V",           (void *) LibJni_nativeCallJava},
-  {"nativeLoadJvmti", "(Lcom/binlee/sample/jni/JvmtiConfig;)V", (void *) LibJni_nativeLoadJvmti}
+  {"nativeAttachAgent", "(Lcom/binlee/sample/jni/JvmtiConfig;)V", (void *) JvmtiLoader_nativeAttachAgent}
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -52,7 +78,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     return JNI_FALSE;
   }
   ALOGD("%s reserved: %p", __func__, reserved)
-  jclass cls_libJni = env->FindClass("com/binlee/sample/jni/LibJni");
+  jclass cls_libJni = env->FindClass("com/binlee/apm/jvmti/JvmtiLoader");
   if (env->RegisterNatives(cls_libJni, methods, sizeof(methods) / sizeof(JNINativeMethod)) < 0) {
     ALOGE("%s RegisterNatives error", __func__)
   }
@@ -66,7 +92,7 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
     return;
   }
   ALOGD("%s reserved: %p", __func__, reserved)
-  jclass cls_jniLib = env->FindClass("com/binlee/sample/jni/LibJni");
+  jclass cls_jniLib = env->FindClass("com/binlee/apm/jvmti/JvmtiLoader");
   env->UnregisterNatives(cls_jniLib);
   env->DeleteLocalRef(cls_jniLib);
   free(env);

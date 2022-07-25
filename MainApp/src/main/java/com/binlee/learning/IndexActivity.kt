@@ -12,7 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.binlee.sample.jni.LibJni
+import com.binlee.apm.jvmti.JvmtiLoader
 import com.sleticalboy.bean.Apis
 import com.sleticalboy.http.IDemo
 import com.sleticalboy.http.RetrofitClient
@@ -54,8 +54,7 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun loadJvmti() {
-    Log.d(TAG, "loadJvmti() ${LibJni.nativeGetString()}")
-    LibJni.loadJvmti(this)
+    JvmtiLoader.attachAgent(this)
   }
 
   override fun layout(): View {
@@ -95,7 +94,6 @@ class IndexActivity : BaseActivity() {
     // baidu()
     // github()
     // coroutines()
-    LibJni.nativeCallJava(this)
     threadException()
   }
 
