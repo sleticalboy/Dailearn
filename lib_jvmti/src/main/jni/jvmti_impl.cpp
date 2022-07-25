@@ -108,7 +108,7 @@ void persistJson(map<string, string> *json, const char *tag) {
       if (jvmti::g_config != nullptr) {
         path = string(jvmti::g_config->root_dir).append("/ttt.txt");
       } else {
-        path = "/data/data/com.sleticalboy.learning/files/ttt.txt";
+        path = "/data/data/com.binlee.learning/files/ttt.txt";
       }
       memFile = new jvmti::MemFile(path.c_str());
       ALOGD("%s#%s() create MemFile from %s()", __FILE_NAME__, __func__, tag)

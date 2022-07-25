@@ -146,13 +146,13 @@ class HttpLogInterceptor @JvmOverloads constructor(private val logger: Logger = 
         val contentType = responseBody.contentType()
         if (contentType != null) charset = contentType.charset(UTF8)
         if (!isPlaintext(buffer)) {
-          logger.log("<-- END HTTP (binary ${buffer.size()}-byte body omitted)")
+          logger.log("<-- END HTTP (binary ${buffer.size}-byte body omitted)")
           return response
         }
         if (contentLength != 0L) {
           logger.log(buffer.clone().readString(charset))
         }
-        logger.log("<-- END HTTP (${buffer.size()}-byte body)")
+        logger.log("<-- END HTTP (${buffer.size}-byte body)")
       }
     }
     return response

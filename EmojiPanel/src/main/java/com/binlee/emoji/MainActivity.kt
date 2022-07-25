@@ -127,8 +127,8 @@ class MainActivity : AppCompatActivity() {
         val service = Intent()
         // Service 不支持隐式 Intent 启动, 需要设置具体的包名和类名才可以
         service.action = "com.sleticalboy.action.REMOTE_UPGRADE"
-        // com.sleticalboy.learning.components.service.UpgradeService
-        service.setClassName("com.sleticalboy.learning", "com.sleticalboy.learning.components.service.UpgradeService")
+        // com.binlee.learning.components.service.UpgradeService
+        service.setClassName("com.binlee.learning", "com.binlee.learning.components.service.UpgradeService")
         service.putExtra("_mac", "fake mac address")
         service.putExtra("_file_url", "fake file url")
         service.putExtra("_messenger", mClientMessenger)
