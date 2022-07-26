@@ -35,9 +35,7 @@ public final class ProgressInterceptor implements Interceptor {
   }
 
   public static void removeCallback(String tag) {
-    if (PROGRESS_CALLBACK_MAP.containsKey(tag)) {
-      PROGRESS_CALLBACK_MAP.remove(tag);
-    }
+    PROGRESS_CALLBACK_MAP.remove(tag);
   }
 
   public static void removeAll() {
@@ -51,8 +49,9 @@ public final class ProgressInterceptor implements Interceptor {
     // 取出请求头中的断点信息
     final String range = request.header("RANGE");
     long breakPoint = 0L;
-    if (range != null && range.contains("-")) {
-      breakPoint = Long.parseLong(range.split("-")[0]);
+    final int index = range != null ? range.indexOf('-') : -1;
+    if (index > 0) {
+      breakPoint = Long.parseLong(range.substring(0, index));
     }
     final Response response = chain.proceed(request);
     final String url = request.url().toString();

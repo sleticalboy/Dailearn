@@ -19,6 +19,7 @@ import com.binlee.http.StatusCode;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Connection;
 import okhttp3.Headers;
@@ -42,7 +43,7 @@ import okio.BufferedSource;
  */
 public final class LoggerInterceptor implements Interceptor {
 
-  private static final Charset UTF8 = Charset.forName("UTF-8");
+  private static final Charset UTF8 = StandardCharsets.UTF_8;
   private final LoggerInterceptor.Logger logger;
   private volatile LoggerInterceptor.Level level = LoggerInterceptor.Level.NONE;
 

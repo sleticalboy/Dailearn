@@ -1,5 +1,6 @@
 package com.binlee.http.interceptor;
 
+import androidx.annotation.NonNull;
 import java.io.IOException;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
@@ -25,7 +26,7 @@ public final class GzipResponseInterceptor implements Interceptor {
     return new GzipResponseInterceptor();
   }
 
-  @Override
+  @NonNull @Override
   public Response intercept(Chain chain) throws IOException {
     final Request request = chain.request();
     final String gzip = request.header("Accept-Encoding");
@@ -53,7 +54,7 @@ public final class GzipResponseInterceptor implements Interceptor {
           return 0;
         }
 
-        @Override
+        @NonNull @Override
         public BufferedSource source() {
           return Okio.buffer(new GzipSource(responseBody.source()));
         }

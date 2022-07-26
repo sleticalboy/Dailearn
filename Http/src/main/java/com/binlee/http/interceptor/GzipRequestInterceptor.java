@@ -1,5 +1,6 @@
 package com.binlee.http.interceptor;
 
+import androidx.annotation.NonNull;
 import java.io.IOException;
 import okhttp3.Interceptor;
 import okhttp3.MediaType;
@@ -29,7 +30,7 @@ public final class GzipRequestInterceptor implements Interceptor {
   public Response intercept(Chain chain) throws IOException {
     final Request request = chain.request();
     final String gzip = request.header("Content-Encoding");
-    if (request.body() != null && gzip != null && "gzip".equalsIgnoreCase(gzip)) {
+    if (request.body() != null && "gzip".equalsIgnoreCase(gzip)) {
       return chain.proceed(gzipRequest(request));
     } else {
       return chain.proceed(request);
@@ -38,9 +39,7 @@ public final class GzipRequestInterceptor implements Interceptor {
 
   private Request gzipRequest(Request request) {
     final RequestBody requestBody = request.body();
-    if (requestBody == null) {
-      return request;
-    }
+    if (requestBody == null) return request;
     return request.newBuilder()
       .method(request.method(), new RequestBody() {
 
@@ -50,12 +49,12 @@ public final class GzipRequestInterceptor implements Interceptor {
         }
 
         @Override
-        public long contentLength() throws IOException {
+        public long contentLength() {
           return -1L;
         }
 
         @Override
-        public void writeTo(BufferedSink sink) throws IOException {
+        public void writeTo(@NonNull BufferedSink sink) throws IOException {
           final BufferedSink gzipSink = Okio.buffer(new GzipSink(sink));
           requestBody.writeTo(gzipSink);
           gzipSink.close();

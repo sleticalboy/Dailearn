@@ -21,7 +21,7 @@ public final class ProgressResponseBody extends ResponseBody {
 
   private final ResponseBody mResponseBody;
   private final long mBreakPoint;
-  private ProgressCallback mCallback;
+  private final ProgressCallback mCallback;
   private BufferedSource mSource;
 
   public ProgressResponseBody(String url, ResponseBody body, long breakPoint) {
@@ -45,7 +45,7 @@ public final class ProgressResponseBody extends ResponseBody {
     return mResponseBody.contentLength();
   }
 
-  @Override
+  @NonNull @Override
   public BufferedSource source() {
     if (mSource == null) {
       mSource = Okio.buffer(new ProgressSource(mResponseBody.source(), mCallback, mBreakPoint, contentLength()));

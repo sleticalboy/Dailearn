@@ -83,9 +83,7 @@ public final class Https {
 
   // 敏行实现
   private static TrustManager[] prepareTrustManager(InputStream caInput, String caAlias) {
-    if (caInput == null) {
-      return null;
-    }
+    if (caInput == null) return null;
     try {
       final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
       final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -149,8 +147,8 @@ public final class Https {
 
   private static class InternalTrustManager implements X509TrustManager {
 
-    private X509TrustManager defaultTrustManager;
-    private X509TrustManager localTrustManager;
+    private final X509TrustManager defaultTrustManager;
+    private final X509TrustManager localTrustManager;
 
     InternalTrustManager(X509TrustManager localTrustManager) throws NoSuchAlgorithmException, KeyStoreException {
       TrustManagerFactory var4 = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
