@@ -226,12 +226,11 @@ public final class LoggerInterceptor implements Interceptor {
 
     // If the Content-Length or Transfer-Encoding headers disagree with the response code, the
     // response is malformed. For best compatibility, we honor the headers.
-    return contentLength(response) != -1
-      || "chunked".equalsIgnoreCase(response.header("Transfer-Encoding"));
+    return contentLength(response) != -1 || "chunked".equalsIgnoreCase(response.header("Transfer-Encoding"));
   }
 
   private static long contentLength(Response response) {
-    //        return stringToLong(response.headers().get("Content-Length"));
+    // return stringToLong(response.headers().get("Content-Length"));
     return stringToLong(response.header("Content-Length"));
   }
 
