@@ -38,8 +38,7 @@ public abstract class RequestBuilder {
   private long mBreadPoint;
   String mRequestUrl;
   private String mServerHost;
-  private boolean isAjax = false;
-  private boolean isSilent = false;
+  private boolean keepSilent = false;
 
   RequestBuilder() {
     mServerHost = BASE_URL;
@@ -198,22 +197,13 @@ public abstract class RequestBuilder {
     return this;
   }
 
-  public RequestBuilder ajax(boolean isAjax) {
-    this.isAjax = isAjax;
+  public RequestBuilder keepSilent(boolean keepSilent) {
+    this.keepSilent = keepSilent;
     return this;
   }
 
-  public boolean isAjax() {
-    return isAjax;
-  }
-
-  public RequestBuilder silent(boolean isSilent) {
-    this.isSilent = isSilent;
-    return this;
-  }
-
-  public boolean isSilent() {
-    return isSilent;
+  public boolean keepSilent() {
+    return keepSilent;
   }
 
   public long getBreakPoint() {
