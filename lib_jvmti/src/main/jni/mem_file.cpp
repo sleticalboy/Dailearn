@@ -40,7 +40,7 @@ bool MemFile::Open() {
 
   FILE *fp = fopen(_path, "w+");
   if (fp == nullptr) {
-    ALOGE("%s create file %s error: %d", __func__, _path, errno)
+    ALOGE("%s open or create file %s error: %d", __func__, _path, errno)
     return false;
   }
   fclose(fp);

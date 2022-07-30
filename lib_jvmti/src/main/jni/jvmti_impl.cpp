@@ -19,68 +19,65 @@ jvmti::MemFile *memFile = nullptr;
 namespace jvmti {
 namespace util {
 
-const char * ThreadInfo::ToString() {
+const char *AllocInfo::ToString() {
   if (data_ == nullptr) {
-    data_ = new char[1024];
-    if (thread_info_ != nullptr) {
-      if (thread_info_->is_daemon) {
-        sprintf(data_, "%s", "daemon");
-      }
-      sprintf(data_, " thread %s priority %d", thread_info_->name, thread_info_->priority);
-    }
-    if (group_info_ != nullptr) {
-      if (group_info_->is_daemon) {
-        sprintf(data_, " %s", "daemon");
-      }
-      sprintf(data_, " group %s max priority %d", group_info_->name, group_info_->max_priority);
-    }
+    string res;
+    if (class_name_ != nullptr) res.append("class: ").append(class_name_).append(", ");
+    res.append("size: ").append(to_string(size_));
+    data_ = (char *) res.data();
+    ALOGE("AllocInfo#%s data: %s", __func__, data_)
   }
   return data_;
-}
-
-ThreadInfo::~ThreadInfo() {
-  free(data_);
-  data_ = nullptr;
 }
 
 /// class info
 
-char *ClassInfo::ToString() {
+const char *ClassInfo::ToString() {
+  ALOGW("ClassInfo#%s", __func__)
   if (data_ == nullptr) {
     data_ = new char[1024];
-    sprintf(data_, "class: %s, generic: %s, status: %d", class_name, generic, status);
+    sprintf(data_, "class: %s, generic_: %s, status: %d", class_name_, generic_, status);
   }
   return data_;
 }
 
-ClassInfo::~ClassInfo() {
-  free(class_name);
-  free(generic);
-  free(data_);
+/// thread info
+
+const char *ThreadInfo::ToString() {
+  ALOGW("ThreadInfo#%s thread: %p group: %p data: %s", __func__, thread_info_, group_info_, data_)
+  if (data_ == nullptr) {
+    string res;
+    if (thread_info_ != nullptr) {
+      if (thread_info_->is_daemon) res.append("daemon ");
+      res.append("thread(");
+      if (thread_info_->name != nullptr) res.append(thread_info_->name);
+      res.append(") priority ").append(to_string(thread_info_->priority));
+      res.append(" state ").append(to_string(*state_));
+    }
+    if (group_info_ != nullptr) {
+      if (group_info_->is_daemon) res.append(", daemon ");
+      res.append("group(");
+      if (group_info_->name != nullptr) res.append(group_info_->name);
+      res.append(") priority ").append(to_string(group_info_->max_priority));
+    }
+    data_ = (char *) res.data();
+  }
+  return data_;
 }
 
 /// method info
 
 bool MethodInfo::Printable() {
-  return strlen(data_) > 0 && !strstr(data_, "Ljava/lang/") && !strstr(data_, "Landroid/");
+  return data_ != nullptr && strlen(data_) > 0 && !strstr(data_, "Ljava/lang/") && !strstr(data_, "Landroid/");
 }
 
 const char *MethodInfo::ToString() {
   if (data_ == nullptr) {
-    string data = string(owner_class).append(method_name).append(method_signature);
-    if (method_generic != nullptr) {
-      data.append(method_generic);
-    }
-    data_ = data.c_str();
+    data_ = new char[1024];
+    int index = sprintf(data_, "%s%s, ", owner_class, method_name);
+    if (method_signature != nullptr) sprintf(data_ + index, "%s, ", method_signature);
   }
   return data_;
-}
-
-MethodInfo::~MethodInfo() {
-  free(method_name);
-  free(method_signature);
-  free(method_generic);
-  free((void *) data_);
 }
 } // namespace util
 } // namespace jvmti
@@ -110,8 +107,8 @@ void persistJson(map<string, string> *json, const char *tag) {
       } else {
         path = "/data/data/com.binlee.learning/files/ttt.txt";
       }
+      ALOGD("%s create MemFile from %s(), path: %s", __func__, tag, path.c_str())
       memFile = new jvmti::MemFile(path.c_str());
-      ALOGD("%s#%s() create MemFile from %s()", __FILE_NAME__, __func__, tag)
     }
     memFile->Append(buffer.c_str(), buffer.length());
   } catch (const exception &e) {
@@ -131,10 +128,17 @@ void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject
   // 声明 map 存储信息
   map<string, string> json = {};
 
+  ALOGW("%s start fetch alloc info", __func__)
   // 填充类信息
-  json["alloc_info"] = jvmti::util::getClassInfo(jvmti, klass, size);
+  auto *alloc_info = new jvmti::util::AllocInfo(jvmti, klass, size);
+  // json["alloc_info"] = alloc_info->ToString();
+  json["alloc_info"] = string(alloc_info->ToString());
+  ALOGW("%s start fetch thread info", __func__)
   // 填充线程信息
-  json["thread"] = jvmti::util::getThreadInfo(jvmti, thread);
+  auto *thread_info = new jvmti::util::ThreadInfo(jvmti, thread);
+  ALOGW("%s start make thread info string", __func__)
+  // json["thread"] = thread_info->ToString();
+  json["thread"] = string(thread_info->ToString());
 
   // 给 object 打标记
   // jint hash;
@@ -151,7 +155,14 @@ void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject
   //   ALOGE("%s GetObjectHashCode error: %d", __func__, error)
   // }
 
+  ALOGW("%s start persist json", __func__)
   persistJson(&json, __func__);
+
+  ALOGW("%s start delete  alloc info: %p", __func__, alloc_info)
+  delete alloc_info;
+  ALOGW("%s start delete thread info: %p", __func__, thread_info)
+  delete thread_info;
+  ALOGW("%s finished", __func__)
 }
 
 void callbackObjectFree(jvmtiEnv *jvmti, jlong tag) {
@@ -322,20 +333,20 @@ int Agent_Init(JavaVM *vm) {
     ALOGE("%s AddCapabilities error: %s", __func__, jvmti::util::getErrorName(jvmti, error))
   }
 
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_INIT, nullptr);
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_DEATH, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_INIT, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_DEATH, nullptr);
   // 对象分配与释放
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_OBJECT_ALLOC, nullptr);
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_OBJECT_FREE, nullptr);
   // 方法进入与退出
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_ENTRY, nullptr);
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_EXIT, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_ENTRY, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_EXIT, nullptr);
   // 异常
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, nullptr);
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION_CATCH, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION_CATCH, nullptr);
   // 线程开始与结束
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_START, nullptr);
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_END, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_START, nullptr);
+  // error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_THREAD_END, nullptr);
   // check_jvmti_error(jvmti, error, "Can not set event notification");
   if (error != JVMTI_ERROR_NONE) {
     ALOGE("%s SetEventNotificationMode error: %s", __func__, jvmti::util::getErrorName(jvmti, error))

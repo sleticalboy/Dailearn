@@ -21,39 +21,58 @@ private:
   jvmtiThreadInfo *thread_info_ = nullptr;
   jvmtiThreadGroupInfo *group_info_ = nullptr;
 public:
-
   ThreadInfo(jvmtiEnv *jvmti, jthread thread) {
     // 线程状态
-    jvmti->GetThreadState(thread, state_);
+    jint state = 0;
+    jvmtiError error = jvmti->GetThreadState(thread, &state);
+    // ALOGW("ThreadInfo#%s GetThreadState %s", __func__, getErrorName(jvmti, error))
+    if (error == JVMTI_ERROR_NONE) {
+      state_ = &state;
+    }
     // 线程信息
-    jvmti->GetThreadInfo(thread, thread_info_);
+    jvmtiThreadInfo thread_info = {};
+    error = jvmti->GetThreadInfo(thread, &thread_info);
+    // ALOGW("ThreadInfo#%s GetThreadInfo %s", __func__, getErrorName(jvmti, error))
+    if (error == JVMTI_ERROR_NONE) {
+      thread_info_ = &thread_info;
+    }
     // 线程组信息
     if (thread_info_ != nullptr) {
-      jvmti->GetThreadGroupInfo(thread_info_->thread_group, group_info_);
+      jvmtiThreadGroupInfo group_info = {};
+      error = jvmti->GetThreadGroupInfo(thread_info_->thread_group, &group_info);
+      // ALOGW("ThreadInfo#%s GetThreadGroupInfo %s", __func__, getErrorName(jvmti, error))
+      if (error == JVMTI_ERROR_NONE) {
+        group_info_ = &group_info;
+      }
     }
   }
 
   const char *ToString();
 
-  ~ThreadInfo();
+  ~ThreadInfo() {
+    if (data_ != nullptr) delete data_;
+  }
 };
 
 class ClassInfo {
 private:
-  char *class_name;
-  char *generic;
+  char *class_name_;
+  char *generic_;
   int status;
-  char *data_;
-
+  char *data_ = nullptr;
 public:
   ClassInfo(jvmtiEnv *jvmti, jclass clazz) {
-    jvmti->GetClassSignature(clazz, &class_name, &generic);
+    jvmti->GetClassSignature(clazz, &class_name_, &generic_);
     jvmti->GetClassStatus(clazz, &status);
   }
 
-  ~ClassInfo();
+  const char *ToString();
 
-  char *ToString();
+  ~ClassInfo() {
+    if (class_name_ != nullptr) delete class_name_;
+    if (generic_ != nullptr) delete generic_;
+    if (data_ != nullptr) delete data_;
+  }
 };
 
 class MethodInfo {
@@ -62,7 +81,7 @@ private:
   char *method_signature;
   char *method_generic;
   char *owner_class;
-  const char *data_;
+  char *data_ = nullptr;
 public:
   MethodInfo(jvmtiEnv *jvmti, jmethodID method) {
     jvmtiError error = jvmti->GetMethodName(method, &method_name, &method_signature, &method_generic);
@@ -79,7 +98,32 @@ public:
 
   const char *ToString();
 
-  ~MethodInfo();
+  ~MethodInfo() {
+    if (method_name != nullptr) delete method_name;
+    if (method_signature != nullptr) delete method_signature;
+    if (method_generic != nullptr) delete method_generic;
+    if (owner_class != nullptr) delete owner_class;
+    if (data_ != nullptr) delete data_;
+  }
+};
+
+class AllocInfo {
+private:
+  jlong size_;
+  char *class_name_ = nullptr;
+  char *data_ = nullptr;
+public:
+  AllocInfo(jvmtiEnv *jvmti, jclass klass, jlong size) {
+    jvmti->GetClassSignature(klass, &class_name_, nullptr);
+    size_ = size;
+  }
+
+  const char *ToString();
+
+  ~AllocInfo() {
+    // if (class_name_ != nullptr) delete class_name_;
+    // if (data_ != nullptr) delete data_;
+  }
 };
 
 // 获取线程信息：名字、组、id
