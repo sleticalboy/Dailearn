@@ -23,6 +23,7 @@ import org.json.JSONObject;
 public final class JvmtiLoader {
 
   private static final String TAG = "JvmtiLoader";
+  private static boolean sAttached = false;
 
   private JvmtiLoader() {
     //no instance
@@ -94,6 +95,7 @@ public final class JvmtiLoader {
   }
 
   private static void attachInternal(JvmtiConfig config) {
+    if (sAttached) return;
     // nativeAttachAgent(config);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       try {
@@ -101,6 +103,7 @@ public final class JvmtiLoader {
       } catch (IOException e) {
         e.printStackTrace();
       }
+      sAttached = true;
       return;
     }
     try {
@@ -111,6 +114,7 @@ public final class JvmtiLoader {
     } catch (Throwable e) {
       e.printStackTrace();
     }
+    sAttached = true;
   }
 
   private static void copyFile(File src, File dest) throws IOException {

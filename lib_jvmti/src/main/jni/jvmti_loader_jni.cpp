@@ -69,7 +69,7 @@ void JvmtiLoader_nativeAttachAgent(JNIEnv *env, jclass clazz, jobject jConfig) {
 
 JNINativeMethod methods[] = {
   // com.binlee.sample.jni.LibJni.nativeGetString
-  {"nativeAttachAgent", "(Lcom/binlee/sample/jni/JvmtiConfig;)V", (void *) JvmtiLoader_nativeAttachAgent}
+  {"nativeAttachAgent", "(Lcom/binlee/apm/jvmti/JvmtiConfig;)V", (void *) JvmtiLoader_nativeAttachAgent}
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
