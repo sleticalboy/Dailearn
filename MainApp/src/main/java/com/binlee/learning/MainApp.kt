@@ -20,7 +20,7 @@ class MainApp : Application() {
 
   override fun attachBaseContext(base: Context?) {
     super.attachBaseContext(base)
-    Log.d(TAG, "attachBaseContext() ${FfmpegHelper.getConfiguration()}")
+    FfmpegHelper.getConfiguration()
   }
 
   override fun onCreate() {

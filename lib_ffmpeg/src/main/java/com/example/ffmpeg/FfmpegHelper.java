@@ -25,6 +25,7 @@ public class FfmpegHelper {
         e.printStackTrace();
       }
     }
+    nativeInit();
   }
 
   private FfmpegHelper() {
@@ -34,6 +35,8 @@ public class FfmpegHelper {
   public static String getConfiguration() {
     return nativeGetConfiguration();
   }
+
+  private static native void nativeInit();
 
   private static native String nativeGetConfiguration();
 }
