@@ -13,7 +13,7 @@ import com.binlee.learning.csv.AlphaActivity
 import com.binlee.learning.csv.AutoSwitchUI
 import com.binlee.learning.csv.CustomViewActivity
 import com.binlee.learning.csv.HeaderActivity
-import com.binlee.learning.debug.DebugUI
+import com.binlee.learning.dev.DebugUI
 import com.binlee.learning.devices.DeviceAdminUI
 import com.binlee.learning.dialogs.DialogsUI
 import com.binlee.learning.others.AlarmActivity

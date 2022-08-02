@@ -161,7 +161,7 @@ MethodInfo::MethodInfo(jvmtiEnv *jvmti, jmethodID method) {
         //   && s.find("Ldalvik") == string::npos && s.find("Llibcore") == string::npos
         //   && s.find("Lokio") == string::npos && s.find("Lcom/airbnb") == string::npos
         //   ;
-        printable_ = s.find("com/binlee") != string::npos || s.find("java/lang/Thread") != string::npos;
+        // printable_ = s.find("com/binlee") != string::npos || s.find("java/lang/Thread") != string::npos;
         // ALOGW("%s %s is printable: %d", __func__, owner_class, printable_)
       }
     }

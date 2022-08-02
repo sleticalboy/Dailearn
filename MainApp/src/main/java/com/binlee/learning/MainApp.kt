@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import com.binlee.learning.components.receiver.GlobalReceiver
 import com.binlee.util.NotificationHelper
+import com.example.ffmpeg.FfmpegHelper
 
 /**
  * Created on 18-3-5.
@@ -16,6 +17,11 @@ import com.binlee.util.NotificationHelper
  * @version 1.0
  */
 class MainApp : Application() {
+
+  override fun attachBaseContext(base: Context?) {
+    super.attachBaseContext(base)
+    Log.d(TAG, "attachBaseContext() ${FfmpegHelper.getConfiguration()}")
+  }
 
   override fun onCreate() {
     super.onCreate()

@@ -65,6 +65,7 @@ dependencies {
   compileOnly("com.google.code.gson:gson:$gson")
 
   implementation project(path: ':lib_jvmti')
+  implementation project(path: ':lib_ffmpeg')
 
   //coroutines
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.3"

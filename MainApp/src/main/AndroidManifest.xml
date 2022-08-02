@@ -1,184 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.binlee.learning"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.binlee.learning"
+  xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <!-- permission for accounts authenticator -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
-    <uses-permission android:name="android.permission.USE_CREDENTIALS" />
-    <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
-    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
-    <uses-permission
-        android:name="android.permission.WRITE_SETTINGS"
-        tools:ignore="ProtectedPermissions" />
-    <uses-permission
-        android:name="android.permission.WRITE_SECURE_SETTINGS"
-        tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
-    <uses-permission android:name="android.permission.READ_SYNC_STATS" />
-    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
-    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
-    <uses-permission android:name="android.permission.READ_SOCIAL_STREAM" />
-    <uses-permission android:name="android.permission.WRITE_SOCIAL_STREAM" />
-    <!-- permission for notification lights -->
-    <uses-permission android:name="android.permission.FLASHLIGHT" />
-    <!--permission for bluetooth-->
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!--permission for LeakCanary-->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!--permission for camera-->
-    <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+  <!-- permission for accounts authenticator -->
+  <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+  <uses-permission android:name="android.permission.USE_CREDENTIALS" />
+  <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
+  <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+  <uses-permission
+    android:name="android.permission.WRITE_SETTINGS"
+    tools:ignore="ProtectedPermissions" />
+  <uses-permission
+    android:name="android.permission.WRITE_SECURE_SETTINGS"
+    tools:ignore="ProtectedPermissions" />
+  <uses-permission android:name="android.permission.READ_CONTACTS" />
+  <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+  <uses-permission android:name="android.permission.READ_SYNC_STATS" />
+  <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+  <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+  <uses-permission android:name="android.permission.READ_SOCIAL_STREAM" />
+  <uses-permission android:name="android.permission.WRITE_SOCIAL_STREAM" />
+  <!-- permission for notification lights -->
+  <uses-permission android:name="android.permission.FLASHLIGHT" />
+  <!--permission for bluetooth-->
+  <uses-permission android:name="android.permission.BLUETOOTH" />
+  <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+  <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <!--permission for LeakCanary-->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <!--permission for camera-->
+  <uses-permission android:name="android.permission.CAMERA" />
 
-    <application
-        android:name="com.binlee.learning.MainApp"
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-        android:usesCleartextTraffic="true">
-        <activity
-            android:name="com.binlee.learning.IndexActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.VIEW" />
+  <application
+    android:name="com.binlee.learning.MainApp"
+    android:allowBackup="true"
+    android:icon="@mipmap/ic_launcher"
+    android:label="@string/app_name"
+    android:roundIcon="@mipmap/ic_launcher_round"
+    android:supportsRtl="true"
+    android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+    android:usesCleartextTraffic="true">
+    <activity
+      android:name="com.binlee.learning.IndexActivity"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <action android:name="android.intent.action.VIEW" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity android:name="com.binlee.learning.rv.WheelRVActivity" />
-        <activity android:name="com.binlee.learning.rv.DecorationActivity" />
-        <activity android:name="com.binlee.learning.rv.PagerActivity" />
-        <activity android:name="com.binlee.learning.rv.ClassifyActivity" />
-        <activity android:name="com.binlee.learning.camera.v1.LiveCameraActivity" />
-        <!--custom view -->
-        <activity android:name="com.binlee.learning.csv.PathActivity" />
-        <activity android:name="com.binlee.learning.csv.AlphaActivity" />
-        <activity android:name="com.binlee.learning.csv.HeaderActivity" />
-        <activity android:name="com.binlee.learning.csv.CustomViewActivity" />
-        <activity android:name="com.binlee.learning.csv.ScrollerActivity" />
-        <activity android:name="com.binlee.learning.csv.GridViewActivity" />
-        <!--others-->
-        <activity android:name="com.binlee.learning.others.AlarmActivity" />
-        <activity android:name="com.binlee.learning.others.ImageConvertUI" />
-        <activity
-            android:name="com.binlee.learning.csv.AutoSwitchUI"
-            android:label="@string/title_activity_auto_switch_view" />
-        <!-- 转场动画 -->
-        <activity android:name="com.binlee.learning.anims.TransitionUI" />
-        <!--lottie json anim-->
-        <activity android:name="com.binlee.learning.anims.JsonAnimUI" />
-        <!-- 设备管理 -->
-        <activity android:name="com.binlee.learning.devices.DeviceAdminUI" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+    <activity android:name="com.binlee.learning.rv.WheelRVActivity" />
+    <activity android:name="com.binlee.learning.rv.DecorationActivity" />
+    <activity android:name="com.binlee.learning.rv.PagerActivity" />
+    <activity android:name="com.binlee.learning.rv.ClassifyActivity" />
+    <activity android:name="com.binlee.learning.camera.v1.LiveCameraActivity" />
+    <!--custom view -->
+    <activity android:name="com.binlee.learning.csv.PathActivity" />
+    <activity android:name="com.binlee.learning.csv.AlphaActivity" />
+    <activity android:name="com.binlee.learning.csv.HeaderActivity" />
+    <activity android:name="com.binlee.learning.csv.CustomViewActivity" />
+    <activity android:name="com.binlee.learning.csv.ScrollerActivity" />
+    <activity android:name="com.binlee.learning.csv.GridViewActivity" />
+    <!--others-->
+    <activity android:name="com.binlee.learning.others.AlarmActivity" />
+    <activity android:name="com.binlee.learning.others.ImageConvertUI" />
+    <activity
+      android:name="com.binlee.learning.csv.AutoSwitchUI"
+      android:label="@string/title_activity_auto_switch_view" />
+    <!-- 转场动画 -->
+    <activity android:name="com.binlee.learning.anims.TransitionUI" />
+    <!--lottie json anim-->
+    <activity android:name="com.binlee.learning.anims.JsonAnimUI" />
+    <!-- 设备管理 -->
+    <activity android:name="com.binlee.learning.devices.DeviceAdminUI" />
 
-        <activity android:name="com.binlee.learning.components.ServicePractise" />
-        <!-- authenticator for account -->
-        <activity
-            android:name="com.binlee.learning.accounts.auth.AuthenticatorActivity"
-            android:excludeFromRecents="true">
-            <!--
-                No intent-filter here! This activity is only ever launched by
-                someone who explicitly knows the class name
-            -->
-        </activity>
-        <!--activity for debug-->
-        <activity android:name="com.binlee.learning.debug.DebugUI" />
-        <!--activity for bluetooth-->
-        <activity android:name="com.binlee.learning.bt.BluetoothUI" />
-        <activity android:name="com.binlee.learning.others.NotificationsUI" />
-        <activity android:name="com.binlee.learning.components.ProviderPractise" />
-        <activity android:name="com.binlee.learning.dialogs.DialogsUI" />
-        <activity android:name="com.binlee.learning.rv.NestedRvActivity" />
+    <activity android:name="com.binlee.learning.components.ServicePractise" />
+    <!-- authenticator for account -->
+    <activity
+      android:name="com.binlee.learning.accounts.auth.AuthenticatorActivity"
+      android:excludeFromRecents="true">
+      <!--
+          No intent-filter here! This activity is only ever launched by
+          someone who explicitly knows the class name
+      -->
+    </activity>
+    <!--activity for debug-->
+    <activity android:name="com.binlee.learning.dev.DebugUI" />
+    <!--activity for bluetooth-->
+    <activity android:name="com.binlee.learning.bt.BluetoothUI" />
+    <activity android:name="com.binlee.learning.others.NotificationsUI" />
+    <activity android:name="com.binlee.learning.components.ProviderPractise" />
+    <activity android:name="com.binlee.learning.dialogs.DialogsUI" />
+    <activity android:name="com.binlee.learning.rv.NestedRvActivity" />
 
-        <provider
-            android:name="com.binlee.learning.accounts.ContactsProvider"
-            android:authorities="@string/account_authority"
-            android:label="@string/contacts_provider_label" />
-        <provider
-            android:name="com.binlee.learning.accounts.RoutinesProvider"
-            android:authorities="@string/routine_authority"
-            android:label="@string/routines_provider_label" />
-        <provider
-            android:name="com.binlee.learning.components.provider.StoreProvider"
-            android:authorities="com.binlee.learning.store"
-            android:enabled="true"
-            android:exported="false" />
+    <provider
+      android:name="com.binlee.learning.accounts.ContactsProvider"
+      android:authorities="@string/account_authority"
+      android:label="@string/contacts_provider_label"
+      android:exported="false" />
+    <provider
+      android:name="com.binlee.learning.accounts.RoutinesProvider"
+      android:authorities="@string/routine_authority"
+      android:label="@string/routines_provider_label"
+      android:exported="false" />
+    <provider
+      android:name="com.binlee.learning.components.provider.StoreProvider"
+      android:authorities="com.binlee.learning.store"
+      android:enabled="true"
+      android:exported="false" />
 
-        <receiver
-            android:name="com.binlee.learning.devices.DevicesReceiver"
-            android:exported="true"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-                <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED" />
-                <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />
-            </intent-filter>
-            <meta-data
-                android:name="android.app.device_admin"
-                android:resource="@xml/devices_admin" />
-        </receiver>
-        <receiver
-            android:name="com.binlee.learning.components.receiver.GlobalReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.SCREEN_ON" />
-                <action android:name="android.intent.action.USER_PRESENT" />
-            </intent-filter>
-        </receiver>
+    <receiver
+      android:name="com.binlee.learning.devices.DevicesReceiver"
+      android:exported="true"
+      android:permission="android.permission.BIND_DEVICE_ADMIN">
+      <intent-filter>
+        <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+        <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED" />
+        <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />
+      </intent-filter>
+      <meta-data
+        android:name="android.app.device_admin"
+        android:resource="@xml/devices_admin" />
+    </receiver>
+    <receiver
+      android:name="com.binlee.learning.components.receiver.GlobalReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.SCREEN_ON" />
+        <action android:name="android.intent.action.USER_PRESENT" />
+      </intent-filter>
+    </receiver>
 
-        <service
-            android:name="com.binlee.learning.accounts.auth.AuthenticationService"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.accounts.AccountAuthenticator" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accounts.AccountAuthenticator"
-                android:resource="@xml/authenticator" />
-        </service>
-        <service
-            android:name="com.binlee.learning.accounts.sync.ContactsSyncService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.content.SyncAdapter" />
-            </intent-filter>
-            <meta-data
-                android:name="android.content.SyncAdapter"
-                android:resource="@xml/sync_adapter_accounts" />
-        </service>
-        <service
-            android:name="com.binlee.learning.accounts.sync.RoutineSyncService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.content.SyncAdapter" />
-            </intent-filter>
-            <meta-data
-                android:name="android.content.SyncAdapter"
-                android:resource="@xml/sync_adapter_routines" />
-        </service>
-        <!-- service practice -->
-        <service android:name="com.binlee.learning.components.service.LocalService" />
-        <service android:name="com.binlee.learning.bt.ble.BleService" />
+    <service
+      android:name="com.binlee.learning.accounts.auth.AuthenticationService"
+      android:enabled="true"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.accounts.AccountAuthenticator" />
+      </intent-filter>
+      <meta-data
+        android:name="android.accounts.AccountAuthenticator"
+        android:resource="@xml/authenticator" />
+    </service>
+    <service
+      android:name="com.binlee.learning.accounts.sync.ContactsSyncService"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.content.SyncAdapter" />
+      </intent-filter>
+      <meta-data
+        android:name="android.content.SyncAdapter"
+        android:resource="@xml/sync_adapter_accounts" />
+    </service>
+    <service
+      android:name="com.binlee.learning.accounts.sync.RoutineSyncService"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.content.SyncAdapter" />
+      </intent-filter>
+      <meta-data
+        android:name="android.content.SyncAdapter"
+        android:resource="@xml/sync_adapter_routines" />
+    </service>
+    <!-- service practice -->
+    <service android:name="com.binlee.learning.components.service.LocalService" />
+    <service android:name="com.binlee.learning.bt.ble.BleService" />
 
-        <service
-            android:name="com.binlee.learning.components.service.UpgradeService"
-            android:exported="true"
-            android:permission="com.binlee.permissions.REMOTE_UPGRADE" />
-    </application>
+    <service
+      android:name="com.binlee.learning.components.service.UpgradeService"
+      android:exported="true"
+      android:permission="com.binlee.permissions.REMOTE_UPGRADE" />
+  </application>
 
 </manifest>
