@@ -16,6 +16,7 @@ import com.binlee.learning.csv.HeaderActivity
 import com.binlee.learning.dev.DebugUI
 import com.binlee.learning.devices.DeviceAdminUI
 import com.binlee.learning.dialogs.DialogsUI
+import com.binlee.learning.ffmpeg.FfmpegPractise
 import com.binlee.learning.others.AlarmActivity
 import com.binlee.learning.others.ImageConvertUI
 import com.binlee.learning.others.NotificationsUI
@@ -42,7 +43,7 @@ class IndexModel internal constructor() {
   private fun getTasks(): Result<List<ModuleItem>> {
     val array = arrayOf(
       // ffmpeg 实战
-      ModuleItem("ffmpeg 实战", ),
+      ModuleItem("ffmpeg 实战", FfmpegPractise::class.java),
       // debug tools
       ModuleItem("调试工具", DebugUI::class.java),
       // bluetooth

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Daily Work</string>
+    <string name="app_name">Dailearn</string>
     <!--股票-->
     <string name="hr_china">中国华融</string>
     <string name="lowest_rise">

@@ -103,6 +103,7 @@
     <activity android:name="com.binlee.learning.components.ProviderPractise" />
     <activity android:name="com.binlee.learning.dialogs.DialogsUI" />
     <activity android:name="com.binlee.learning.rv.NestedRvActivity" />
+    <activity android:name=".ffmpeg.FfmpegPractise" />
 
     <provider
       android:name="com.binlee.learning.accounts.ContactsProvider"
@@ -145,7 +146,8 @@
     <service
       android:name="com.binlee.learning.accounts.auth.AuthenticationService"
       android:enabled="true"
-      android:exported="true">
+      android:exported="true"
+      android:permission="exported service requires permission">
       <intent-filter>
         <action android:name="android.accounts.AccountAuthenticator" />
       </intent-filter>
@@ -155,7 +157,8 @@
     </service>
     <service
       android:name="com.binlee.learning.accounts.sync.ContactsSyncService"
-      android:exported="true">
+      android:exported="true"
+      android:permission="exported service requires permission">
       <intent-filter>
         <action android:name="android.content.SyncAdapter" />
       </intent-filter>
@@ -165,7 +168,8 @@
     </service>
     <service
       android:name="com.binlee.learning.accounts.sync.RoutineSyncService"
-      android:exported="true">
+      android:exported="true"
+      android:permission="exported service requires permission">
       <intent-filter>
         <action android:name="android.content.SyncAdapter" />
       </intent-filter>
