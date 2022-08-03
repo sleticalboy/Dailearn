@@ -12,8 +12,8 @@ import android.view.View
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.databinding.ActivityNotificationsBinding
-import com.binlee.util.NotificationHelper
-import com.binlee.util.ThreadHelper
+import com.binlee.learning.util.NotificationHelper
+import com.binlee.learning.util.ThreadHelper
 
 /**
  * Created on 20-4-2.

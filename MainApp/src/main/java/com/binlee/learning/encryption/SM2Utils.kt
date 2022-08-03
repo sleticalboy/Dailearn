@@ -1,7 +1,7 @@
 package com.binlee.learning.encryption
 
-import com.binlee.util.OperationUtils
-import com.binlee.util.UnicodeUtils.string2char
+import com.binlee.learning.util.OperationUtils
+import com.binlee.learning.util.UnicodeUtils.string2char
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters
 import org.bouncycastle.crypto.params.ECPublicKeyParameters
 import java.io.IOException

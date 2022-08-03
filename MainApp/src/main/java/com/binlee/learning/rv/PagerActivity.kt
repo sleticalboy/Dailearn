@@ -7,9 +7,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import com.binlee.learning.R
-import com.binlee.weight.view.PagerView
-import com.binlee.weight.xrecycler.adapter.XBaseHolder
-import com.binlee.weight.xrecycler.adapter.XRecyclerAdapter
+import com.binlee.learning.weight.view.PagerView
+import com.binlee.learning.weight.xrecycler.adapter.XBaseHolder
+import com.binlee.learning.weight.xrecycler.adapter.XRecyclerAdapter
 
 /**
  * Created on 18-2-11.

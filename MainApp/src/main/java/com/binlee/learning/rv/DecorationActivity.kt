@@ -8,8 +8,8 @@ import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.databinding.ActivityDecorationBinding
 import com.binlee.learning.rv.adapter.ItemTouchAdapter
-import com.binlee.weight.xrecycler.decoration.DividerGridItemDecoration
-import com.binlee.weight.xrecycler.helper.SelectedItemDragItemTouchCallback
+import com.binlee.learning.weight.xrecycler.decoration.DividerGridItemDecoration
+import com.binlee.learning.weight.xrecycler.helper.SelectedItemDragItemTouchCallback
 
 /**
  * Created on 18-2-7.

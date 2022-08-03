@@ -15,7 +15,7 @@ import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.view.Window
 import android.view.WindowManager
 import android.widget.PopupWindow
-import com.binlee.util.UiUtils.getStatusBarHeight
+import com.binlee.learning.util.UiUtils.getStatusBarHeight
 
 /**
  * The keyboard height provider, this class uses a PopupWindow

@@ -3,7 +3,7 @@ package com.binlee.learning.dev
 import android.view.View
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.databinding.ActivityDebugBinding
-import com.binlee.util.DebugUtils
+import com.binlee.learning.util.DebugUtils
 
 class DebugUI : BaseActivity() {
 

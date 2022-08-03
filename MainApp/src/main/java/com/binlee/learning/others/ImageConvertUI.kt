@@ -7,7 +7,7 @@ import android.view.View
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.databinding.ImageConvertActivityBinding
-import com.binlee.util.ImageUtils
+import com.binlee.learning.util.ImageUtils
 
 /**
  * Created on 18-9-26.

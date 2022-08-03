@@ -4,7 +4,7 @@ import android.view.View
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.databinding.ActivityPathBinding
-import com.binlee.weight.view.TestView
+import com.binlee.learning.weight.view.TestView
 
 /**
  * Created on 18-3-1.

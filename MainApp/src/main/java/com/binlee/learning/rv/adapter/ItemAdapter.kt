@@ -4,8 +4,8 @@ import android.content.Context
 import android.view.ViewGroup
 import android.widget.ImageView
 import com.binlee.learning.R
-import com.binlee.weight.xrecycler.adapter.XBaseHolder
-import com.binlee.weight.xrecycler.adapter.XRecyclerAdapter
+import com.binlee.learning.weight.xrecycler.adapter.XBaseHolder
+import com.binlee.learning.weight.xrecycler.adapter.XRecyclerAdapter
 
 /**
  * Created on 18-2-7.

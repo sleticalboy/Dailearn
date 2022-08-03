@@ -13,8 +13,8 @@ import android.widget.TextView
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.databinding.ActivityAlarmBinding
-import com.binlee.util.DevicesUtils
-import com.binlee.util.TimeUtils
+import com.binlee.learning.util.DevicesUtils
+import com.binlee.learning.util.TimeUtils
 
 /**
  * Created on 18-5-11.

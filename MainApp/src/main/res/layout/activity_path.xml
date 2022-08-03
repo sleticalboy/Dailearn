@@ -5,12 +5,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.binlee.weight.view.TestView
+    <com.binlee.learning.weight.view.TestView
         android:id="@+id/test"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <com.binlee.weight.view.SingleLine
+    <com.binlee.learning.weight.view.SingleLine
         android:id="@+id/singleLine"
         android:layout_width="match_parent"
         android:layout_height="100dp"

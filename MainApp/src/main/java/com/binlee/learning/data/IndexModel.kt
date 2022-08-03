@@ -41,6 +41,8 @@ class IndexModel internal constructor() {
 
   private fun getTasks(): Result<List<ModuleItem>> {
     val array = arrayOf(
+      // ffmpeg 实战
+      ModuleItem("ffmpeg 实战", ),
       // debug tools
       ModuleItem("调试工具", DebugUI::class.java),
       // bluetooth

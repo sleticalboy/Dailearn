@@ -14,7 +14,7 @@ import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.AppInfo
 import com.binlee.learning.databinding.ActivityClassifyBinding
-import com.binlee.weight.xrecycler.decoration.DividerGridItemDecoration
+import com.binlee.learning.weight.xrecycler.decoration.DividerGridItemDecoration
 import java.util.ArrayList
 
 /**

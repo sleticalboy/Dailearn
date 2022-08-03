@@ -13,9 +13,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.binlee.apm.jvmti.JvmtiLoader
-import com.binlee.bean.Apis
-import com.binlee.http.IDemo
-import com.binlee.http.RetrofitClient
+import com.binlee.learning.http.bean.Apis
+import com.binlee.learning.http.IDemo
+import com.binlee.learning.http.RetrofitClient
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.data.DataEngine
