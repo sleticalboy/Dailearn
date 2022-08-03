@@ -6,6 +6,8 @@
 #include "log_callback_impl.h"
 extern "C" {
 #include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+#include "libavutil/error.h"
 }
 
 void Ffmpeg_Init(JNIEnv *env, jclass clazz) {
@@ -27,9 +29,27 @@ jstring Ffmpeg_GetConfiguration(JNIEnv *env, jclass clazz) {
   return env->NewStringUTF(configuration);
 }
 
+void Ffmpeg_DumpMetaInf(JNIEnv *env, jclass clazz, jstring filepath) {
+  AVFormatContext *format_ctx = nullptr;
+  const char *url = env->GetStringUTFChars(filepath, JNI_FALSE);
+  int res = avformat_open_input(&format_ctx, url, nullptr, nullptr);
+  if (res < 0) {
+    FlogE("%s, open %s error %s", __func__, url, av_err2str(res))
+    return;
+  }
+  av_dump_format(format_ctx, 0, url, 0);
+  avformat_close_input(&format_ctx);
+}
+
+jstring Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring filepath) {
+  return filepath;
+}
+
 JNINativeMethod gMethods[] = {
+  {"nativeInit", "()V", (void *) Ffmpeg_Init},
   {"nativeGetConfiguration", "()Ljava/lang/String;", (void *) Ffmpeg_GetConfiguration},
-  {"nativeInit", "()V", (void *) Ffmpeg_Init}
+  {"nativeDumpMetaInfo", "(Ljava/lang/String;)V", (void* ) Ffmpeg_DumpMetaInf},
+  {"nativeExtractAudio", "(Ljava/lang/String;)Ljava/lang/String;", (void *) Ffmpeg_ExtractAudio},
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {

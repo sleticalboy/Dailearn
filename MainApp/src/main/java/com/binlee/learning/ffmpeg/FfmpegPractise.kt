@@ -2,6 +2,7 @@ package com.binlee.learning.ffmpeg
 
 import android.content.Intent
 import android.graphics.Color
+import android.provider.MediaStore.Video.Media
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -28,9 +29,12 @@ class FfmpegPractise : BaseActivity() {
   }
 
   private var mBind: ActivityIndexBinding? = null
-  private val dataSet = arrayListOf<ModuleItem>(
-    // ModuleItem(""),
+  private val dataSet = arrayListOf(
+    ModuleItem("打印媒体 meta 信息", "dump_meta"),
+    ModuleItem("音频提取", "extract_audio"),
   )
+
+  private var flag: String? = null
 
   override fun layout(): View {
     mBind = ActivityIndexBinding.inflate(layoutInflater)
@@ -42,7 +46,33 @@ class FfmpegPractise : BaseActivity() {
     Toast.makeText(this, ffmpegConfiguration, Toast.LENGTH_LONG).show()
   }
 
-  private class DataAdapter(private val dataSet: ArrayList<ModuleItem>) :
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    super.onActivityResult(requestCode, resultCode, data)
+    if (requestCode == PICK_VIDEO && resultCode == RESULT_OK) {
+      Log.d(TAG, "onActivityResult() video url: ${data?.data}")
+      if (data?.data == null) return
+
+      val columns = listOf(Media.DATA, Media.WIDTH, Media.HEIGHT)
+      //从系统表中查询指定Uri对应的照片
+      try {
+        contentResolver.query(data.data!!, columns.toTypedArray(), null, null, null).use { cursor ->
+          cursor!!.moveToFirst()
+          // 获取媒体绝对路径
+          val filepath = cursor.getString(0)
+          Log.d(TAG, "onActivityResult() url: $data, path: $filepath")
+          if ("dump_meta" == flag) {
+            FfmpegHelper.dumpMetaInfo(filepath)
+          } else if ("extract_audio" == flag) {
+            FfmpegHelper.extractAudio(filepath)
+          }
+        }
+      } catch (e: Throwable) {
+        e.printStackTrace()
+      }
+    }
+  }
+
+  private inner class DataAdapter(private val dataSet: ArrayList<ModuleItem>) :
     RecyclerView.Adapter<ItemHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
@@ -59,8 +89,11 @@ class FfmpegPractise : BaseActivity() {
       val item = dataSet[position]
       holder.textView.text = item.title
       holder.textView.setOnClickListener {
-        Log.d(TAG, "item click with: ${item.clazz}")
-        holder.itemView.context.startActivity(Intent(holder.itemView.context, item.clazz))
+        Log.d(TAG, "item click with: ${item.title}")
+        flag = item.cls
+        // 打开相册选视频
+        val intent = Intent(Intent.ACTION_PICK).setType("video/*")
+        startActivityForResult(intent, PICK_VIDEO)
       }
     }
   }
@@ -83,6 +116,7 @@ class FfmpegPractise : BaseActivity() {
 
   companion object {
     private const val TAG = "FfmpegPractise"
+    private const val PICK_VIDEO = 0x1001
 
     private val ffmpegConfiguration: String
 

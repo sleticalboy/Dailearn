@@ -35,9 +35,37 @@ public class FfmpegHelper {
     // no instance
   }
 
+  /**
+   * 获取配置
+   *
+   * @return {@link String}
+   */
   public static String getConfiguration() {
     return nativeGetConfiguration();
   }
+
+  /**
+   * 转储文件元信息
+   *
+   * @param filepath filepath
+   */
+  public static void dumpMetaInfo(String filepath) {
+    nativeDumpMetaInfo(filepath);
+  }
+
+  /**
+   * 提取音频
+   *
+   * @param filepath filepath
+   * @return {@link String}
+   */
+  public static String extractAudio(String filepath) {
+    return nativeExtractAudio(filepath);
+  }
+
+  private static native void nativeDumpMetaInfo(String filepath);
+
+  private static native String nativeExtractAudio(String filepath);
 
   private static native void nativeInit();
 

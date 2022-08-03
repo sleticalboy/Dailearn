@@ -12,6 +12,8 @@ data class ModuleItem @JvmOverloads constructor(
 
   private val factory = FragmentFactory()
 
+  constructor(title: String, cls: String) : this(title, Any::class.java, cls)
+
   private fun isValidClass(): Boolean =
     clazz != Any::class.java && clazz.isAssignableFrom(Fragment::class.java)
 
