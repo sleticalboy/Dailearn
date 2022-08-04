@@ -2,11 +2,14 @@ package com.binlee.learning.components.provider
 
 import android.content.ContentProvider
 import android.content.ContentValues
+import android.content.Context
 import android.content.UriMatcher
+import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.util.Log
+import com.binlee.learning.reflect.FreeReflection
 
 class StoreProvider : ContentProvider() {
 
@@ -31,6 +34,12 @@ class StoreProvider : ContentProvider() {
 
   override fun insert(uri: Uri, values: ContentValues?): Uri? {
     throw UnsupportedOperationException("Not yet implemented")
+  }
+
+  override fun attachInfo(context: Context?, info: ProviderInfo?) {
+    Log.d(TAG, "attachInfo() start --->")
+    FreeReflection.init(context)
+    super.attachInfo(context, info)
   }
 
   override fun onCreate(): Boolean {

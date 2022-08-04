@@ -6,8 +6,8 @@ import androidx.fragment.app.FragmentFactory
 
 data class ModuleItem @JvmOverloads constructor(
   var title: String = "",
-  var clazz: Class<*> = Any::class.java,
-  var cls: String = clazz.name
+  var clazz: Class<*>? = Any::class.java,
+  var cls: String? = clazz?.name
 ) {
 
   private val factory = FragmentFactory()
@@ -15,11 +15,11 @@ data class ModuleItem @JvmOverloads constructor(
   constructor(title: String, cls: String) : this(title, Any::class.java, cls)
 
   private fun isValidClass(): Boolean =
-    clazz != Any::class.java && clazz.isAssignableFrom(Fragment::class.java)
+    clazz != Any::class.java && clazz?.isAssignableFrom(Fragment::class.java) == true
 
   fun createFragment(context: Context): Fragment? {
     if (isValidClass()) {
-      return factory.instantiate(context.classLoader, cls)
+      return cls?.let { factory.instantiate(context.classLoader, it) }
     }
     return null
   }

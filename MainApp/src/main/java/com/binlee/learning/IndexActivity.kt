@@ -167,7 +167,20 @@ class IndexActivity : BaseActivity() {
     mBind = null
   }
 
-  private class DataAdapter(private val dataSet: ArrayList<ModuleItem>) :
+  private fun reflectHiddenApiWithoutWarning() {
+    try {
+      val atClass = Class.forName("android.app.ActivityThread")
+      var method = atClass.getDeclaredMethod("currentActivityThread")
+      val currentThread = method.invoke(null)
+      method = atClass.getDeclaredMethod("getApplication")
+      val app = method.invoke(currentThread)
+      Log.d(TAG, "reflectHiddenApiWithoutWarning() activity thread: $currentThread, app: $app")
+    } catch (e: Exception) {
+      e.printStackTrace()
+    }
+  }
+
+  private inner class DataAdapter(private val dataSet: ArrayList<ModuleItem>) :
     RecyclerView.Adapter<ItemHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
@@ -185,6 +198,10 @@ class IndexActivity : BaseActivity() {
       holder.textView.text = item.title
       holder.textView.setOnClickListener {
         Log.d(TAG, "item click with: ${item.clazz}")
+        if (item.cls == "crack_hidden_api") {
+          reflectHiddenApiWithoutWarning()
+          return@setOnClickListener
+        }
         holder.itemView.context.startActivity(Intent(holder.itemView.context, item.clazz))
       }
     }
