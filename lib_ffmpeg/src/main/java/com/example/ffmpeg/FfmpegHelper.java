@@ -56,16 +56,17 @@ public class FfmpegHelper {
   /**
    * 提取音频
    *
-   * @param filepath filepath
-   * @return {@link String}
+   * @param input 输入媒体路径
+   * @param output 输出媒体路径
+   * @return 错误码
    */
-  public static String extractAudio(String filepath) {
-    return nativeExtractAudio(filepath);
+  public static int extractAudio(String input, String output) {
+    return nativeExtractAudio(input, output);
   }
 
   private static native void nativeDumpMetaInfo(String filepath);
 
-  private static native String nativeExtractAudio(String filepath);
+  private static native int nativeExtractAudio(String input, String output);
 
   private static native void nativeInit();
 

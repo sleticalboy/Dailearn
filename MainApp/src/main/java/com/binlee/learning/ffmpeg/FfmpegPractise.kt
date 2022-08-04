@@ -15,6 +15,7 @@ import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.databinding.ActivityIndexBinding
 import com.example.ffmpeg.FfmpegHelper
+import java.io.File
 
 /**
  * Created on 2022/8/3
@@ -63,7 +64,15 @@ class FfmpegPractise : BaseActivity() {
           if ("dump_meta" == flag) {
             FfmpegHelper.dumpMetaInfo(filepath)
           } else if ("extract_audio" == flag) {
-            FfmpegHelper.extractAudio(filepath)
+            // 输出文件路径
+            val output = File(getExternalFilesDir(null), "${System.currentTimeMillis()}.aac")
+            if (output.exists()) output.delete()
+            output.createNewFile()
+
+            val res = FfmpegHelper.extractAudio(filepath, output.absolutePath)
+            // 提取音频数据之后，打印 meta 信息
+            if (res == 0) FfmpegHelper.dumpMetaInfo(output.absolutePath)
+            // output.delete()
           }
         }
       } catch (e: Throwable) {
