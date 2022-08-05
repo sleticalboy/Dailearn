@@ -54,44 +54,41 @@ void Ffmpeg_DumpMetaInfo(JNIEnv *env, jclass clazz, jstring filepath) {
 }
 
 jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring jInput, jstring jOutput) {
+  // 输入的媒体源
   const char *input = env->GetStringUTFChars(jInput, JNI_FALSE);
+  // 输出的音频文件
+  const char *output = env->GetStringUTFChars(jOutput, JNI_FALSE);
 
   AVFormatContext *format_ctx = nullptr;
+  AVPacket *pkt;
+  FILE *out_fd;
+
+  int stream_index;
 
   // 打开媒体文件
   int res = avformat_open_input(&format_ctx, input, nullptr, nullptr);
   if (res < 0) {
     FlogI("%s open input failed: %s", __func__, av_err2str(res))
-    // 关闭媒体文件
-    avformat_close_input(&format_ctx);
-    env->ReleaseStringUTFChars(jInput, input);
-    return res;
+    goto exit;
   }
 
-  int stream_index = av_find_best_stream(format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+  stream_index = av_find_best_stream(format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
   if (stream_index < 0) {
     FlogI("%s stream index: %d", __func__, stream_index)
-    // 关闭媒体文件
-    avformat_close_input(&format_ctx);
-    env->ReleaseStringUTFChars(jInput, input);
-    return stream_index;
+    res = stream_index;
+    goto exit;
   }
 
-  // 音频输出到文件中
-  const char *output = env->GetStringUTFChars(jOutput, JNI_FALSE);
   FlogD("%s out file: %s", __func__, output)
-
-  FILE *out_fd = fopen(output, "wr");
+  out_fd = fopen(output, "wr");
   if (out_fd == nullptr) {
     FlogE("%s open %s error: %d", __func__, output, errno)
-    avformat_close_input(&format_ctx);
-    env->ReleaseStringUTFChars(jInput, input);
-    env->ReleaseStringUTFChars(jOutput, output);
-    return errno;
+    res = errno;
+    goto exit;
   }
 
   // 分配 packet
-  AVPacket *pkt = av_packet_alloc();
+  pkt = av_packet_alloc();
   while (av_read_frame(format_ctx, pkt) >= 0) {
     FlogV("%s packet size: %d", __func__, pkt->size)
     if (pkt->stream_index == stream_index) {
@@ -106,15 +103,18 @@ jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring jInput, jstring jOut
   }
   // 释放 packet
   av_packet_free(&pkt);
-
-  // 关闭媒体文件
-  avformat_close_input(&format_ctx);
+  // 关闭文件
   fclose(out_fd);
 
-  // 释放字符串
-  env->ReleaseStringUTFChars(jInput, input);
-  env->ReleaseStringUTFChars(jOutput, output);
-  return 0;
+  exit:
+  {
+    // 关闭媒体文件
+    avformat_close_input(&format_ctx);
+    // 释放字符串
+    env->ReleaseStringUTFChars(jInput, input);
+    env->ReleaseStringUTFChars(jOutput, output);
+    return res;
+  }
 }
 
 JNINativeMethod gMethods[] = {

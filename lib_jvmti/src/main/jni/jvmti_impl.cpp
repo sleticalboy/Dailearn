@@ -181,7 +181,7 @@ int Agent_Init(JavaVM *vm, const char *options) {
   // 支持的 jvmti 版本：JVMTI_VERSION_1_0、JVMTI_VERSION_1_1、JVMTI_VERSION_1_2
   if (vm->GetEnv((void **) &jvmti, JVMTI_VERSION_1_2) != JNI_OK || jvmti == nullptr) {
     ALOGE("%s GetJvmtiEnv error", __func__)
-    return JNI_FALSE;
+    return JNI_ERR;
   }
   ALOGD("%s jvmti env: %p", __func__, jvmti)
 
@@ -189,12 +189,12 @@ int Agent_Init(JavaVM *vm, const char *options) {
   JNIEnv *env = nullptr;
   if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
     ALOGE("%s GetJNIEnv error", __func__)
-    return JNI_FALSE;
+    return JNI_ERR;
   }
   ALOGD("%s JNI env: %p", __func__, env)
 
   jvmti_agent = new jvmti::JvmtiAgent();
-  jvmti_agent->is_agent_init = true;
+  jvmti_agent->is_agent_attached = true;
   jvmti_agent->jvmti = jvmti;
 
   ALOGI("%s, jvmti_agent: %p", __func__, jvmti_agent)
@@ -205,7 +205,7 @@ int Agent_Init(JavaVM *vm, const char *options) {
   error = jvmti->CreateRawMonitor("agent data", &jvmti_agent->lock);
   if (error != JVMTI_ERROR_NONE) {
     ALOGE("%s CreateRawMonitor error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
-    return JNI_FALSE;
+    return JNI_ERR;
   }
   ALOGD("%s raw monitor: %p", __func__, jvmti_agent->lock)
 
