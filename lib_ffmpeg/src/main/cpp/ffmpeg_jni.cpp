@@ -5,29 +5,35 @@
 #include <jni.h>
 
 #include "log_callback_impl.h"
+// cpp 引入 c 语言实现的库，头文件外要包一层 extern "C"
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libavutil/error.h"
+#include "libavutil/avutil.h"
+#include "libavdevice/avdevice.h"
+#include "libavfilter/avfilter.h"
+#include "libswresample/swresample.h"
+#include "libswscale/swscale.h"
 }
 
 void Ffmpeg_Init(JNIEnv *env, jclass clazz) {
   ffmpeg::log::init();
 }
 
-jstring Ffmpeg_GetConfiguration(JNIEnv *env, jclass clazz) {
-  const char *configuration = avcodec_configuration();
-  FlogD("%s %s", __func__, configuration)
-  FlogD("%s ffmpeg license: %s", __func__, avcodec_license())
-  FlogD("%s avcodec version: %d", __func__, avcodec_version())
-  const AVCodec *codec = avcodec_find_decoder(AV_CODEC_ID_AAC);
-  FlogE("%s find decoder AAC: %p", __func__, codec)
-  if (codec != nullptr) {
-    FlogD("AAC name: %s", codec->name)
-    FlogD("AAC long name: %s", codec->long_name)
-    FlogD("AAC wrapper name: %s", codec->wrapper_name)
-  }
-  return env->NewStringUTF(configuration);
+jstring Ffmpeg_GetVersions(JNIEnv *env, jclass clazz) {
+  FlogD("%s %s", __func__, avcodec_configuration())
+  int offset = 0;
+  char *buf = new char[512];
+  offset += sprintf(buf + offset, "avcodec version:    %d\n", avcodec_version());
+  offset += sprintf(buf + offset, "avformat version:   %d\n", avformat_version());
+  offset += sprintf(buf + offset, "avutil version:     %d\n", avutil_version());
+  offset += sprintf(buf + offset, "avdevice version:   %d\n", avdevice_version());
+  offset += sprintf(buf + offset, "avfilter version:   %d\n", avfilter_version());
+  offset += sprintf(buf + offset, "swresample version: %d\n", swresample_version());
+  offset += sprintf(buf + offset, "swscale version:    %d", swscale_version());
+  FlogD("%s \n%s\noffset: %d", __func__, buf, offset)
+  return env->NewStringUTF(buf);
 }
 
 void Ffmpeg_DumpMetaInfo(JNIEnv *env, jclass clazz, jstring filepath) {
@@ -113,7 +119,7 @@ jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring jInput, jstring jOut
 
 JNINativeMethod gMethods[] = {
   {"nativeInit", "()V", (void *) Ffmpeg_Init},
-  {"nativeGetConfiguration", "()Ljava/lang/String;", (void *) Ffmpeg_GetConfiguration},
+  {"nativeGetVersions", "()Ljava/lang/String;", (void *) Ffmpeg_GetVersions},
   {"nativeDumpMetaInfo", "(Ljava/lang/String;)V", (void* ) Ffmpeg_DumpMetaInfo},
   {"nativeExtractAudio", "(Ljava/lang/String;Ljava/lang/String;)I", (void *) Ffmpeg_ExtractAudio},
 };

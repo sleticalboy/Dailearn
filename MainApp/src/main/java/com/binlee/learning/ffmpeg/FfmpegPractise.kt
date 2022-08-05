@@ -44,7 +44,7 @@ class FfmpegPractise : BaseActivity() {
 
   override fun initView() {
     mBind?.recyclerView?.adapter = DataAdapter(dataSet)
-    Toast.makeText(this, ffmpegConfiguration, Toast.LENGTH_LONG).show()
+    Toast.makeText(this, ffmpegVersions, Toast.LENGTH_LONG).show()
   }
 
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -127,11 +127,11 @@ class FfmpegPractise : BaseActivity() {
     private const val TAG = "FfmpegPractise"
     private const val PICK_VIDEO = 0x1001
 
-    private val ffmpegConfiguration: String
+    private val ffmpegVersions: String
 
     // java 中的静态代码块
     init {
-      ffmpegConfiguration = FfmpegHelper.getConfiguration()
+      ffmpegVersions = FfmpegHelper.getVersions()
     }
   }
 }

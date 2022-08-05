@@ -40,8 +40,8 @@ public class FfmpegHelper {
    *
    * @return {@link String}
    */
-  public static String getConfiguration() {
-    return nativeGetConfiguration();
+  public static String getVersions() {
+    return nativeGetVersions();
   }
 
   /**
@@ -70,5 +70,5 @@ public class FfmpegHelper {
 
   private static native void nativeInit();
 
-  private static native String nativeGetConfiguration();
+  private static native String nativeGetVersions();
 }
