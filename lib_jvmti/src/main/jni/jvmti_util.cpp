@@ -15,27 +15,31 @@ namespace util {
 /// alloc info
 
 AllocInfo::AllocInfo(jvmtiEnv *jvmti, jclass klass, jlong size) {
+  data_ = new char[1024];
+  int offset = 0;
   char *class_name = nullptr;
   jvmtiError error = jvmti->GetClassSignature(klass, &class_name, nullptr);
   if (error == JVMTI_ERROR_NONE) {
-    data_.append("class: ").append(class_name).append(", ");
+    offset += sprintf(data_ + offset, "class: %s, ", class_name);
   }
-  data_.append("size: ").append(to_string(size));
+  sprintf(data_ + offset, "size: %ld", size);
+  delete class_name;
 }
 
 /// class info
 
 ClassInfo::ClassInfo(jvmtiEnv *jvmti, jclass clazz) {
+  int offset = 0;
+  data_ = new char[1024];
   char *class_name = nullptr;
   char *generic = nullptr;
   jvmtiError error = jvmti->GetClassSignature(clazz, &class_name, &generic);
   if (error == JVMTI_ERROR_NONE) {
-    data_.append("class: ").append(class_name);
-    if (generic != nullptr) data_.append(", generic: ").append(generic);
+    offset += sprintf(data_ + offset, "class: %s, generic: %s", class_name, generic);
     int status;
     error = jvmti->GetClassStatus(clazz, &status);
     if (error == JVMTI_ERROR_NONE) {
-      data_.append(", status: ").append(to_string(status));
+      offset += sprintf(data_ + offset, ", status: %d", status);
     }
   }
 }
@@ -43,21 +47,21 @@ ClassInfo::ClassInfo(jvmtiEnv *jvmti, jclass clazz) {
 /// thread info
 
 ThreadInfo::ThreadInfo(jvmtiEnv *jvmti, jthread thread) {
+  int offset = 0;
+  data_ = new char[1024];
   // 线程信息
   jvmtiThreadInfo thread_info = {};
   jvmtiError error = jvmti->GetThreadInfo(thread, &thread_info);
   // ALOGW("ThreadInfo#%s GetThreadInfo %s", __func__, getErrorName(jvmti, error))
   if (error == JVMTI_ERROR_NONE) {
-    if (thread_info.is_daemon) data_.append("daemon ");
-    data_.append("thread(");
-    if (thread_info.name != nullptr) data_.append(thread_info.name);
-    data_.append(") priority ").append(to_string(thread_info.priority));
+    if (thread_info.is_daemon) offset += sprintf(data_ + offset, "daemon ");
+    offset += sprintf(data_ + offset, "thread(%s) priority %d", thread_info.name, thread_info.priority);
     // 线程状态
     jint state = 0;
     error = jvmti->GetThreadState(thread, &state);
     // ALOGW("ThreadInfo#%s GetThreadState %s", __func__, getErrorName(jvmti, error))
     if (error == JVMTI_ERROR_NONE) {
-      data_.append(" state ").append(to_string(state)).append(" ");
+      offset += sprintf(data_ + offset, " state %d ", state);
       // 先判断一下线程状态再获取信息，可以规避一些错误
       // if (error == JVMTI_ERROR_NONE) {
       //   // JVMTI_THREAD_STATE_ALIVE = 0x0001,
@@ -131,10 +135,8 @@ ThreadInfo::ThreadInfo(jvmtiEnv *jvmti, jthread thread) {
     error = jvmti->GetThreadGroupInfo(thread_info.thread_group, &group_info);
     // ALOGW("ThreadInfo#%s GetThreadGroupInfo %s", __func__, getErrorName(jvmti, error))
     if (error == JVMTI_ERROR_NONE) {
-      if (group_info.is_daemon) data_.append(", daemon ");
-      data_.append("group(");
-      if (group_info.name != nullptr) data_.append(group_info.name);
-      data_.append(") priority ").append(to_string(group_info.max_priority));
+      if (group_info.is_daemon) offset += sprintf(data_ + offset, ", daemon ");
+      sprintf(data_ + offset, "group(%s) priority %d", group_info.name, group_info.max_priority);
     }
   }
 }
@@ -142,6 +144,9 @@ ThreadInfo::ThreadInfo(jvmtiEnv *jvmti, jthread thread) {
 /// method info
 
 MethodInfo::MethodInfo(jvmtiEnv *jvmti, jmethodID method) {
+  int offset = 0;
+  data_ = new char[1024];
+
   char *method_name = nullptr;
   char *method_signature = nullptr;
   char *method_generic = nullptr;
@@ -153,7 +158,7 @@ MethodInfo::MethodInfo(jvmtiEnv *jvmti, jmethodID method) {
       char *owner_class = nullptr;
       error = jvmti->GetClassSignature(owned_class, &owner_class, nullptr);
       if (error == JVMTI_ERROR_NONE) {
-        data_.append(owner_class).append("#");
+        offset += sprintf(data_ + offset, "%s#", owner_class);
         string s = string(owner_class);
         // printable_ = s.find("Ljava") == string::npos && s.find("Landroid") == string::npos
         //   && s.find("Lkotlin") == string::npos && s.find("Lsun/") == string::npos
@@ -165,12 +170,11 @@ MethodInfo::MethodInfo(jvmtiEnv *jvmti, jmethodID method) {
         // ALOGW("%s %s is printable: %d", __func__, owner_class, printable_)
       }
     }
-    data_.append(method_name).append(method_signature);
-    if (method_generic != nullptr) data_.append(method_generic);
+    offset += sprintf(data_ + offset, "%s%s", method_signature, method_generic);
   }
 }
 
-const char *getErrorName(jvmtiEnv *jvmti, jvmtiError &error) {
+const char *GetErrStr(jvmtiEnv *jvmti, jvmtiError &error) {
   char *error_name = nullptr;
   jvmtiError err = jvmti->GetErrorName(error, &error_name);
   if (err != JVMTI_ERROR_NONE) {
@@ -179,27 +183,39 @@ const char *getErrorName(jvmtiEnv *jvmti, jvmtiError &error) {
   return error_name;
 }
 
-void fromJavaConfig(JNIEnv *env, jobject jConfig, Config *config) {
-  jclass cls_config = env->FindClass("com/binlee/apm/jvmti/JvmtiConfig");
+JvmtiOptions *ParseOptions(const char *options) {
+  //root_dir:/data/user/0/com.binlee.learning/files;obj_alloc:false;obj_free:false;ex_create:false;ex_catch:false;method_enter:false;method_exit:false
 
-  jfieldID field = env->GetFieldID(cls_config, "rootDir", "Ljava/lang/String;");
-  auto root_dir = (jstring) env->GetObjectField(jConfig, field);
-  config->root_dir = env->GetStringUTFChars(root_dir, JNI_FALSE);
+  auto *config = new JvmtiOptions();
+  int next = 0;
+  string str = string(options);
+  for (int i = 0; i < str.size(); ++i) {
+    if (str.at(i) == ';') {
+      string pair = str.substr(next, i - next/*len*/);
+      next = i + 1;
 
-  field = env->GetFieldID(cls_config, "objectAlloc", "Z");
-  config->object_alloc = env->GetBooleanField(jConfig, field);
-  field = env->GetFieldID(cls_config, "objectFree", "Z");
-  config->object_free = env->GetBooleanField(jConfig, field);
-
-  field = env->GetFieldID(cls_config, "exceptionCreate", "Z");
-  config->exception_create = env->GetBooleanField(jConfig, field);
-  field = env->GetFieldID(cls_config, "exceptionCatch", "Z");
-  config->exception_catch = env->GetBooleanField(jConfig, field);
-
-  field = env->GetFieldID(cls_config, "methodEnter", "Z");
-  config->method_enter = env->GetBooleanField(jConfig, field);
-  field = env->GetFieldID(cls_config, "methodExit", "Z");
-  config->method_exit = env->GetBooleanField(jConfig, field);
+      int index = pair.find_first_of(':');
+      string key = pair.substr(0, index);
+      string value = pair.substr(index + 1);
+      if (key == "root_dir") {
+        sprintf(config->root_dir, "%s", value.c_str());
+      } else if (key == "obj_alloc") {
+        config->object_alloc = value == "true";
+      } else if (key == "obj_free") {
+        config->object_free = value == "true";
+      } else if (key == "ex_create") {
+        config->exception_create = value == "true";
+      } else if (key == "ex_catch") {
+        config->exception_catch = value == "true";
+      } else if (key == "method_enter") {
+        config->method_enter = value == "true";
+      } else if (key == "method_exit") {
+        config->method_exit = value == "true";
+      }
+    }
+  }
+  return config;
 }
+
 } // namespace util
 } // namespace jvmti

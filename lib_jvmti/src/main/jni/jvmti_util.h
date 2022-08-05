@@ -14,16 +14,16 @@ namespace util {
 
 class AllocInfo {
 private:
-  std::string data_;
+  char *data_ = nullptr;
 public:
   AllocInfo(jvmtiEnv *jvmti, jclass klass, jlong size);
 
-  std::string ToString() {
+  const char *ToString() {
     return data_;
   }
 
   ~AllocInfo() {
-    data_.clear();
+    delete[] data_;
   }
 };
 
@@ -32,16 +32,16 @@ public:
  */
 class ThreadInfo {
 private:
-  std::string data_;
+  char *data_;
 public:
   ThreadInfo(jvmtiEnv *jvmti, jthread thread);
 
-  std::string ToString() {
+  const char *ToString() {
     return data_;
   }
 
   ~ThreadInfo() {
-    data_.clear();
+    delete[] data_;
   }
 };
 
@@ -50,16 +50,16 @@ public:
  */
 class ClassInfo {
 private:
-  std::string data_;
+  char *data_;
 public:
   ClassInfo(jvmtiEnv *jvmti, jclass clazz);
 
-  std::string ToString() {
+  const char *ToString() {
     return data_;
   }
 
   ~ClassInfo() {
-    data_.clear();
+    delete[] data_;
   }
 };
 
@@ -68,7 +68,7 @@ public:
  */
 class MethodInfo {
 private:
-  std::string data_;
+  char *data_;
   bool printable_ = false;
 public:
   MethodInfo(jvmtiEnv *jvmti, jmethodID method);
@@ -77,20 +77,21 @@ public:
     return printable_;
   }
 
-  std::string ToString() {
+  const char *ToString() {
     return data_;
   }
 
   ~MethodInfo() {
-    data_.clear();
+    delete[] data_;
   }
 };
 
 // 获取错误名
-const char *getErrorName(jvmtiEnv *jvmti, jvmtiError &error);
+const char *GetErrStr(jvmtiEnv *jvmti, jvmtiError &error);
 
-// java 结构体转 cpp 结构体
-void fromJavaConfig(JNIEnv *env, jobject jConfig, Config *config);
+// java options 转 cpp 结构体
+JvmtiOptions *ParseOptions(const char *options);
+
 } // namespace util
 } // namespace jvmti
 

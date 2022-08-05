@@ -15,11 +15,18 @@
 // string/map
 using namespace std;
 
+jvmti::JvmtiAgent *jvmti_agent = nullptr;
+jvmti::JvmtiOptions *jvmti_options = nullptr;
 jvmti::MemFile *memFile = nullptr;
 
 // 将数据持久化
-void persistJson(map<string, string> *json, const char *tag) {
-  map<string, string>::iterator it;
+void persistJson(map<string, const char*> *json, const char *tag) {
+  if (jvmti_options == nullptr) {
+    ALOGE("%s abort from %s because options.root_dir is null", __func__, tag)
+    return;
+  }
+
+  map<string, const char*>::iterator it;
   string buffer("{");
   for (it = json->begin(); it != json->end(); it++) {
     buffer.append("\"").append(it->first).append("\": \"").append(it->second).append("\",");
@@ -28,12 +35,7 @@ void persistJson(map<string, string> *json, const char *tag) {
   // 数据持久化
   try {
     if (memFile == nullptr) {
-      string path;
-      if (jvmti::g_config != nullptr) {
-        path = string(jvmti::g_config->root_dir).append("/ttt.txt");
-      } else {
-        path = "/data/data/com.binlee.learning/files/ttt.txt";
-      }
+      string path = string(jvmti_options->root_dir).append("/ttt.txt");
       ALOGD("%s create MemFile from %s(), path: %s", __func__, tag, path.c_str())
       memFile = new jvmti::MemFile(path.c_str());
     }
@@ -53,7 +55,7 @@ void callbackVMObjectAlloc(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jobject
   if (size < 1024) return;
 
   // 声明 map 存储信息
-  map<string, string> json = {};
+  map<string, const char*> json = {};
   // 填充类信息
   auto alloc_info = make_unique<jvmti::util::AllocInfo>(jvmti, klass, size);
   json["alloc_info"] = alloc_info->ToString();
@@ -101,7 +103,7 @@ void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID m
                        jlocation location, jobject exception, jmethodID catch_method,
                        jlocation catch_location) {
   // 声明 map 存储信息
-  map<string, string> json = {};
+  map<string, const char*> json = {};
 
   // 填充方法信息
   auto method_info = make_unique<jvmti::util::MethodInfo>(jvmti, method);
@@ -132,7 +134,7 @@ void callbackException(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID m
 void callbackExceptionCatch(jvmtiEnv *jvmti, JNIEnv *env, jthread thread, jmethodID method,
                             jlocation location, jobject exception) {
   // 声明 map 存储信息
-  map<string, string> json = {};
+  map<string, const char*> json = {};
 
   // 填充方法信息
   auto method_info = make_unique<jvmti::util::MethodInfo>(jvmti, method);
@@ -155,7 +157,7 @@ void callbackMethodEntry(jvmtiEnv *jvmti, JNIEnv* env, jthread thread, jmethodID
   auto method_info = make_unique<jvmti::util::MethodInfo>(jvmti, method);
   // 日志打印量有点恐怖，先简单过滤一下
   if (!method_info->Printable()) return;
-  ALOGI("%s %s", __func__, method_info->ToString().c_str())
+  ALOGI("%s %s", __func__, method_info->ToString())
 
   // 一个莫名奇妙的 crash
   // 2022-07-19 22:18:58.544 A: decStrong() called on 0x7ffa5c000 too many times
@@ -170,10 +172,10 @@ void callbackMethodExit(jvmtiEnv *jvmti, JNIEnv* env, jthread thread, jmethodID 
   auto method_info = make_unique<jvmti::util::MethodInfo>(jvmti, method);
   // 日志打印量有点恐怖，先简单过滤一下
   if (!method_info->Printable()) return;
-  ALOGI("%s %s", __func__, method_info->ToString().c_str())
+  ALOGI("%s %s", __func__, method_info->ToString())
 }
 
-int Agent_Init(JavaVM *vm) {
+int Agent_Init(JavaVM *vm, const char *options) {
   ALOGD("%s start GetJvmtiEnv", __func__)
   jvmtiEnv *jvmti = nullptr;
   // 支持的 jvmti 版本：JVMTI_VERSION_1_0、JVMTI_VERSION_1_1、JVMTI_VERSION_1_2
@@ -191,32 +193,31 @@ int Agent_Init(JavaVM *vm) {
   }
   ALOGD("%s JNI env: %p", __func__, env)
 
-  static jvmti::AgentData data;
-  memset(&data, 0, sizeof(jvmti::AgentData));
-  jvmti::g_data = &data;
-  jvmti::g_data->is_agent_init = true;
-  jvmti::g_data->jvmti = jvmti;
+  jvmti_agent = new jvmti::JvmtiAgent();
+  jvmti_agent->is_agent_init = true;
+  jvmti_agent->jvmti = jvmti;
 
-  ALOGI("%s, jvmti::g_data: %p", __func__, jvmti::g_data)
+  ALOGI("%s, jvmti_agent: %p", __func__, jvmti_agent)
 
   jvmtiError error = JVMTI_ERROR_NONE;
 
   ALOGD("%s start CreateRawMonitor", __func__)
-  error = jvmti->CreateRawMonitor("agent data", &data.lock);
+  error = jvmti->CreateRawMonitor("agent data", &jvmti_agent->lock);
   if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s CreateRawMonitor error: %s", __func__, jvmti::util::getErrorName(jvmti, error))
+    ALOGE("%s CreateRawMonitor error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
     return JNI_FALSE;
   }
-  ALOGD("%s raw monitor: %p", __func__, jvmti::g_data->lock)
+  ALOGD("%s raw monitor: %p", __func__, jvmti_agent->lock)
 
   jvmtiCapabilities capa;
   memset(&capa, 0, sizeof(jvmtiCapabilities));
   error = jvmti->GetCapabilities(&capa);
   if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s GetCapabilities error: %s", __func__, jvmti::util::getErrorName(jvmti, error))
+    ALOGE("%s GetCapabilities error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
   }
 
-  ALOGI("%s, jvmti::g_config: %p", __func__, jvmti::g_config)
+  jvmti_options = jvmti::util::ParseOptions(options);
+  ALOGI("%s, jvmti_options: %p", __func__, jvmti_options)
 
   // if (jvmti::gConfig != nullptr) {
   //   if (jvmti::gConfig->object_alloc) {
@@ -257,7 +258,7 @@ int Agent_Init(JavaVM *vm) {
   error = jvmti->AddCapabilities(&capa);
   // check_jvmti_error(jvmti, error, "Unable to get necessary JVMTI capabilities");
   if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s AddCapabilities error: %s", __func__, jvmti::util::getErrorName(jvmti, error))
+    ALOGE("%s AddCapabilities error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
   }
 
   // 对象分配与释放
@@ -271,7 +272,7 @@ int Agent_Init(JavaVM *vm) {
   error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION_CATCH, nullptr);
   // check_jvmti_error(jvmti, error, "Can not set event notification");
   if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s SetEventNotificationMode error: %s", __func__, jvmti::util::getErrorName(jvmti, error))
+    ALOGE("%s SetEventNotificationMode error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
   }
 
   jvmtiEventCallbacks callbacks = {};
@@ -288,7 +289,7 @@ int Agent_Init(JavaVM *vm) {
   error = jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
   // check_jvmti_error(jvmti, error, "Can not set JVMTI callbacks");
   if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s SetEventCallbacks error: %s", __func__, jvmti::util::getErrorName(jvmti, error))
+    ALOGE("%s SetEventCallbacks error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
   }
   return JNI_OK;
 }
@@ -302,7 +303,7 @@ jint Agent_OnLoad(JavaVM *vm, char *options, void *reserved) {
 // 在 JVM 启动后动态绑定 agent ，会回调此方法
 jint Agent_OnAttach(JavaVM *vm, char *options, void *reserved) {
   ALOGD("%s options: %s", __func__, options)
-  return Agent_Init(vm);
+  return Agent_Init(vm, options);
 }
 
 void Agent_OnUnload(JavaVM *vm) {

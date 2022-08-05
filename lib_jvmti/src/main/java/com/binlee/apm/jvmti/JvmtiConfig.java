@@ -10,7 +10,7 @@ public final class JvmtiConfig {
   /** 文件存放目录 */
   public final String rootDir;
   /** 代理 so 文件绝对路径 */
-  public String agentFile;
+  public String agentLib;
 
   /** 对象分配 */
   public boolean objectAlloc = false;
@@ -29,5 +29,20 @@ public final class JvmtiConfig {
 
   public JvmtiConfig(String rootDir) {
     this.rootDir = rootDir;
+  }
+
+  /**
+   * 转成 jvm 可识别的选项，注意选项中不能带 '='!
+   *
+   * @return {@link String}
+   */
+  public String toOptions() {
+    return String.format(
+      "root_dir:%s;obj_alloc:%s;obj_free:%s;ex_create:%s;ex_catch:%s;method_enter:%s;method_exit:%s;",
+      rootDir, objectAlloc, objectFree, exceptionCreate, exceptionCatch, methodEnter, methodExit);
+  }
+
+  @Override public String toString() {
+    return toOptions();
   }
 }

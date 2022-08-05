@@ -51,7 +51,7 @@ public final class JvmtiLoader {
     }
     Log.d(TAG, "attachAgent() jvmti agent: " + dest);
     final JvmtiConfig config = new JvmtiConfig(context.getFilesDir().getAbsolutePath());
-    config.agentFile = dest.getAbsolutePath();
+    config.agentLib = dest.getAbsolutePath();
     attachInternal(config);
   }
 
@@ -96,10 +96,11 @@ public final class JvmtiLoader {
 
   private static void attachInternal(JvmtiConfig config) {
     if (sAttached) return;
-    // nativeAttachAgent(config);
+    final String options = config.toOptions();
+    // nativeAttachAgent(config.agentLib, options);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       try {
-        Debug.attachJvmtiAgent(config.agentFile, null, null);
+        Debug.attachJvmtiAgent(config.agentLib, options, null);
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -110,7 +111,7 @@ public final class JvmtiLoader {
       final Class<?> clazz = Class.forName("dalvik.system.VMDebug");
       final Method method = clazz.getDeclaredMethod("attachAgent", String.class);
       method.setAccessible(true);
-      method.invoke(null, config.agentFile);
+      method.invoke(null, config.agentLib + "=" + options);
     } catch (Throwable e) {
       e.printStackTrace();
     }
@@ -132,5 +133,5 @@ public final class JvmtiLoader {
     output.close();
   }
 
-  private static native void nativeAttachAgent(JvmtiConfig config);
+  private static native void nativeAttachAgent(String library, String options);
 }

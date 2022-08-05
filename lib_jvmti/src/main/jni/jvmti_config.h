@@ -9,29 +9,29 @@
 
 namespace jvmti {
 
-typedef struct AgentData {
+typedef struct JvmtiAgent {
   jvmtiEnv *jvmti;
-  jboolean is_agent_init;
+  jboolean is_agent_attached;
   jrawMonitorID lock;
-} AgentData;
+} JvmtiAgent;
 
-static AgentData *g_data;
+typedef struct JvmtiOptions {
 
-typedef struct Config {
+  char *const root_dir = new char[128];
 
-  const char *root_dir;
+  bool object_alloc = false;
+  bool object_free = false;
 
-  bool object_alloc;
-  bool object_free;
+  bool exception_create = false;
+  bool exception_catch = false;
 
-  bool exception_create;
-  bool exception_catch;
+  bool method_enter = false;
+  bool method_exit = false;
 
-  bool method_enter;
-  bool method_exit;
-} Config;
-
-static Config *g_config;
+  ~JvmtiOptions() {
+    delete[] root_dir;
+  }
+} JvmtiOptions;
 } // namespace jvmti
 
 #endif //DAILEARN_JVMTI_IMPL_H
