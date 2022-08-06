@@ -46,7 +46,7 @@ void init() {
   // ffmpeg log 重定向到 logcat 中
   av_log_set_callback(&log_callback_android);
   // 以下两种方式都可以使用，推荐使用 FlogX() 的方式
-  av_log(nullptr, AV_LOG_ERROR, "%s() set log level debug, callback: %p", __func__, &log_callback_android);
+  av_log(nullptr, AV_LOG_WARNING, "%s() set log level debug, callback: %p", __func__, &log_callback_android);
   FlogE("%s() set log level debug, callback: %p", __func__, &log_callback_android)
 }
 } // namespace log

@@ -175,7 +175,16 @@ void callbackMethodExit(jvmtiEnv *jvmti, JNIEnv* env, jthread thread, jmethodID 
   ALOGI("%s %s", __func__, method_info->ToString())
 }
 
+void check_jvmti_error(jvmtiEnv *jvmti, jvmtiError error, const char *msg) {
+  if (error == JVMTI_ERROR_NONE) return;
+  ALOGE("%s, error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
+}
+
 int Agent_Init(JavaVM *vm, const char *options) {
+  jvmti_options = jvmti::util::ParseOptions(options);
+  ALOGI("%s, jvmti_options: %p", __func__, jvmti_options)
+  if (jvmti_options == nullptr) return JNI_OK;
+
   ALOGD("%s start GetJvmtiEnv", __func__)
   jvmtiEnv *jvmti = nullptr;
   // 支持的 jvmti 版本：JVMTI_VERSION_1_0、JVMTI_VERSION_1_1、JVMTI_VERSION_1_2
@@ -209,6 +218,10 @@ int Agent_Init(JavaVM *vm, const char *options) {
   }
   ALOGD("%s raw monitor: %p", __func__, jvmti_agent->lock)
 
+  // 如果有并发情况，可使用 jvmti 提供的同步方式
+  // jvmti->RawMonitorEnter(jvmti_agent->lock);
+  // jvmti->RawMonitorExit(jvmti_agent->lock);
+
   jvmtiCapabilities capa;
   memset(&capa, 0, sizeof(jvmtiCapabilities));
   error = jvmti->GetCapabilities(&capa);
@@ -216,81 +229,54 @@ int Agent_Init(JavaVM *vm, const char *options) {
     ALOGE("%s GetCapabilities error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
   }
 
-  jvmti_options = jvmti::util::ParseOptions(options);
-  ALOGI("%s, jvmti_options: %p", __func__, jvmti_options)
-
-  // if (jvmti::gConfig != nullptr) {
-  //   if (jvmti::gConfig->object_alloc) {
-  //     //
-  //   }
-  //   if (jvmti::gConfig->object_free) {
-  //     //
-  //   }
-  //
-  //   if (jvmti::gConfig->exception_create) {
-  //     //
-  //   }
-  //   if (jvmti::gConfig->exception_catch) {
-  //     //
-  //   }
-  //
-  //   if (jvmti::gConfig->method_enter) {
-  //     //
-  //   }
-  //   if (jvmti::gConfig->method_exit) {
-  //     //
-  //   }
+  jvmtiEventCallbacks callbacks;
+  memset(&callbacks, 0, sizeof(jvmtiEventCallbacks));
+  // check_jvmti_error(jvmti, error, "Can not set event notification");
+  // if (error != JVMTI_ERROR_NONE) {
+  //   ALOGE("%s SetEventNotificationMode error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
   // }
-  
-  capa.can_signal_thread = 1;
-  capa.can_get_owned_monitor_info = 1;
-  // 方法进入和退出
-  capa.can_generate_method_entry_events = 1;
-  capa.can_generate_method_exit_events = 1;
+  // 对象分配与释放
+  if (jvmti_options->object_alloc) {
+    capa.can_generate_vm_object_alloc_events = 1;
+    error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_OBJECT_ALLOC, nullptr);
+    callbacks.VMObjectAlloc = &callbackVMObjectAlloc;
+  }
+  if (jvmti_options->object_free) {
+    capa.can_generate_object_free_events = 1;
+    error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_OBJECT_FREE, nullptr);
+    callbacks.ObjectFree = &callbackObjectFree;
+  }
+
   // 异常
   capa.can_generate_exception_events = 1;
-  // 内存分配和释放
-  capa.can_generate_vm_object_alloc_events = 1;
-  capa.can_generate_object_free_events = 1;
+  if (jvmti_options->exception_create) {
+    error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, nullptr);
+    callbacks.Exception = &callbackException;
+  }
+  if (jvmti_options->exception_catch) {
+    error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION_CATCH, nullptr);
+    callbacks.ExceptionCatch = &callbackExceptionCatch;
+  }
+
+  // 方法进入和退出
+  if (jvmti_options->method_enter) {
+    capa.can_generate_method_entry_events = 1;
+    error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_ENTRY, nullptr);
+    callbacks.MethodEntry = &callbackMethodEntry;
+  }
+  if (jvmti_options->method_exit) {
+    capa.can_generate_method_exit_events = 1;
+    error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_EXIT, nullptr);
+    callbacks.MethodExit = &callbackMethodExit;
+  }
+  capa.can_signal_thread = 1;
+  capa.can_get_owned_monitor_info = 1;
   // 标记对象和从对象获取标记
   capa.can_tag_objects = 1;
-  // 线程开始和结束
   error = jvmti->AddCapabilities(&capa);
-  // check_jvmti_error(jvmti, error, "Unable to get necessary JVMTI capabilities");
-  if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s AddCapabilities error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
-  }
-
-  // 对象分配与释放
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_VM_OBJECT_ALLOC, nullptr);
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_OBJECT_FREE, nullptr);
-  // 方法进入与退出
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_ENTRY, nullptr);
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_METHOD_EXIT, nullptr);
-  // 异常
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, nullptr);
-  error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION_CATCH, nullptr);
-  // check_jvmti_error(jvmti, error, "Can not set event notification");
-  if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s SetEventNotificationMode error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
-  }
-
-  jvmtiEventCallbacks callbacks = {};
-  memset(&callbacks, 0, sizeof(jvmtiEventCallbacks));
-  // 对象分配和释放事件
-  callbacks.VMObjectAlloc = &callbackVMObjectAlloc;
-  callbacks.ObjectFree = &callbackObjectFree;
-  // 方法进入和退出事件
-  callbacks.MethodEntry = &callbackMethodEntry;
-  callbacks.MethodExit = &callbackMethodExit;
-  // 异常产生与抓取
-  callbacks.Exception = &callbackException;
-  callbacks.ExceptionCatch = &callbackExceptionCatch;
+  check_jvmti_error(jvmti, error, "Unable to get necessary capabilities");
   error = jvmti->SetEventCallbacks(&callbacks, sizeof(callbacks));
-  // check_jvmti_error(jvmti, error, "Can not set JVMTI callbacks");
-  if (error != JVMTI_ERROR_NONE) {
-    ALOGE("%s SetEventCallbacks error: %s", __func__, jvmti::util::GetErrStr(jvmti, error))
-  }
+  check_jvmti_error(jvmti, error, "Can not set JVMTI callbacks");
   return JNI_OK;
 }
 
