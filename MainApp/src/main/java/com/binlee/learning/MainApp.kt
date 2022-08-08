@@ -17,8 +17,22 @@ import com.binlee.learning.util.NotificationHelper
  */
 class MainApp : Application() {
 
+  // 插件化
+  // 1、代码插件化
+  //   1.1、原生代码
+  //     如何启动清单文件中未声明的 activity？
+  //   1.2、so
+  // 2、资源插件化
+  //   2.1、如何加载新的资源？
+  //   2.1、资源 id 冲突如何解决？
+
   override fun attachBaseContext(base: Context?) {
     super.attachBaseContext(base)
+  }
+
+  override fun getClassLoader(): ClassLoader {
+    // 这里的路径应为预定好的固定路径，比如 cache 目录
+    return PluginLoader.proxy("", super.getClassLoader())
   }
 
   override fun onCreate() {
