@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Resources
 import android.os.Build
 import android.util.Log
 import com.binlee.learning.components.receiver.GlobalReceiver
@@ -33,6 +34,10 @@ class MainApp : Application() {
   override fun getClassLoader(): ClassLoader {
     // 这里的路径应为预定好的固定路径，比如 cache 目录
     return PluginLoader.proxy("", super.getClassLoader())
+  }
+
+  override fun getResources(): Resources {
+    return ResourceLoader.proxy(super.getResources())
   }
 
   override fun onCreate() {
