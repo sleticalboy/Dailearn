@@ -31,13 +31,11 @@ class SkinManager {
     val ret = m.invoke(assets, url)
     Log.d(TAG, "invoke addAssetPath() ret: $ret")
 
-    mResource =
-      Resources(assets, mContext.resources.displayMetrics, mContext.resources.configuration)
+    mResource = Resources(assets, mContext.resources.displayMetrics, mContext.resources.configuration)
 
-    mPackageName = mContext.packageManager.getPackageArchiveInfo(
-      url,
-      PackageManager.GET_ACTIVITIES
-    )!!.packageName
+    mPackageName = mContext.packageManager
+      .getPackageArchiveInfo(url, PackageManager.GET_ACTIVITIES)!!
+      .packageName
     Log.d(TAG, "get package name by PackageManager: $mPackageName")
   }
 

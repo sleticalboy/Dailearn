@@ -1,6 +1,8 @@
 package com.binlee.learning;
 
 import dalvik.system.PathClassLoader;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +15,7 @@ import java.util.Map;
  */
 public final class PluginLoader {
 
-  private static final String TAG = "PluginLoader";
+  static final String TAG = "PluginLoader";
 
   private static final Map<String, Boolean> sClassLoaders = new HashMap<>();
 
@@ -24,10 +26,12 @@ public final class PluginLoader {
     // 1、从 apk 中解析到所有的 dex 文件
     if (apkOrDexPath.endsWith(".dex")) {
       dexList.add(apkOrDexPath);
-    } else if (apkOrDexPath.endsWith(".apk")) {
-      extractDexFromArchive(apkOrDexPath, dexList);
-    } else if (apkOrDexPath.endsWith(".zip")) {
-      extractDexFromArchive(apkOrDexPath, dexList);
+    } else if (apkOrDexPath.endsWith(".apk") || apkOrDexPath.endsWith(".zip")) {
+      try {
+        extractDexFromArchive(apkOrDexPath, dexList);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
     // 2、使用 dex 文件构造 PathClassLoader 链
     if (dexList.size() > 0) {
@@ -41,7 +45,12 @@ public final class PluginLoader {
     return tailLoader;
   }
 
-  private static void extractDexFromArchive(String archivePath, List<String> container) {
+  private static void extractDexFromArchive(String archivePath, List<String> container) throws IOException {
     // FIXME: 2022/8/8 从 apk 或 zip 包中提取 dex 文件
+    final DexExtractor extractor = new DexExtractor(new File(archivePath), new File("dex_dir"));
+    final List<? extends File> files = extractor.load(null, "sp_prefix", false);
+    for (File file : files) {
+      container.add(file.getAbsolutePath());
+    }
   }
 }

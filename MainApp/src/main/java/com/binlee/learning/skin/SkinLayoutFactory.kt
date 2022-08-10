@@ -14,16 +14,11 @@ import java.util.Observer
  */
 class SkinLayoutFactory : LayoutInflater.Factory2, Observer {
 
-  override fun onCreateView(
-    parent: View?,
-    name: String,
-    context: Context,
-    attrs: AttributeSet
-  ): View? {
-    return null
+  override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
+    return onCreateView(null, name, context, attrs)
   }
 
-  override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
+  override fun onCreateView(parent: View?, name: String, context: Context, attrs: AttributeSet): View? {
     return null
   }
 
