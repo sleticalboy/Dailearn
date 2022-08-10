@@ -23,15 +23,13 @@ public final class PluginLoader {
     if (sClassLoaders.containsKey(apkOrDexPath)) return parent;
     ClassLoader tailLoader = parent;
     final List<String> dexList = new ArrayList<>();
-    // 1、从 apk 中解析到所有的 dex 文件
+    // 1、收集所有的 dex 文
     if (apkOrDexPath.endsWith(".dex")) {
+      // 本身就是 dex 文件，直接收集
       dexList.add(apkOrDexPath);
     } else if (apkOrDexPath.endsWith(".apk") || apkOrDexPath.endsWith(".zip")) {
-      try {
-        extractDexFromArchive(apkOrDexPath, dexList);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      // 从 apk 中解压出所有 dex 文件
+      extractDexFromArchive(apkOrDexPath, dexList);
     }
     // 2、使用 dex 文件构造 PathClassLoader 链
     if (dexList.size() > 0) {
@@ -45,11 +43,14 @@ public final class PluginLoader {
     return tailLoader;
   }
 
-  private static void extractDexFromArchive(String archivePath, List<String> container) throws IOException {
-    // FIXME: 2022/8/8 从 apk 或 zip 包中提取 dex 文件
-    final DexExtractor extractor = new DexExtractor(new File(archivePath), new File("dex_dir"));
-    for (File file : extractor.extractDex()) {
-      container.add(file.getAbsolutePath());
+  private static void extractDexFromArchive(String archivePath, List<String> container) {
+    try {
+      final DexExtractor extractor = new DexExtractor(new File(archivePath), new File("dex_dir"));
+      for (File file : extractor.extractDex()) {
+        container.add(file.getAbsolutePath());
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 }
