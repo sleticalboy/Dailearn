@@ -48,8 +48,7 @@ public final class PluginLoader {
   private static void extractDexFromArchive(String archivePath, List<String> container) throws IOException {
     // FIXME: 2022/8/8 从 apk 或 zip 包中提取 dex 文件
     final DexExtractor extractor = new DexExtractor(new File(archivePath), new File("dex_dir"));
-    final List<? extends File> files = extractor.load(null, "sp_prefix", false);
-    for (File file : files) {
+    for (File file : extractor.extractDex()) {
       container.add(file.getAbsolutePath());
     }
   }

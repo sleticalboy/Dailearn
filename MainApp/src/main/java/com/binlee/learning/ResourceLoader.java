@@ -33,7 +33,8 @@ public class ResourceLoader {
   }
 
   @NonNull public static Resources proxy(@NonNull Resources parent) {
-    return new WrapperResource(parent);
+    // return new WrapperResource(parent);
+    return parent;
   }
   
   private static class WrapperResource extends Resources {
