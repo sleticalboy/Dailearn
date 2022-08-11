@@ -7,7 +7,7 @@ package com.binlee.emoji.generic;
  */
 public interface IGeneric<K, V> {
 
-    K getKey();
+  K getKey();
 
-    V getValue();
+  V getValue();
 }

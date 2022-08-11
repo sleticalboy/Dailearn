@@ -7,13 +7,13 @@ package com.binlee.emoji.generic;
  */
 public class BaseGenericImpl extends BaseGeneric {
 
-    @Override
-    public String getKey() {
-        return null;
-    }
+  @Override
+  public String getKey() {
+    return null;
+  }
 
-    @Override
-    public String getValue() {
-        return null;
-    }
+  @Override
+  public String getValue() {
+    return null;
+  }
 }

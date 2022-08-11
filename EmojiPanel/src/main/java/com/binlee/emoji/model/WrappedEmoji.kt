@@ -9,11 +9,11 @@ import java.io.Serializable
  */
 class WrappedEmoji : Serializable {
 
-    var mEmoji: Emoji? = null
-    var mGroup: EmojiGroup? = null
-    var mEmojiList: List<Emoji>? = null
+  var mEmoji: Emoji? = null
+  var mGroup: EmojiGroup? = null
+  var mEmojiList: List<Emoji>? = null
 
-    companion object {
-        private const val serialVersionUID = 3392703176362269326L
-    }
+  companion object {
+    private const val serialVersionUID = 3392703176362269326L
+  }
 }

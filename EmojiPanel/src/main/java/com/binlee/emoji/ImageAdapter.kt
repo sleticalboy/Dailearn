@@ -5,26 +5,26 @@ import com.binlee.emoji.third.GlideImageEngine
 
 class ImageAdapter private constructor() {
 
-    companion object {
+  companion object {
 
-        private var sEngine: ImageEngine? = null
+    private var sEngine: ImageEngine? = null
 
-        fun setImageEngine(engine: ImageEngine?) {
-            if (engine == null) {
-                throw NullPointerException("setImageEngine(): engine is null")
-            }
-            sEngine = engine
-        }
-
-        fun engine(): ImageEngine {
-            if (sEngine == null) {
-                sEngine = GlideImageEngine()
-            }
-            return sEngine!!
-        }
+    fun setImageEngine(engine: ImageEngine?) {
+      if (engine == null) {
+        throw NullPointerException("setImageEngine(): engine is null")
+      }
+      sEngine = engine
     }
 
-    init {
-        throw AssertionError("no instance.")
+    fun engine(): ImageEngine {
+      if (sEngine == null) {
+        sEngine = GlideImageEngine()
+      }
+      return sEngine!!
     }
+  }
+
+  init {
+    throw AssertionError("no instance.")
+  }
 }

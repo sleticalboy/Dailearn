@@ -10,13 +10,13 @@ import java.util.Set;
  * @author Ben binli@grandstream.cn
  */
 public final class ComplexGeneric implements IGeneric<String, Map<String, List<Set<IGeneric<String, Integer>>>>> {
-    @Override
-    public String getKey() {
-        return null;
-    }
+  @Override
+  public String getKey() {
+    return null;
+  }
 
-    @Override
-    public Map<String, List<Set<IGeneric<String, Integer>>>> getValue() {
-        return null;
-    }
+  @Override
+  public Map<String, List<Set<IGeneric<String, Integer>>>> getValue() {
+    return null;
+  }
 }

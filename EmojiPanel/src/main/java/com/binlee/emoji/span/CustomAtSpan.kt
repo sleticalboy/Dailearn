@@ -12,16 +12,20 @@ import android.text.style.ReplacementSpan
  */
 class CustomAtSpan(private val mSource: CharSequence) : ReplacementSpan() {
 
-    override fun getSize(paint: Paint, text: CharSequence,
-                         start: Int, end: Int,
-                         fm: FontMetricsInt?): Int {
-        return paint.measureText(mSource, 0, mSource.length).toInt()
-    }
+  override fun getSize(
+    paint: Paint, text: CharSequence,
+    start: Int, end: Int,
+    fm: FontMetricsInt?
+  ): Int {
+    return paint.measureText(mSource, 0, mSource.length).toInt()
+  }
 
-    override fun draw(canvas: Canvas, text: CharSequence,
-                      start: Int, end: Int,
-                      x: Float, top: Int, y: Int, bottom: Int,
-                      paint: Paint) {
-        canvas.drawText(mSource, 0, mSource.length, x, y.toFloat(), paint)
-    }
+  override fun draw(
+    canvas: Canvas, text: CharSequence,
+    start: Int, end: Int,
+    x: Float, top: Int, y: Int, bottom: Int,
+    paint: Paint
+  ) {
+    canvas.drawText(mSource, 0, mSource.length, x, y.toFloat(), paint)
+  }
 }

@@ -9,22 +9,22 @@ import androidx.annotation.NonNull;
  */
 public final class UpperHolder {
 
-    private BaseGeneric mValue;
+  private BaseGeneric mValue;
 
-    public <T extends BaseGeneric> void setValue(T value) {
-        mValue = value;
-    }
+  public <T extends BaseGeneric> void setValue(T value) {
+    mValue = value;
+  }
 
-    public BaseGeneric getValue() {
-        return mValue;
-    }
+  public BaseGeneric getValue() {
+    return mValue;
+  }
 
-    @NonNull
-    @Override
-    public String toString() {
-        return "UpperHolder{" +
-                "key=" + mValue.getKey() +
-                "value=" + mValue.getValue() +
-                '}';
-    }
+  @NonNull
+  @Override
+  public String toString() {
+    return "UpperHolder{" +
+      "key=" + mValue.getKey() +
+      "value=" + mValue.getValue() +
+      '}';
+  }
 }
