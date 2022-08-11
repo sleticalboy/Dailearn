@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.OrientationHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.SmoothScroller.ScrollVectorProvider
 import androidx.recyclerview.widget.SnapHelper
+import kotlin.math.abs
 
 /**
  * Created on 18-2-8.
@@ -29,7 +30,7 @@ class StartSnapHelper : SnapHelper() {
   override fun calculateDistanceToFinalSnap(
     layoutManager: RecyclerView.LayoutManager,
     targetView: View
-  ): IntArray? {
+  ): IntArray {
     val out = IntArray(2)
     if (layoutManager.canScrollHorizontally()) {
       out[0] = distanceToStart(targetView, getHorizontalHelper(layoutManager))
@@ -43,6 +44,7 @@ class StartSnapHelper : SnapHelper() {
     return helper!!.getDecoratedStart(targetView) - helper.startAfterPadding
   }
 
+  @Deprecated("Deprecated in Java")
   override fun createSnapScroller(layoutManager: RecyclerView.LayoutManager): LinearSmoothScroller? {
     return if (layoutManager !is ScrollVectorProvider) {
       null
@@ -50,9 +52,9 @@ class StartSnapHelper : SnapHelper() {
       override fun onTargetFound(targetView: View, state: RecyclerView.State, action: Action) {
         val snapDistances =
           calculateDistanceToFinalSnap(mRecyclerView!!.layoutManager!!, targetView)
-        val dx = snapDistances!![0]
+        val dx = snapDistances[0]
         val dy = snapDistances[1]
-        val time = calculateTimeForDeceleration(Math.max(Math.abs(dx), Math.abs(dy)))
+        val time = calculateTimeForDeceleration(abs(dx).coerceAtLeast(abs(dy)))
         if (time > 0) {
           action.update(dx, dy, time, mDecelerateInterpolator)
         }

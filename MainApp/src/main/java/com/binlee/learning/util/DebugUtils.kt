@@ -93,6 +93,7 @@ object DebugUtils {
       return sCheckService!!.invoke(null, service) as IBinder
     }
 
+    @Deprecated("Deprecated in Java")
     override fun doInBackground(vararg params: Void?): Void? {
       var services = arrayOfNulls<String>(0)
       try {
@@ -119,6 +120,7 @@ object DebugUtils {
       return null
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onPostExecute(aVoid: Void?) {
       sIsWorking = false
     }

@@ -186,15 +186,16 @@ class DividerGridItemDecoration(private val mContext: Context, private val mSpac
     return false
   }
 
+  @Deprecated("Deprecated in Java")
   override fun getItemOffsets(outRect: Rect, itemPosition: Int, parent: RecyclerView) {   //列数
     val spanCount = getSpanCount(parent)
     //item个数
     val childCount = parent.adapter!!.itemCount
-    if (isLastRaw(parent, itemPosition, spanCount, childCount)) // 如果是最后一行，则不需要绘制底部
-    {
+    if (isLastRaw(parent, itemPosition, spanCount, childCount)) {
+      // 如果是最后一行，则不需要绘制底部
       outRect[0, 0, mSpace] = 0
-    } else if (isLastColumn(parent, itemPosition, spanCount, childCount)) // 如果是最后一列，则不需要绘制右边
-    {
+    } else if (isLastColumn(parent, itemPosition, spanCount, childCount)) {
+      // 如果是最后一列，则不需要绘制右边
       outRect[0, 0, mSpace] = mSpace
     } /*else if (isFirstRaw(parent, itemPosition, spanCount, childCount)) {// 如果是第一行，则只需要绘制上边
             outRect.set(10, 10, 0, 10);

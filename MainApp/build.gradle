@@ -62,6 +62,7 @@ dependencies {
   implementation("com.jakewharton.retrofit:retrofit2-rxjava2-adapter:$rxjava_adapter_version")
   implementation("androidx.exifinterface:exifinterface:$exif_interface")
   implementation("com.airbnb.android:lottie:$lottie_version")
+  implementation 'org.chromium.net:cronet-embedded:102.5005.125'
   compileOnly("com.google.code.gson:gson:$gson")
 
   implementation project(path: ':lib_jvmti')

@@ -37,7 +37,7 @@ class MainApp : Application() {
   }
 
   override fun getResources(): Resources {
-    return ResourceLoader.proxy(super.getResources())
+    return ResourceLoader.proxy("", super.getResources())
   }
 
   override fun onCreate() {

@@ -47,6 +47,7 @@ class FfmpegPractise : BaseActivity() {
     Toast.makeText(this, ffmpegVersions, Toast.LENGTH_LONG).show()
   }
 
+  @Deprecated("Deprecated in Java")
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode == PICK_VIDEO && resultCode == RESULT_OK) {

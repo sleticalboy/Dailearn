@@ -27,6 +27,7 @@ class CustomViewActivity : ListActivity() {
     listAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mDataList)
   }
 
+  @Deprecated("Deprecated in Java")
   override fun onListItemClick(l: ListView?, v: View?, position: Int, id: Long) {
     val holder = mDataList[position]
     (v as TextView).text = holder.mName

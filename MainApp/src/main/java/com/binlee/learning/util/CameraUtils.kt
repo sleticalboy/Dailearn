@@ -115,6 +115,7 @@ class CameraUtils {
   }
 
   private inner class PictureCallbackImpl : Camera.PictureCallback {
+    @Deprecated("Deprecated in Java")
     override fun onPictureTaken(data: ByteArray, camera: Camera?) {
       mIsPreview = false
       saveImage(data)
@@ -124,6 +125,7 @@ class CameraUtils {
   }
 
   private inner class ShutterCallbackImpl : Camera.ShutterCallback {
+    @Deprecated("Deprecated in Java")
     override fun onShutter() {}
   }
 
