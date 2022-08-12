@@ -8,6 +8,7 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -16,6 +17,7 @@ import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.content.res.ResourcesCompat;
 
 import org.xmlpull.v1.XmlPullParserException;
@@ -24,19 +26,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created on 2022-08-09.
  *
  * @author binlee
  */
-public class ResourceLoader {
+public final class ResourceLoader {
 
   private static final String TAG = "ResourceLoader";
 
-  private static final Set<String> PLUGIN_RESOURCES = new HashSet<>();
+  private static final List<String> PLUGIN_RESOURCES = new ArrayList<>();
 
   private ResourceLoader() {
     //no instance
@@ -63,7 +65,8 @@ public class ResourceLoader {
       PLUGIN_RESOURCES.add(pluginPath);
       // 先从主 app 中获取资源，如果获取不到再从插件中获取
       return new ResourcesWrapper(assets, parent);
-    } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
+    } catch (IllegalAccessException | InstantiationException | NoSuchMethodException
+            | InvocationTargetException e) {
       e.printStackTrace();
     }
     return parent;
@@ -71,17 +74,19 @@ public class ResourceLoader {
   
   private static class ResourcesWrapper extends Resources {
     
+    private final Resources mParent;
     private final Resources mPlugin;
     
     public ResourcesWrapper(AssetManager assets, Resources parent) {
       super(parent.getAssets(), parent.getDisplayMetrics(), parent.getConfiguration());
       mPlugin = new Resources(assets, parent.getDisplayMetrics(), parent.getConfiguration());
+      mParent = parent;
     }
 
     @Override
     public CharSequence getText(int id) throws NotFoundException {
       try {
-        return super.getText(id);
+        return mParent.getText(id);
       } catch (NotFoundException e) {
         return mPlugin.getText(id);
       }
@@ -90,7 +95,7 @@ public class ResourceLoader {
     @Override
     public CharSequence getQuantityText(int id, int quantity) throws NotFoundException {
       try {
-        return super.getQuantityText(id, quantity);
+        return mParent.getQuantityText(id, quantity);
       } catch (NotFoundException e) {
         return mPlugin.getQuantityText(id, quantity);
       }
@@ -99,7 +104,7 @@ public class ResourceLoader {
     @Override
     public String getString(int id) throws NotFoundException {
       try {
-        return super.getString(id);
+        return mParent.getString(id);
       } catch (NotFoundException e) {
         return mPlugin.getString(id);
       }
@@ -108,7 +113,7 @@ public class ResourceLoader {
     @Override
     public String getString(int id, Object... formatArgs) throws NotFoundException {
       try {
-        return super.getString(id, formatArgs);
+        return mParent.getString(id, formatArgs);
       } catch (NotFoundException e) {
         return mPlugin.getString(id, formatArgs);
       }
@@ -118,7 +123,7 @@ public class ResourceLoader {
     public String getQuantityString(int id, int quantity, Object... formatArgs)
       throws NotFoundException {
       try {
-        return super.getQuantityString(id, quantity, formatArgs);
+        return mParent.getQuantityString(id, quantity, formatArgs);
       } catch (NotFoundException e) {
         return mPlugin.getQuantityString(id, quantity, formatArgs);
       }
@@ -127,7 +132,7 @@ public class ResourceLoader {
     @Override
     public String getQuantityString(int id, int quantity) throws NotFoundException {
       try {
-        return super.getQuantityString(id, quantity);
+        return mParent.getQuantityString(id, quantity);
       } catch (NotFoundException e) {
         return mPlugin.getQuantityString(id, quantity);
       }
@@ -136,7 +141,7 @@ public class ResourceLoader {
     @Override
     public CharSequence getText(int id, CharSequence def) {
       try {
-        return super.getText(id, def);
+        return mParent.getText(id, def);
       } catch (Exception e) {
         return mPlugin.getText(id, def);
       }
@@ -145,7 +150,7 @@ public class ResourceLoader {
     @Override
     public CharSequence[] getTextArray(int id) throws NotFoundException {
       try {
-        return super.getTextArray(id);
+        return mParent.getTextArray(id);
       } catch (NotFoundException e) {
         return mPlugin.getTextArray(id);
       }
@@ -154,7 +159,7 @@ public class ResourceLoader {
     @Override
     public String[] getStringArray(int id) throws NotFoundException {
       try {
-        return super.getStringArray(id);
+        return mParent.getStringArray(id);
       } catch (NotFoundException e) {
         return mPlugin.getStringArray(id);
       }
@@ -163,7 +168,7 @@ public class ResourceLoader {
     @Override
     public int[] getIntArray(int id) throws NotFoundException {
       try {
-        return super.getIntArray(id);
+        return mParent.getIntArray(id);
       } catch (NotFoundException e) {
         return mPlugin.getIntArray(id);
       }
@@ -172,7 +177,7 @@ public class ResourceLoader {
     @Override
     public TypedArray obtainTypedArray(int id) throws NotFoundException {
       try {
-        return super.obtainTypedArray(id);
+        return mParent.obtainTypedArray(id);
       } catch (NotFoundException e) {
         return mPlugin.obtainTypedArray(id);
       }
@@ -181,7 +186,7 @@ public class ResourceLoader {
     @Override
     public float getDimension(int id) throws NotFoundException {
       try {
-        return super.getDimension(id);
+        return mParent.getDimension(id);
       } catch (NotFoundException e) {
         return mPlugin.getDimension(id);
       }
@@ -190,7 +195,7 @@ public class ResourceLoader {
     @Override
     public int getDimensionPixelOffset(int id) throws NotFoundException {
       try {
-        return super.getDimensionPixelOffset(id);
+        return mParent.getDimensionPixelOffset(id);
       } catch (NotFoundException e) {
         return mPlugin.getDimensionPixelOffset(id);
       }
@@ -199,7 +204,7 @@ public class ResourceLoader {
     @Override
     public int getDimensionPixelSize(int id) throws NotFoundException {
       try {
-        return super.getDimensionPixelSize(id);
+        return mParent.getDimensionPixelSize(id);
       } catch (NotFoundException e) {
         return mPlugin.getDimensionPixelSize(id);
       }
@@ -208,7 +213,7 @@ public class ResourceLoader {
     @Override
     public float getFraction(int id, int base, int pbase) {
       try {
-        return super.getFraction(id, base, pbase);
+        return mParent.getFraction(id, base, pbase);
       } catch (Exception e) {
         return mPlugin.getFraction(id, base, pbase);
       }
@@ -222,7 +227,7 @@ public class ResourceLoader {
     @Override
     public Drawable getDrawable(int id, Theme theme) throws NotFoundException {
       try {
-        return ResourcesCompat.getDrawable(this, id, null);
+        return ResourcesCompat.getDrawable(mParent, id, null);
       } catch (NotFoundException e) {
         return ResourcesCompat.getDrawable(mPlugin, id, null);
       }
@@ -239,7 +244,7 @@ public class ResourceLoader {
     @Override
     public Drawable getDrawableForDensity(int id, int density, Theme theme) {
       try {
-        return super.getDrawableForDensity(id, density, theme);
+        return mParent.getDrawableForDensity(id, density, theme);
       } catch (Exception e) {
         return mPlugin.getDrawableForDensity(id, density, theme);
       }
@@ -248,7 +253,7 @@ public class ResourceLoader {
     @Override
     public android.graphics.Movie getMovie(int id) throws NotFoundException {
       try {
-        return super.getMovie(id);
+        return mParent.getMovie(id);
       } catch (NotFoundException e) {
         return mPlugin.getMovie(id);
       }
@@ -256,13 +261,18 @@ public class ResourceLoader {
 
     @Override
     public int getColor(int id) throws NotFoundException {
-      return this.getColor(id, null);
+      try {
+        return mParent.getColor(id);
+      } catch (NotFoundException e) {
+        return mPlugin.getColor(id);
+      }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public int getColor(int id, @Nullable Theme theme) throws NotFoundException {
       try {
-        return super.getColor(id, theme);
+        return mParent.getColor(id, theme);
       } catch (NotFoundException e) {
         return mPlugin.getColor(id, theme);
       }
@@ -270,60 +280,100 @@ public class ResourceLoader {
 
     @Override
     public ColorStateList getColorStateList(int id) throws NotFoundException {
-      return super.getColorStateList(id);
+      try {
+        return ResourcesCompat.getColorStateList(mParent, id, null);
+      } catch (NotFoundException e) {
+        return ResourcesCompat.getColorStateList(mPlugin, id, null);
+      }
     }
 
     @Override
     public boolean getBoolean(int id) throws NotFoundException {
-      return super.getBoolean(id);
+      try {
+        return mParent.getBoolean(id);
+      } catch (NotFoundException e) {
+        return mPlugin.getBoolean(id);
+      }
     }
 
     @Override
     public int getInteger(int id) throws NotFoundException {
-      return mPlugin.getInteger(id);
+      try {
+        return mParent.getInteger(id);
+      } catch (NotFoundException e) {
+        return mPlugin.getInteger(id);
+      }
     }
 
     @Override
     public XmlResourceParser getLayout(int id) throws NotFoundException {
-      return super.getLayout(id);
+      try {
+        return mParent.getLayout(id);
+      } catch (NotFoundException e) {
+        return mPlugin.getLayout(id);
+      }
     }
 
     @Override
     public XmlResourceParser getAnimation(int id) throws NotFoundException {
-      return super.getAnimation(id);
+      try {
+        return mParent.getAnimation(id);
+      } catch (NotFoundException e) {
+        return mPlugin.getAnimation(id);
+      }
     }
 
     @Override
     public XmlResourceParser getXml(int id) throws NotFoundException {
-      return super.getXml(id);
+      try {
+        return mParent.getXml(id);
+      } catch (NotFoundException e) {
+        return mParent.getXml(id);
+      }
     }
 
     @Override
     public InputStream openRawResource(int id) throws NotFoundException {
-      return super.openRawResource(id);
+      try {
+        return mParent.openRawResource(id);
+      } catch (NotFoundException e) {
+        return mPlugin.openRawResource(id);
+      }
     }
 
     @Override
     public InputStream openRawResource(int id, TypedValue value) throws NotFoundException {
-      return super.openRawResource(id, value);
+      try {
+        return mParent.openRawResource(id, value);
+      } catch (NotFoundException e) {
+        return mPlugin.openRawResource(id, value);
+      }
     }
 
     @Override
     public AssetFileDescriptor openRawResourceFd(int id) throws NotFoundException {
-      return super.openRawResourceFd(id);
+      try {
+        return mParent.openRawResourceFd(id);
+      } catch (NotFoundException e) {
+        return mPlugin.openRawResourceFd(id);
+      }
     }
 
     @Override
     public void getValue(int id, TypedValue outValue, boolean resolveRefs)
       throws NotFoundException {
-      super.getValue(id, outValue, resolveRefs);
+      try {
+        mParent.getValue(id, outValue, resolveRefs);
+      } catch (NotFoundException e) {
+        mPlugin.getValue(id, outValue, resolveRefs);
+      }
     }
 
     @Override
     public void getValueForDensity(int id, int density, TypedValue outValue, boolean resolveRefs)
       throws NotFoundException {
       try {
-        super.getValueForDensity(id, density, outValue, resolveRefs);
+        mParent.getValueForDensity(id, density, outValue, resolveRefs);
       } catch (NotFoundException e) {
         mPlugin.getValueForDensity(id, density, outValue, resolveRefs);
       }
@@ -332,67 +382,103 @@ public class ResourceLoader {
     @Override
     public void getValue(String name, TypedValue outValue, boolean resolveRefs)
       throws NotFoundException {
-      super.getValue(name, outValue, resolveRefs);
-    }
-
-    @Override
-    public TypedArray obtainAttributes(AttributeSet set, int[] attrs) {
-      return super.obtainAttributes(set, attrs);
-    }
-
-    @Override
-    public void updateConfiguration(Configuration config, DisplayMetrics metrics) {
-      super.updateConfiguration(config, metrics);
-      if (mPlugin != null) { // called from super's constructor. So, need to check.
-        super.updateConfiguration(config, metrics);
+      try {
+        mParent.getValue(name, outValue, resolveRefs);
+      } catch (NotFoundException e) {
+        mPlugin.getValue(name, outValue, resolveRefs);
       }
     }
 
     @Override
-    public DisplayMetrics getDisplayMetrics() {
-      return super.getDisplayMetrics();
+    public TypedArray obtainAttributes(AttributeSet set, int[] attrs) {
+      try {
+        return mParent.obtainAttributes(set, attrs);
+      } catch (Exception e) {
+        return mPlugin.obtainAttributes(set, attrs);
+      }
     }
 
     @Override
-    public Configuration getConfiguration() {
-      return super.getConfiguration();
+    public void updateConfiguration(Configuration config, DisplayMetrics metrics) {
+      mParent.updateConfiguration(config, metrics);
+      if (mPlugin != null) { // called from mParent's constructor. So, need to check.
+        mParent.updateConfiguration(config, metrics);
+      }
     }
+
+    // @Override
+    // public DisplayMetrics getDisplayMetrics() {
+    //   return mParent.getDisplayMetrics();
+    // }
+
+    // @Override
+    // public Configuration getConfiguration() {
+    //   return mParent.getConfiguration();
+    // }
 
     @Override
     public int getIdentifier(String name, String defType, String defPackage) {
-      return super.getIdentifier(name, defType, defPackage);
+      try {
+        return mParent.getIdentifier(name, defType, defPackage);
+      } catch (Exception e) {
+        return mPlugin.getIdentifier(name, defType, defPackage);
+      }
     }
 
     @Override
     public String getResourceName(int resid) throws NotFoundException {
-      return super.getResourceName(resid);
+      try {
+        return mParent.getResourceName(resid);
+      } catch (NotFoundException e) {
+        return mPlugin.getResourceName(resid);
+      }
     }
 
     @Override
     public String getResourcePackageName(int resid) throws NotFoundException {
-      return super.getResourcePackageName(resid);
+      try {
+        return mParent.getResourcePackageName(resid);
+      } catch (NotFoundException e) {
+        return mPlugin.getResourcePackageName(resid);
+      }
     }
 
     @Override
     public String getResourceTypeName(int resid) throws NotFoundException {
-      return super.getResourceTypeName(resid);
+      try {
+        return mParent.getResourceTypeName(resid);
+      } catch (NotFoundException e) {
+        return mPlugin.getResourceTypeName(resid);
+      }
     }
 
     @Override
     public String getResourceEntryName(int resid) throws NotFoundException {
-      return super.getResourceEntryName(resid);
+      try {
+        return mParent.getResourceEntryName(resid);
+      } catch (NotFoundException e) {
+        return mPlugin.getResourceEntryName(resid);
+      }
     }
 
     @Override
     public void parseBundleExtras(XmlResourceParser parser, Bundle outBundle)
       throws XmlPullParserException, IOException {
-      super.parseBundleExtras(parser, outBundle);
+      try {
+        mParent.parseBundleExtras(parser, outBundle);
+      } catch (IOException | XmlPullParserException e) {
+        mPlugin.parseBundleExtras(parser, outBundle);
+      }
     }
 
     @Override
     public void parseBundleExtra(String tagName, AttributeSet attrs, Bundle outBundle)
       throws XmlPullParserException {
-      super.parseBundleExtra(tagName, attrs, outBundle);
+      try {
+        mParent.parseBundleExtra(tagName, attrs, outBundle);
+      } catch (XmlPullParserException e) {
+        mPlugin.parseBundleExtra(tagName, attrs, outBundle);
+      }
     }
   }
 }

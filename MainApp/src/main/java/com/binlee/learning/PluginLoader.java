@@ -2,8 +2,8 @@ package com.binlee.learning;
 
 import android.util.Log;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import dalvik.system.PathClassLoader;
 
@@ -16,7 +16,7 @@ public final class PluginLoader {
 
   static final String TAG = "PluginLoader";
 
-  private static final Set<String> sClassLoaders = new HashSet<>();
+  private static final List<String> sClassLoaders = new ArrayList<>();
 
   public static synchronized ClassLoader proxy(String pluginPath, ClassLoader parent) {
     if (pluginPath == null || pluginPath.trim().length() == 0) return parent;
