@@ -3,6 +3,7 @@ package com.binlee.learning
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.AssetManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +23,7 @@ import com.binlee.learning.data.DataEngine
 import com.binlee.learning.data.Result
 import com.binlee.learning.databinding.ActivityIndexBinding
 import com.binlee.learning.others.KeyboardHeightProvider
+import dalvik.system.PathClassLoader
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -175,6 +177,9 @@ class IndexActivity : BaseActivity() {
       method = atClass.getDeclaredMethod("getApplication")
       val app = method.invoke(currentThread)
       Log.d(TAG, "reflectHiddenApiWithoutWarning() activity thread: $currentThread, app: $app")
+
+      method = AssetManager::class.java.getDeclaredMethod("addAssetPath", String::class.java)
+      Log.d(TAG, "reflectHiddenApiWithoutWarning() AssetManager#addAssetPath: $method")
     } catch (e: Exception) {
       e.printStackTrace()
     }
@@ -201,9 +206,24 @@ class IndexActivity : BaseActivity() {
         if (item.cls == "crack_hidden_api") {
           reflectHiddenApiWithoutWarning()
           return@setOnClickListener
+        } else if (item.cls == "load_plugin") {
+          loadPluginClass()
+          return@setOnClickListener
         }
         holder.itemView.context.startActivity(Intent(holder.itemView.context, item.clazz))
       }
+    }
+  }
+
+  private fun loadPluginClass() {
+    // com.binlee.sample.model.CacheEntry
+    // val loader = PathClassLoader("/sdcard/sample-arch-debug.apk", classLoader)
+    try {
+      val entryClass = classLoader.loadClass("com.binlee.sample.model.CacheEntry")
+      val entry = entryClass.newInstance()
+      Log.d(TAG, "loadPluginClass() entry: $entry, loader: $classLoader")
+    } catch (e: Throwable) {
+      e.printStackTrace()
     }
   }
 

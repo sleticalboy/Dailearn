@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.binlee.learning;
+package com.binlee.learning.plugin;
 
 import android.util.Log;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;

@@ -42,6 +42,8 @@ class IndexModel internal constructor() {
 
   private fun getTasks(): Result<List<ModuleItem>> {
     val array = arrayOf(
+      // 加载插件
+      ModuleItem("加载插件", "load_plugin"),
       // ffmpeg 实战
       ModuleItem("ffmpeg 实战", FfmpegPractise::class.java),
       // 突破系统 hidden API

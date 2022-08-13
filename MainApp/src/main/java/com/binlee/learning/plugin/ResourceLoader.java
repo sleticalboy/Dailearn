@@ -1,4 +1,4 @@
-package com.binlee.learning;
+package com.binlee.learning.plugin;
 
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
@@ -22,12 +22,15 @@ import androidx.core.content.res.ResourcesCompat;
 
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created on 2022-08-09.
@@ -38,7 +41,7 @@ public final class ResourceLoader {
 
   private static final String TAG = "ResourceLoader";
 
-  private static final List<String> PLUGIN_RESOURCES = new ArrayList<>();
+  private static final Map<String, Boolean> PLUGIN_RESOURCES = new HashMap<>();
 
   private ResourceLoader() {
     //no instance
@@ -47,27 +50,34 @@ public final class ResourceLoader {
   @NonNull public static Resources proxy(@Nullable String pluginPath, @NonNull Resources parent) {
     if (pluginPath == null || pluginPath.trim().length() == 0) return parent;
 
-    if (PLUGIN_RESOURCES.contains(pluginPath)) return parent;
+    if (PLUGIN_RESOURCES.containsKey(pluginPath)) return parent;
+
+    if (!new File(pluginPath).exists()) return parent;
 
     // 通过 apk 路径构建新的 Resources，使得主 app 可以加载插件中的资源
-    Log.d(TAG, "proxy() pluginPath: " + pluginPath);
 
     try {
+      PLUGIN_RESOURCES.put(pluginPath, null);
       //Class<?> clazz = Class.forName("android.content.res.ApkAssets");
       //Method method = clazz.getDeclaredMethod("loadFromPath", String.class);
       //method.setAccessible(true);
       //Object apkAssets = method.invoke(null, pluginPath);
       final AssetManager assets = AssetManager.class.newInstance();
-      Method method = AssetManager.class.getDeclaredMethod("addAssetsPath", String.class);
+      Method method = AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
       method.setAccessible(true);
-      Object ret = method.invoke(assets, pluginPath);
-      Log.d(TAG, "proxy() invoke AssetManager#addAssetsPath() ret: " + ret);
-      PLUGIN_RESOURCES.add(pluginPath);
+      final Object ret = method.invoke(assets, pluginPath);
       // 先从主 app 中获取资源，如果获取不到再从插件中获取
-      return new ResourcesWrapper(assets, parent);
+      final ResourcesWrapper wrapper = new ResourcesWrapper(assets, parent);
+      Log.d(TAG, "proxy() pluginPath: " + pluginPath + ", addAssetPath: " + ret
+              + ", resources: " + wrapper);
+      return wrapper;
     } catch (IllegalAccessException | InstantiationException | NoSuchMethodException
             | InvocationTargetException e) {
-      e.printStackTrace();
+      final Boolean reported = PLUGIN_RESOURCES.get(pluginPath);
+      if (reported == null || !reported) {
+        e.printStackTrace();
+        PLUGIN_RESOURCES.put(pluginPath, true);
+      }
     }
     return parent;
   }

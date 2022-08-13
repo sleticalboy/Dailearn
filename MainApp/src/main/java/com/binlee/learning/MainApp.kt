@@ -8,6 +8,8 @@ import android.content.res.Resources
 import android.os.Build
 import android.util.Log
 import com.binlee.learning.components.receiver.GlobalReceiver
+import com.binlee.learning.plugin.PluginLoader
+import com.binlee.learning.plugin.ResourceLoader
 import com.binlee.learning.util.NotificationHelper
 
 /**
@@ -32,12 +34,13 @@ class MainApp : Application() {
   }
 
   override fun getClassLoader(): ClassLoader {
-    // 这里的路径应为预定好的固定路径，比如 cache 目录
-    return PluginLoader.proxy("", super.getClassLoader())
+    // return super.getClassLoader()
+    // 这里的路径应为约定好的固定路径，比如 cache 目录
+    return PluginLoader.proxy(PLUGIN_PATH, super.getClassLoader())
   }
 
   override fun getResources(): Resources {
-    return ResourceLoader.proxy("", super.getResources())
+    return ResourceLoader.proxy(PLUGIN_PATH, super.getResources())
   }
 
   override fun onCreate() {
@@ -63,6 +66,7 @@ class MainApp : Application() {
   companion object {
 
     private const val TAG = "MainApp"
+    private const val PLUGIN_PATH = "/sdcard/sample-arch-debug.apk"
 
     private var mApp: Application? = null
 
