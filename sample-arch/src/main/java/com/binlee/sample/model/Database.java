@@ -8,6 +8,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.ArrayMap;
 import android.util.Pair;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.binlee.sample.util.Glog;
 import java.lang.reflect.Field;
@@ -347,8 +349,7 @@ public final class Database extends SQLiteOpenHelper implements IDataSource {
       this.columns = columns;
     }
 
-    @Override
-    public String toString() {
+    @NonNull @Override public String toString() {
       StringBuilder buffer = new StringBuilder("TableInfo{");
       buffer.append("name='").append(name).append('\'');
       buffer.append(", columns=");

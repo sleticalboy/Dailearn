@@ -31,12 +31,7 @@ public final class JvmtiLoader {
 
   public static void attachAgent(Context context) {
     // 上传上次记录的文件
-    try {
-      uploadLastFile(context);
-    } catch (IOException e) {
-      e.printStackTrace();
-      Log.w(TAG, "attachAgent() upload last file failed", e);
-    }
+    // uploadLastFile(context);
 
     final String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
     final String[] libs = new File(nativeLibraryDir).list();
@@ -55,23 +50,27 @@ public final class JvmtiLoader {
     attachInternal(config);
   }
 
-  private static void uploadLastFile(Context context) throws IOException {
-    final File file = new File(context.getFilesDir(), "ttt.txt");
-    if (file.exists()) {
-      ByteArrayOutputStream memory = null;
-      final FileInputStream stream = new FileInputStream(file);
-      byte b;
-      while ((b = (byte) stream.read()) != -1) {
-        // 重置 buffer
-        if (b == '{') memory = new ByteArrayOutputStream();
-        // 读数据的时候，跳过 '\0'
-        if (memory != null && b != '\0') memory.write(b);
-        // 一个 buffer 结束
-        if (memory != null && b == '}') {
-          parseJson(memory.toString().trim());
-          memory = null;
+  private static void uploadLastFile(Context context) {
+    try {
+      final File file = new File(context.getFilesDir(), "ttt.txt");
+      if (file.exists()) {
+        ByteArrayOutputStream memory = null;
+        final FileInputStream stream = new FileInputStream(file);
+        byte b;
+        while ((b = (byte) stream.read()) != -1) {
+          // 重置 buffer
+          if (b == '{') memory = new ByteArrayOutputStream();
+          // 读数据的时候，跳过 '\0'
+          if (memory != null && b != '\0') memory.write(b);
+          // 一个 buffer 结束
+          if (memory != null && b == '}') {
+            parseJson(memory.toString().trim());
+            memory = null;
+          }
         }
       }
+    } catch (IOException e) {
+      Log.w(TAG, "uploadLastFile() failed", e);
     }
   }
 
