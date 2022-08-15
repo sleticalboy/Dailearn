@@ -219,11 +219,11 @@ class IndexActivity : BaseActivity() {
     // com.binlee.sample.model.CacheEntry
     // val loader = PathClassLoader("/sdcard/sample-arch-debug.apk", classLoader)
     try {
-      val entryClass = classLoader.loadClass("com.binlee.sample.model.CacheEntry")
+      val entryClass = application.classLoader.loadClass("com.binlee.sample.model.CacheEntry")
       val entry = entryClass.newInstance()
-      Log.d(TAG, "loadPluginClass() entry: $entry, loader: $classLoader")
+      Log.d(TAG, "loadPluginClass() entry: $entry, loader: ${application.classLoader}")
     } catch (e: Throwable) {
-      e.printStackTrace()
+      Log.w(TAG, "loadPluginClass() failed: $e, loader: ${application.classLoader}")
     }
   }
 
