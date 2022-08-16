@@ -8,8 +8,8 @@ import android.content.res.Resources
 import android.os.Build
 import android.util.Log
 import com.binlee.learning.components.receiver.GlobalReceiver
-import com.binlee.learning.plugin.PluginLoader
-import com.binlee.learning.plugin.ResourceLoader
+import com.binlee.learning.plugin.PluginLoaders
+import com.binlee.learning.plugin.PluginResources
 import com.binlee.learning.util.NotificationHelper
 
 /**
@@ -36,11 +36,11 @@ class MainApp : Application() {
   override fun getClassLoader(): ClassLoader {
     // return super.getClassLoader()
     // 这里的路径应为约定好的固定路径，比如 cache 目录
-    return PluginLoader.proxy(PLUGIN_PATH, super.getClassLoader())
+    return PluginLoaders.proxy(PLUGIN_PATH, super.getClassLoader())
   }
 
   override fun getResources(): Resources {
-    return ResourceLoader.proxy(PLUGIN_PATH, super.getResources())
+    return PluginResources.proxy(PLUGIN_PATH, super.getResources())
   }
 
   override fun onCreate() {

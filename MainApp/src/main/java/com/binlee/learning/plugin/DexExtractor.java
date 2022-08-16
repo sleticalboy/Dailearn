@@ -38,7 +38,7 @@ import java.util.zip.ZipFile;
  */
 final class DexExtractor implements Closeable {
 
-  private static final String TAG = PluginLoader.TAG;
+  private static final String TAG = "DexExtractor";
 
   /** 解压时，重复 3 次提高成功率 */
   private static final int MAX_EXTRACT_ATTEMPTS = 3;
