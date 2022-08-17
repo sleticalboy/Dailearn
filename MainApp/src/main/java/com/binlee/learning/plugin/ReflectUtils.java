@@ -15,7 +15,7 @@ public final class ReflectUtils {
 
   private static final String TAG = "ReflectUtils";
 
-  public static <CL extends ClassLoader> void setSystemDexElements(CL cl, Object value) {
+  public static void setSystemDexElements(ClassLoader cl, Object value) {
     final Object pathList = getPathList(cl);
     if (pathList != null) {
       try {
@@ -30,7 +30,7 @@ public final class ReflectUtils {
     }
   }
 
-  private static <CL extends ClassLoader> Object getPathList(CL cl) {
+  private static Object getPathList(ClassLoader cl) {
     try {
       final Field pathList = BaseDexClassLoader.class.getDeclaredField("pathList");
       if (!pathList.isAccessible()) {
@@ -43,7 +43,7 @@ public final class ReflectUtils {
     }
   }
 
-  public static <CL extends ClassLoader> Object getDexElements(CL cl) {
+  public static Object getDexElements(ClassLoader cl) {
     final Object pathList = getPathList(cl);
     if (pathList != null) {
       try {

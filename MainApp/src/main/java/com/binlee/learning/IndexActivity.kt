@@ -23,6 +23,7 @@ import com.binlee.learning.data.DataEngine
 import com.binlee.learning.data.Result
 import com.binlee.learning.databinding.ActivityIndexBinding
 import com.binlee.learning.others.KeyboardHeightProvider
+import com.binlee.learning.plugin.PluginManager
 import dalvik.system.PathClassLoader
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
@@ -217,6 +218,7 @@ class IndexActivity : BaseActivity() {
 
   private fun loadPluginClass() {
     // com.binlee.sample.model.CacheEntry
+    PluginManager.install(PLUGIN_PATH)
     // val loader = PathClassLoader("/sdcard/sample-arch-debug.apk", classLoader)
     try {
       val entryClass = application.classLoader.loadClass("com.binlee.sample.model.CacheEntry")
@@ -245,5 +247,6 @@ class IndexActivity : BaseActivity() {
 
   companion object {
     private const val TAG = "IndexActivity"
+    private const val PLUGIN_PATH = "/sdcard/sample-arch-debug.apk"
   }
 }

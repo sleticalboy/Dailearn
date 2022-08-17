@@ -49,12 +49,17 @@ public final class PluginResources {
       return mRegistry.containsKey(key);
     }
 
-    private void register(AssetManager assets) {
-      if (mResources == null) {
-        mResources = new ResourcesWrapper(mParent.getAssets(), mParent.getDisplayMetrics(), mParent.getConfiguration());
-        mResources.setParent(mParent);
-      }
-      mResources.child(assets, mParent.getDisplayMetrics(), mParent.getConfiguration());
+    private void register(AssetManager assets, String pluginPath, Resources parent) {
+      if (mParent == null) mParent = parent;
+
+      if (mResources == null) mResources = new ResourcesWrapper(mParent, pluginPath);
+
+      mResources.linkLast(assets, mParent.getDisplayMetrics(), mParent.getConfiguration(), pluginPath);
+    }
+
+    private void unregister(String pluginPath) {
+      mResources.unlink(pluginPath);
+      mRegistry.remove(pluginPath);
     }
 
     private void setReported(String key, boolean reported) {
@@ -72,12 +77,12 @@ public final class PluginResources {
     //no instance
   }
 
-  @NonNull public static Resources proxy(@Nullable String pluginPath, @NonNull Resources parent) {
-    if (pluginPath == null || pluginPath.trim().length() == 0) return parent;
+  public static void install(@Nullable String pluginPath, @NonNull Resources parent) {
+    if (pluginPath == null || pluginPath.trim().length() == 0) return;
 
-    if (sCache.contains(pluginPath)) return sCache.mResources;
+    if (sCache.contains(pluginPath)) return;
 
-    if (!new File(pluginPath).exists()) return parent;
+    if (!new File(pluginPath).exists()) return;
 
     sCache.setParent(parent);
     sCache.setReported(pluginPath, false);
@@ -93,7 +98,7 @@ public final class PluginResources {
       method.setAccessible(true);
       final Object ret = method.invoke(assets, pluginPath);
       Log.d(TAG, "proxy() pluginPath: " + pluginPath + ", addAssetPath: " + ret + ", parent: " + parent);
-      sCache.register(assets);
+      sCache.register(assets, pluginPath, parent);
     } catch (IllegalAccessException | InstantiationException | NoSuchMethodException
             | InvocationTargetException e) {
       Boolean reported = sCache.getReported(pluginPath);
@@ -102,31 +107,55 @@ public final class PluginResources {
         sCache.setReported(pluginPath, true);
       }
     }
+  }
+
+  public static Resources peek() {
     return sCache.mResources;
+  }
+
+  public static void remove(String pluginPath) {
+    sCache.unregister(pluginPath);
   }
 
   // 先从主 app 中获取资源，如果获取不到再从插件中获取
   private static class ResourcesWrapper extends Resources {
-    
+
+    private final String mPluginPath;
     private Resources mParent;
     private ResourcesWrapper mChild;
     
-    public ResourcesWrapper(AssetManager assets, DisplayMetrics metrics, Configuration config) {
-      super(assets, metrics, config);
-    }
-
-    private void setParent(Resources parent) {
+    public ResourcesWrapper(Resources parent, String pluginPath) {
+      this(parent.getAssets(), parent.getDisplayMetrics(), parent.getConfiguration(), pluginPath);
       mParent = parent;
     }
 
-    private void child(AssetManager assets, DisplayMetrics metrics, Configuration config) {
+    public ResourcesWrapper(AssetManager assets, DisplayMetrics metrics, Configuration config, String pluginPath) {
+      super(assets, metrics, config);
+      mPluginPath = pluginPath;
+    }
+
+    private void linkLast(AssetManager assets, DisplayMetrics metrics, Configuration config,
+      String pluginPath) {
       ResourcesWrapper resources = mChild;
       while (resources != null) {
         if (resources.mChild == null) {
-          resources.mChild = new ResourcesWrapper(assets, metrics, config);
+          resources.mChild = new ResourcesWrapper(assets, metrics, config, pluginPath);
           break;
         }
         resources = resources.mChild;
+      }
+    }
+
+    public void unlink(String pluginPath) {
+      ResourcesWrapper child = mChild;
+      while (child != null) {
+        if (child.mPluginPath.equals(pluginPath)) {
+          if (child.mChild != null) {
+            mChild = child.mChild;
+            break;
+          }
+        }
+        child = child.mChild;
       }
     }
 

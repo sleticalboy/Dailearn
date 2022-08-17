@@ -10,17 +10,13 @@ import java.lang.reflect.Array;
 public final class ArrayUtils {
 
   public static Object merge(Object left, Object right) {
-    if (left == null && right == null) {
-      return null;
-    }
-    if (left == null) {
-      return right;
-    }
-    if (right == null) {
-      return left;
-    }
+    if (left == null && right == null) return null;
+    if (left == null) return right;
+    if (right == null) return left;
     // 获取返回值类型
     final Class<?> retType = left.getClass().getComponentType();
+    if (retType == null) throw new RuntimeException(left + " is not an array type");
+
     // 修复包的数组长度
     final int len = Array.getLength(left);
     // 系统原有的数组长度

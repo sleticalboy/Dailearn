@@ -8,8 +8,8 @@ import android.content.res.Resources
 import android.os.Build
 import android.util.Log
 import com.binlee.learning.components.receiver.GlobalReceiver
-import com.binlee.learning.plugin.PluginLoaders
-import com.binlee.learning.plugin.PluginResources
+import com.binlee.learning.plugin.PluginManager
+import com.binlee.learning.plugin.PluginManager.Config
 import com.binlee.learning.util.NotificationHelper
 
 /**
@@ -31,16 +31,18 @@ class MainApp : Application() {
 
   override fun attachBaseContext(base: Context?) {
     super.attachBaseContext(base)
+    val config = Config()
+    config.setParentResource(super.getResources())
+    config.setParentClassLoader(super.getClassLoader())
+    PluginManager.initialized(config)
   }
 
   override fun getClassLoader(): ClassLoader {
-    // return super.getClassLoader()
-    // 这里的路径应为约定好的固定路径，比如 cache 目录
-    return PluginLoaders.proxy(PLUGIN_PATH, super.getClassLoader())
+    return PluginManager.getClassLoader()
   }
 
   override fun getResources(): Resources {
-    return PluginResources.proxy(PLUGIN_PATH, super.getResources())
+    return PluginManager.getResources()
   }
 
   override fun onCreate() {
@@ -66,7 +68,6 @@ class MainApp : Application() {
   companion object {
 
     private const val TAG = "MainApp"
-    private const val PLUGIN_PATH = "/sdcard/sample-arch-debug.apk"
 
     private var mApp: Application? = null
 

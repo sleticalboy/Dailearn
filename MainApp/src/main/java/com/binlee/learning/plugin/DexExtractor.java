@@ -32,9 +32,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * Exposes plugin's dex files as files in the application data directory.
- * {@link DexExtractor} is taking the file lock in the dex dir on creation and release it
- * during close.
+ * 从 apk 中解压 dex 文件
  */
 final class DexExtractor implements Closeable {
 
@@ -43,7 +41,7 @@ final class DexExtractor implements Closeable {
   /** 解压时，重复 3 次提高成功率 */
   private static final int MAX_EXTRACT_ATTEMPTS = 3;
 
-  /** Size of reading buffers. */
+  /** IO 操作时 buffer 大小 */
   private static final int BUFFER_SIZE = 0x4000;
 
   private static final String DEX_FORMAT = "classes%s.dex";
@@ -78,12 +76,10 @@ final class DexExtractor implements Closeable {
   }
 
   /**
-   * Extracts plugin's dex files into the application data directory.
+   * 执行解压操作
    *
-   * @return a list of files that were created. The list may be empty if there
-   * are no dex files. Never return null.
-   * @throws IOException if encounters a problem while reading or writing
-   * dex files
+   * @return {@link List}<{@link File}> dex 文件列表
+   * @throws IOException ioexception
    */
   List<File> extractDex() throws IOException {
     if (!cacheLock.isValid()) {
@@ -97,13 +93,6 @@ final class DexExtractor implements Closeable {
     }
   }
 
-  @Override public void close() throws IOException {
-    cacheLock.release();
-    lockChannel.close();
-    lockRaf.close();
-  }
-
-  // 解压 apk，拿到 dex 文件
   private List<File> performExtractions() throws IOException {
     // It is safe to fully clear the dex dir because we own the file lock so no other process is
     // extracting or running optimizing dexopt. It may cause crash of already running
@@ -170,23 +159,6 @@ final class DexExtractor implements Closeable {
     return files;
   }
 
-  /** Clear the dex dir from all files but the lock. */
-  private void clearDexDir() {
-    File[] files = dexDir.listFiles(pathname -> !pathname.getName().equals(LOCK_FILENAME));
-    if (files == null) {
-      Log.w(TAG, "Failed to list plugin dex dir content (" + dexDir.getPath() + ").");
-      return;
-    }
-    for (File oldFile : files) {
-      Log.i(TAG, "Trying to delete old file " + oldFile.getPath() + " of size " + oldFile.length());
-      if (!oldFile.delete()) {
-        Log.w(TAG, "Failed to delete old file " + oldFile.getPath());
-      } else {
-        Log.i(TAG, "Deleted old file " + oldFile.getPath());
-      }
-    }
-  }
-
   private static void extractEntry(ZipFile apk, ZipEntry dexFile, File extractTo) throws IOException {
     Log.i(TAG, "Extracting " + extractTo.getPath());
     final InputStream in = apk.getInputStream(dexFile);
@@ -204,6 +176,29 @@ final class DexExtractor implements Closeable {
       }
     } finally {
       closeQuietly(in);
+    }
+  }
+
+  @Override public void close() throws IOException {
+    cacheLock.release();
+    lockChannel.close();
+    lockRaf.close();
+  }
+
+  /** Clear the dex dir from all files but the lock. */
+  private void clearDexDir() {
+    File[] files = dexDir.listFiles(pathname -> !pathname.getName().equals(LOCK_FILENAME));
+    if (files == null) {
+      Log.w(TAG, "Failed to list plugin dex dir content (" + dexDir.getPath() + ").");
+      return;
+    }
+    for (File file : files) {
+      Log.i(TAG, "Trying to delete old file " + file.getPath() + " of size " + file.length());
+      if (!file.delete()) {
+        Log.w(TAG, "Failed to delete old file " + file.getPath());
+      } else {
+        Log.i(TAG, "Deleted old file " + file.getPath());
+      }
     }
   }
 
