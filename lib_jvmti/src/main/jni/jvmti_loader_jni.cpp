@@ -7,7 +7,7 @@
 #define LOG_TAG "JvmtiLoader"
 
 void attachAgent(JNIEnv *env, const char *library, const char *options) {
-  ALOGD("%s enter %s \nenv: %p, lib: %s, options: %s", __func__, library, env, library, options)
+  ALOGD("%s enter env: %p\nlib: %s\noptions: %s", __func__, env, library, options)
   jstring lib = nullptr;
   jstring opt = env->NewStringUTF(options);
   if (android_get_device_api_level() >= __ANDROID_API_P__) {
@@ -15,8 +15,8 @@ void attachAgent(JNIEnv *env, const char *library, const char *options) {
     jmethodID method = env->GetStaticMethodID(cls_debug, "attachJvmtiAgent",
                                               "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)V");
     ALOGD("%s start call Debug#attachJvmtiAgent()", __func__)
-    env->NewStringUTF(library);
-    env->CallStaticVoidMethod(cls_debug, method, lib/*library*/, opt /*options*/, (jobject) nullptr /*classloader*/);
+    lib = env->NewStringUTF(library);
+    env->CallStaticVoidMethod(cls_debug, method, lib/*library*/, opt/*options*/, (jobject) nullptr /*classloader*/);
   } else {
     jclass cls_vm_debug = env->FindClass("dalvik/system/VMDebug");
     jmethodID method = env->GetStaticMethodID(cls_vm_debug, "attachAgent", "(Ljava/lang/String;)V");

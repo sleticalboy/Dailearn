@@ -1,5 +1,6 @@
 package com.binlee.apm.jvmti;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
 import android.os.Debug;
@@ -24,6 +25,10 @@ public final class JvmtiLoader {
 
   private static final String TAG = "JvmtiLoader";
   private static boolean sAttached = false;
+
+  static {
+    System.loadLibrary("jvmti");
+  }
 
   private JvmtiLoader() {
     //no instance
@@ -96,10 +101,16 @@ public final class JvmtiLoader {
   private static void attachInternal(JvmtiConfig config) {
     if (sAttached) return;
     final String options = config.toOptions();
-    // nativeAttachAgent(config.agentLib, options);
+    nativeAttachAgent(config.agentLib, options);
+    // javaAttachAgent(config.agentLib, options);
+    sAttached = true;
+  }
+
+  @SuppressLint("SoonBlockedPrivateApi")
+  private static void javaAttachAgent(String library, String options) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       try {
-        Debug.attachJvmtiAgent(config.agentLib, options, null);
+        Debug.attachJvmtiAgent(library, options, null);
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -110,11 +121,10 @@ public final class JvmtiLoader {
       final Class<?> clazz = Class.forName("dalvik.system.VMDebug");
       final Method method = clazz.getDeclaredMethod("attachAgent", String.class);
       method.setAccessible(true);
-      method.invoke(null, config.agentLib + "=" + options);
+      method.invoke(null, library + "=" + options);
     } catch (Throwable e) {
       e.printStackTrace();
     }
-    sAttached = true;
   }
 
   private static void copyFile(File src, File dest) throws IOException {
