@@ -1,26 +1,32 @@
-package com.binlee.learning.reflect;
+package com.binlee.hidden;
 
 import android.content.Context;
 import java.lang.reflect.Method;
 
 /**
- * Created on 2022-08-03.
+ * Created on 2022/8/18
  *
  * @author binlee
  */
-public class FreeReflection {
+public final class Hidden {
+
+  static {
+    System.loadLibrary("unseal-hidden-api");
+  }
 
   private static boolean sInitialized = false;
   private static Object sRuntime;
 
-  private FreeReflection() {
-    // no instance
+  private Hidden() {
+    //no instance
   }
 
-  public static void init(Context context) {
+  /** 解除 hidden api 限制 */
+  public static void relieve(Context context) {
     if (!sInitialized) {
       try {
         initOnce(context);
+        nativeRelieve(context.getApplicationInfo().targetSdkVersion);
       } catch (Throwable thr) {
         thr.printStackTrace();
       }
@@ -41,4 +47,6 @@ public class FreeReflection {
     // 通过设置豁免名单来绕过系统限制
     setHiddenApiExemptions.invoke(sRuntime, new Object[] { new String[] {"L"} });
   }
+
+  private static native void nativeRelieve(int targetSdkVersion);
 }

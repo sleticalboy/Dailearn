@@ -6,6 +6,8 @@
 
 #define LOG_TAG "JvmtiLoader"
 
+const char *kJvmtiLoaderClass = "com/binlee/apm/jvmti/JvmtiLoader";
+
 void attachAgent(JNIEnv *env, const char *library, const char *options) {
   ALOGD("%s enter env: %p\nlib: %s\noptions: %s", __func__, env, library, options)
   jstring lib = nullptr;
@@ -55,10 +57,10 @@ JNINativeMethod methods[] = {
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
   JNIEnv *env = nullptr;
   if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
-    return JNI_FALSE;
+    return JNI_ERR;
   }
   ALOGD("%s reserved: %p", __func__, reserved)
-  jclass cls_libJni = env->FindClass("com/binlee/apm/jvmti/JvmtiLoader");
+  jclass cls_libJni = env->FindClass(kJvmtiLoaderClass);
   if (env->RegisterNatives(cls_libJni, methods, sizeof(methods) / sizeof(JNINativeMethod)) < 0) {
     ALOGE("%s RegisterNatives error", __func__)
   }
@@ -72,7 +74,7 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
     return;
   }
   ALOGD("%s reserved: %p", __func__, reserved)
-  jclass cls_jniLib = env->FindClass("com/binlee/apm/jvmti/JvmtiLoader");
+  jclass cls_jniLib = env->FindClass(kJvmtiLoaderClass);
   env->UnregisterNatives(cls_jniLib);
   env->DeleteLocalRef(cls_jniLib);
   free(env);

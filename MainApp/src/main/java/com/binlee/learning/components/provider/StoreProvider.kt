@@ -9,7 +9,7 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.util.Log
-import com.binlee.learning.reflect.FreeReflection
+import com.binlee.hidden.Hidden
 
 class StoreProvider : ContentProvider() {
 
@@ -38,7 +38,7 @@ class StoreProvider : ContentProvider() {
 
   override fun attachInfo(context: Context?, info: ProviderInfo?) {
     Log.d(TAG, "attachInfo() start --->")
-    FreeReflection.init(context)
+    Hidden.relieve(context)
     super.attachInfo(context, info)
   }
 
