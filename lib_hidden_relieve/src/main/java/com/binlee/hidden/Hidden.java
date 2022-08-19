@@ -1,6 +1,8 @@
 package com.binlee.hidden;
 
 import android.content.Context;
+import android.os.Build;
+import android.util.Log;
 import java.lang.reflect.Method;
 
 /**
@@ -9,6 +11,8 @@ import java.lang.reflect.Method;
  * @author binlee
  */
 public final class Hidden {
+
+  private static final String TAG = "Hidden";
 
   static {
     System.loadLibrary("unseal-hidden-api");
@@ -26,9 +30,9 @@ public final class Hidden {
     if (!sInitialized) {
       try {
         initOnce(context);
-        nativeRelieve(context.getApplicationInfo().targetSdkVersion);
       } catch (Throwable thr) {
-        thr.printStackTrace();
+        Log.w(TAG, "relieve() via reflect error, fallback to native. error is: " + thr);
+        nativeRelieve(context.getApplicationInfo().targetSdkVersion, Build.FINGERPRINT);
       }
       sInitialized = true;
     }
@@ -48,5 +52,5 @@ public final class Hidden {
     setHiddenApiExemptions.invoke(sRuntime, new Object[] { new String[] {"L"} });
   }
 
-  private static native void nativeRelieve(int targetSdkVersion);
+  private static native void nativeRelieve(int targetSdkVersion, String fingerprint);
 }

@@ -8,6 +8,10 @@
 #include "jni.h"
 #include "string"
 
+#include "mutex"
+#include "set"
+#include "vector"
+
 struct JavaVMExt {
   void *functions;
   void *runtime;
@@ -29,9 +33,20 @@ enum class EnforcementPolicy {
   kMax = kEnabled,
 };
 
+// ART counterpart of the compat framework (go/compat-framework).
+// Created in order to avoid repeated up-calls to Java.
+struct CompatFramework {
+  // A set of disabled compat changes for the running app, all other changes are enabled.
+  std::set<uint64_t> disabled_compat_changes_;
+
+  // A set of reported compat changes for the running app.
+  std::set<uint64_t> reported_compat_changes_;
+  // Mutex reported_compat_changes_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
+};
+
 struct PartialRuntime {
   // Specifies target SDK version to allow workarounds for certain API levels.
-  uint32_t target_sdk_version_;
+  int32_t target_sdk_version_;
 
   // Implicit checks flags.
   bool implicit_null_checks_;       // NullPointer checks are implicit.
@@ -104,9 +119,8 @@ struct PartialRuntimeR {
   // Specifies target SDK version to allow workarounds for certain API levels.
   uint32_t target_sdk_version_;
 
-  // A set of disabled compat changes for the running app, all other changes are enabled.
-  // std::set<uint64_t> disabled_compat_changes_;
-  void *disabled_compat_changes_[3];
+  // ART counterpart for the compat framework (go/compat-framework).
+  CompatFramework compat_framework_;
 
   // Implicit checks flags.
   bool implicit_null_checks_;       // NullPointer checks are implicit.
@@ -146,7 +160,16 @@ struct PartialRuntimeR {
   // Whether Java code needs to be debuggable.
   bool is_java_debuggable_;
 
+  bool monitor_timeout_enable_;
+  uint64_t monitor_timeout_ns_;
+
+  // Whether or not this application can be profiled by the shell user,
+  // even when running on a device that is running in user mode.
   bool is_profileable_from_shell_ = false;
+
+  // Whether or not this application can be profiled by system services on a
+  // device running in user mode, but not necessarily by the shell user.
+  bool is_profileable_ = false;
 
   // The maximum number of failed boots we allow before pruning the dalvik cache
   // and trying again. This option is only inspected when we're running as a
@@ -173,11 +196,31 @@ struct PartialRuntimeR {
   // This is beneficial for low RAM devices since it reduces page cache thrashing.
   bool madvise_random_access_;
 
+  // Limiting size (in bytes) for applying MADV_WILLNEED on vdex files
+  // A 0 for this will turn off madvising to MADV_WILLNEED
+  size_t madvise_willneed_vdex_filesize_;
+
+  // Limiting size (in bytes) for applying MADV_WILLNEED on odex files
+  // A 0 for this will turn off madvising to MADV_WILLNEED
+  size_t madvise_willneed_odex_filesize_;
+
+  // Limiting size (in bytes) for applying MADV_WILLNEED on art files
+  // A 0 for this will turn off madvising to MADV_WILLNEED
+  size_t madvise_willneed_art_filesize_;
+
   // Whether the application should run in safe mode, that is, interpreter only.
   bool safe_mode_;
 
   // Whether access checks on hidden API should be performed.
   EnforcementPolicy hidden_api_policy_;
+  // Whether access checks on core platform API should be performed.
+  EnforcementPolicy core_platform_api_policy_;
+  // Whether access checks on test API should be performed.
+  EnforcementPolicy test_api_policy_;
+
+  // List of signature prefixes of methods that have been removed from the blacklist, and treated
+  // as if whitelisted.
+  std::vector<std::string> hidden_api_exemptions_;
 };
 
 

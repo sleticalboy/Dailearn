@@ -7,6 +7,7 @@
 #include "unseal_hidden_api.h"
 #include "jni.h"
 #include "sys/system_properties.h"
+#include "string"
 
 #define LOG_TAG "UnsealHiddenApi"
 
@@ -21,7 +22,7 @@ enum OffsetFindResult {
 };
 
 template<typename T>
-int findOffset(void *addr, int start, int limit, T target) {
+int FindOffset(void *addr, int start, int limit, T target) {
   if (addr == nullptr || start < 0 || limit <=0) {
     return kInvalid;
   }
@@ -36,13 +37,31 @@ int findOffset(void *addr, int start, int limit, T target) {
   return kNotFound;
 }
 
-void Unseal_unlock(JNIEnv *env, jclass clazz, jint target_sdk_version) {
+int FindStringOffset(void *addr, int start, int limit, const char *target) {
+  if (addr == nullptr || start < 0 || limit <=0) {
+    return kInvalid;
+  }
+  char *vm_start = static_cast<char *>(addr);
+  // 从起始地址 + offset_start 开始查找，步长为 4
+  for (int i = start; i < limit; i += 4) {
+    if (strcmp(vm_start + i, target) == 0) {
+      return i;
+    }
+  }
+  return kNotFound;
+}
+
+void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring fingerprint) {
+  const char *fingerprint_ = env->GetStringUTFChars(fingerprint, JNI_FALSE);
+  ALOGD("%s fingerprint from java: %s", __func__, fingerprint_)
   // 获取当前系统信息
   char api_level_str[5];
   char preview_api_level_str[5];
+  char fingerprint_str[PROP_VALUE_MAX];
   __system_property_get("ro.build.version.sdk", api_level_str);
   __system_property_get("ro.build.version.preview_sdk", preview_api_level_str);
-  ALOGD("%s api level: %s, preview api level: %s", __func__, api_level_str, preview_api_level_str)
+  __system_property_get("ro.build.fingerprint", fingerprint_str);
+  ALOGD("%s api level: %s, preview api level: %s, fingerprint: %s", __func__, api_level_str, preview_api_level_str, fingerprint_str)
 
   int api_level = atoi(api_level_str);
   int preview_api_level = atoi(preview_api_level_str);
@@ -52,14 +71,24 @@ void Unseal_unlock(JNIEnv *env, jclass clazz, jint target_sdk_version) {
     ALOGE("%s GetJavaVM failed", __func__)
     return;
   }
-  // vm 在 内存中指向 JavaVMExt 类
+  // vm 在内存中指向 JavaVMExt 类
   JavaVMExt *java_vm = reinterpret_cast<JavaVMExt *>(vm);
+
+  ALOGW("%s target_sdk_version_ offset: %lu", __func__, offsetof(PartialRuntime, target_sdk_version_))
+  ALOGW("%s implicit_null_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_null_checks_))
+  ALOGW("%s implicit_so_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_so_checks_))
+  ALOGW("%s implicit_suspend_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_suspend_checks_))
+  ALOGW("%s zygote_max_failed_boots_ offset: %lu", __func__, offsetof(PartialRuntime, zygote_max_failed_boots_))
+  ALOGW("%s experimental_flags_ offset: %lu", __func__, offsetof(PartialRuntime, experimental_flags_))
+  ALOGW("%s fingerprint_ offset: %lu", __func__, offsetof(PartialRuntime, fingerprint_))
+  ALOGW("%s oat_file_manager_ offset: %lu", __func__, offsetof(PartialRuntime, oat_file_manager_))
+  ALOGW("%s is_low_memory_mode_ offset: %lu", __func__, offsetof(PartialRuntime, is_low_memory_mode_))
 
   // 这里不能直接对 runtime 赋值，需要从内存中找出某个定值的偏移量，然后 vm_start + offset 对 runtime 进行赋值
   void *vm_start = java_vm->runtime;
 
   // 1、定位到 java_vm_ 字段
-  int offset = findOffset(vm_start, 0, kMaxLength, (long) java_vm);
+  int offset = FindOffset(vm_start, 0, kMaxLength, (long) java_vm);
   if (offset == kInvalid || offset == kNotFound) {
     ALOGE("%s can not find java_vm offset, error: %d", __func__, offset)
     return;
@@ -67,18 +96,29 @@ void Unseal_unlock(JNIEnv *env, jclass clazz, jint target_sdk_version) {
   ALOGD("%s java_vm offset: %d", __func__, offset)
 
   // 2、定位到 target_sdk_version
-  offset = findOffset(vm_start, offset, kMaxLength, target_sdk_version);
+  offset = FindOffset(vm_start, offset, kMaxLength, target_sdk_version);
   if (offset == kInvalid || offset == kNotFound) {
     ALOGE("%s can not find target_sdk_version offset, error: %d", __func__, offset)
     return;
   }
   ALOGD("%s target_sdk_version offset: %d", __func__, offset)
-  // PartialRuntimeR *runtime = static_cast<PartialRuntimeR *>(vmExt->runtime);
-  // ALOGE("%s hidden offset: %lu, value: %d", __func__, offsetof(PartialRuntimeR, hidden_api_policy_), runtime->hidden_api_policy_)
+
+  // 3、定位到 fingerprint
+  offset = FindStringOffset(vm_start, offset, kMaxLength, fingerprint_);
+  if (offset == kInvalid || offset == kNotFound) {
+    ALOGE("%s can not find fingerprint_ offset, error: %d", __func__, offset)
+    return;
+  }
+  ALOGD("%s fingerprint_ offset: %d", __func__, offset)
+
+  // PartialRuntimeR *runtime = reinterpret_cast<PartialRuntimeR *>((char *) vm_start + offset);
+  // ALOGE("%s runtime: %p, fingerprint_: %s", __func__, runtime, runtime->fingerprint_.c_str())
+
+  env->ReleaseStringUTFChars(fingerprint, fingerprint_);
 }
 
 JNINativeMethod gMethods[] = {
-  {"nativeRelieve", "(I)V", (void *) Unseal_unlock}
+  {"nativeRelieve", "(ILjava/lang/String;)V", (void *) Hidden_relieve}
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
