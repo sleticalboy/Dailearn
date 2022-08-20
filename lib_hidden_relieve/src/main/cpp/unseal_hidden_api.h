@@ -1,8 +1,0 @@
-//
-// Created by binlee on 2022/8/18.
-//
-
-#ifndef DAILEARN_UNSEAL_HIDDEN_API_H
-#define DAILEARN_UNSEAL_HIDDEN_API_H
-
-#endif //DAILEARN_UNSEAL_HIDDEN_API_H

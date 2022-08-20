@@ -4,7 +4,7 @@
 
 #include "art_runtime.h"
 #include "jni_logger.h"
-#include "unseal_hidden_api.h"
+#include "relieve_hidden_api.h"
 #include "jni.h"
 #include "sys/system_properties.h"
 #include "string"
