@@ -52,6 +52,27 @@ int FindStringOffset(void *addr, int start, int limit, const char *target) {
 }
 
 void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring fingerprint) {
+  JavaVM *vm = nullptr;
+  if (env->GetJavaVM(&vm) != JNI_OK) {
+    ALOGE("%s GetJavaVM failed", __func__)
+    return;
+  }
+
+  ALOGW("%s target_sdk_version_ offset: %lu", __func__, offsetof(PartialRuntime, target_sdk_version_))
+  ALOGW("%s implicit_null_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_null_checks_))
+  ALOGW("%s implicit_so_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_so_checks_))
+  ALOGW("%s implicit_suspend_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_suspend_checks_))
+  ALOGW("%s zygote_max_failed_boots_ offset: %lu", __func__, offsetof(PartialRuntime, zygote_max_failed_boots_))
+  ALOGW("%s experimental_flags_ offset: %lu", __func__, offsetof(PartialRuntime, experimental_flags_))
+  ALOGW("%s fingerprint_ offset: %lu", __func__, offsetof(PartialRuntime, fingerprint_))
+  ALOGW("%s oat_file_manager_ offset: %lu", __func__, offsetof(PartialRuntime, oat_file_manager_))
+  ALOGW("%s is_low_memory_mode_ offset: %lu", __func__, offsetof(PartialRuntime, is_low_memory_mode_))
+
+  // vm 在内存中指向 JavaVMExt 类
+  JavaVMExt *java_vm = reinterpret_cast<JavaVMExt *>(vm);
+  // 这里不能直接对 runtime 赋值，需要从内存中找出某个定值的偏移量，然后 vm_start + offset 对 runtime 进行赋值
+  void *vm_start = java_vm->runtime;
+
   const char *fingerprint_ = env->GetStringUTFChars(fingerprint, JNI_FALSE);
   ALOGD("%s fingerprint from java: %s", __func__, fingerprint_)
   // 获取当前系统信息
@@ -66,32 +87,11 @@ void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring 
   int api_level = atoi(api_level_str);
   int preview_api_level = atoi(preview_api_level_str);
 
-  JavaVM *vm = nullptr;
-  if (env->GetJavaVM(&vm) != JNI_OK) {
-    ALOGE("%s GetJavaVM failed", __func__)
-    return;
-  }
-  // vm 在内存中指向 JavaVMExt 类
-  JavaVMExt *java_vm = reinterpret_cast<JavaVMExt *>(vm);
-
-  ALOGW("%s target_sdk_version_ offset: %lu", __func__, offsetof(PartialRuntime, target_sdk_version_))
-  ALOGW("%s implicit_null_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_null_checks_))
-  ALOGW("%s implicit_so_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_so_checks_))
-  ALOGW("%s implicit_suspend_checks_ offset: %lu", __func__, offsetof(PartialRuntime, implicit_suspend_checks_))
-  ALOGW("%s zygote_max_failed_boots_ offset: %lu", __func__, offsetof(PartialRuntime, zygote_max_failed_boots_))
-  ALOGW("%s experimental_flags_ offset: %lu", __func__, offsetof(PartialRuntime, experimental_flags_))
-  ALOGW("%s fingerprint_ offset: %lu", __func__, offsetof(PartialRuntime, fingerprint_))
-  ALOGW("%s oat_file_manager_ offset: %lu", __func__, offsetof(PartialRuntime, oat_file_manager_))
-  ALOGW("%s is_low_memory_mode_ offset: %lu", __func__, offsetof(PartialRuntime, is_low_memory_mode_))
-
-  // 这里不能直接对 runtime 赋值，需要从内存中找出某个定值的偏移量，然后 vm_start + offset 对 runtime 进行赋值
-  void *vm_start = java_vm->runtime;
-
   // 1、定位到 java_vm_ 字段
   int offset = FindOffset(vm_start, 0, kMaxLength, (long) java_vm);
   if (offset == kInvalid || offset == kNotFound) {
     ALOGE("%s can not find java_vm offset, error: %d", __func__, offset)
-    return;
+    goto exit;
   }
   ALOGD("%s java_vm offset: %d", __func__, offset)
 
@@ -99,7 +99,7 @@ void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring 
   offset = FindOffset(vm_start, offset, kMaxLength, target_sdk_version);
   if (offset == kInvalid || offset == kNotFound) {
     ALOGE("%s can not find target_sdk_version offset, error: %d", __func__, offset)
-    return;
+    goto exit;
   }
   ALOGD("%s target_sdk_version offset: %d", __func__, offset)
 
@@ -107,13 +107,14 @@ void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring 
   offset = FindStringOffset(vm_start, offset, kMaxLength, fingerprint_);
   if (offset == kInvalid || offset == kNotFound) {
     ALOGE("%s can not find fingerprint_ offset, error: %d", __func__, offset)
-    return;
+    goto exit;
   }
   ALOGD("%s fingerprint_ offset: %d", __func__, offset)
 
   // PartialRuntimeR *runtime = reinterpret_cast<PartialRuntimeR *>((char *) vm_start + offset);
   // ALOGE("%s runtime: %p, fingerprint_: %s", __func__, runtime, runtime->fingerprint_.c_str())
 
+  exit:
   env->ReleaseStringUTFChars(fingerprint, fingerprint_);
 }
 

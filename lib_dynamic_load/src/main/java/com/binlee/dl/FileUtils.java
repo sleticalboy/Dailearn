@@ -1,4 +1,4 @@
-package com.binlee.learning.plugin;
+package com.binlee.dl;
 
 import android.util.Log;
 
@@ -45,5 +45,22 @@ public final class FileUtils {
       Log.e(TAG, "copy file from " + src + " to " + dest + " failed " + e.getMessage(), e);
       return false;
     }
+  }
+
+  public static boolean validateFile(String filepath) {
+    if (filepath == null || filepath.trim().length() == 0) {
+      Log.e(TAG, "validateFile() failed: " + filepath);
+      return false;
+    }
+    final File file = new File(filepath.trim());
+    if (!file.exists()) {
+      Log.e(TAG, "validateFile() failed: " + filepath + " not existed");
+      return false;
+    }
+    if (!file.canRead()) {
+      Log.e(TAG, "validateFile() failed: " + filepath + " not readable");
+      return false;
+    }
+    return true;
   }
 }

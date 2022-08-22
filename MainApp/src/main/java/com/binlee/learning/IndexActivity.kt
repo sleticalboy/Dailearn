@@ -23,8 +23,7 @@ import com.binlee.learning.data.DataEngine
 import com.binlee.learning.data.Result
 import com.binlee.learning.databinding.ActivityIndexBinding
 import com.binlee.learning.others.KeyboardHeightProvider
-import com.binlee.learning.plugin.PluginManager
-import dalvik.system.PathClassLoader
+import com.binlee.dl.PluginManager
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -217,11 +216,12 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun loadPluginClass() {
-    // com.binlee.sample.model.CacheEntry
+    Log.d(TAG, "loadPluginClass() app.classLoader: ${application.classLoader}, hash: ${application.classLoader.hashCode()}")
+    Log.d(TAG, "loadPluginClass() this.classLoader: $classLoader, hash: ${classLoader.hashCode()}")
     PluginManager.install(PLUGIN_PATH)
-    // val loader = PathClassLoader("/sdcard/sample-arch-debug.apk", classLoader)
     try {
-      val entryClass = application.classLoader.loadClass("com.binlee.sample.model.CacheEntry")
+      // com.binlee.sample.model.CacheEntry
+      val entryClass = classLoader.loadClass("com.binlee.sample.model.CacheEntry")
       val entry = entryClass.newInstance()
       Log.d(TAG, "loadPluginClass() entry: $entry, loader: ${application.classLoader}")
     } catch (e: Throwable) {
@@ -247,6 +247,6 @@ class IndexActivity : BaseActivity() {
 
   companion object {
     private const val TAG = "IndexActivity"
-    private const val PLUGIN_PATH = "/sdcard/sample-arch-debug.apk"
+    private const val PLUGIN_PATH = "/sdcard/Download/sample-arch-debug.apk"
   }
 }

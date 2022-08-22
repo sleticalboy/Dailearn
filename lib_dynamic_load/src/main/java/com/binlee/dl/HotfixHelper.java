@@ -1,8 +1,10 @@
-package com.binlee.learning.plugin;
+package com.binlee.dl;
 
 import android.content.Context;
 import android.util.Log;
 
+import com.binlee.dl.util.ArrayUtils;
+import com.binlee.dl.util.ReflectUtils;
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;

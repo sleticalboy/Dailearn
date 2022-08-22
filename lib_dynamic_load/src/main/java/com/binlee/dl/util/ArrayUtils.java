@@ -1,4 +1,4 @@
-package com.binlee.learning.plugin;
+package com.binlee.dl.util;
 
 import java.lang.reflect.Array;
 

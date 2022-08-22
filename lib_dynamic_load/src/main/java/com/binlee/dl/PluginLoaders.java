@@ -1,4 +1,4 @@
-package com.binlee.learning.plugin;
+package com.binlee.dl;
 
 import android.util.Log;
 import androidx.annotation.NonNull;
@@ -51,7 +51,7 @@ public final class PluginLoaders {
       return;
     }
 
-    if (!new File(pluginPath).exists()) return;
+    if (!FileUtils.validateFile(pluginPath)) return;
 
     Log.d(TAG, "proxy() start construct class loader");
 

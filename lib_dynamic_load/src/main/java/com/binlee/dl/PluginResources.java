@@ -1,4 +1,4 @@
-package com.binlee.learning.plugin;
+package com.binlee.dl;
 
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
@@ -82,7 +82,7 @@ public final class PluginResources {
 
     if (sCache.contains(pluginPath)) return;
 
-    if (!new File(pluginPath).exists()) return;
+    if (!FileUtils.validateFile(pluginPath)) return;
 
     sCache.setParent(parent);
     sCache.setReported(pluginPath, false);

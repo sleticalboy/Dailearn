@@ -8,8 +8,8 @@ import android.content.res.Resources
 import android.os.Build
 import android.util.Log
 import com.binlee.learning.components.receiver.GlobalReceiver
-import com.binlee.learning.plugin.PluginManager
-import com.binlee.learning.plugin.PluginManager.Config
+import com.binlee.dl.PluginManager
+import com.binlee.dl.PluginManager.Config
 import com.binlee.learning.util.NotificationHelper
 
 /**
