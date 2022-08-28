@@ -3,4 +3,20 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.binlee.dl">
 
+  <application>
+    <activity
+      android:name=".host.ProxyActivity"
+      android:exported="true" />
+    <service
+      android:name=".host.ProxyService"
+      android:exported="true" />
+    <receiver
+      android:name=".host.ProxyReceiver"
+      android:exported="true" />
+    <provider
+      android:name=".host.ProxyProvider"
+      android:exported="true"
+      android:authorities="xxx" />
+  </application>
+
 </manifest>
