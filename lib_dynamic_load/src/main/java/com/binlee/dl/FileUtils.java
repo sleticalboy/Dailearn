@@ -57,7 +57,7 @@ public final class FileUtils {
       Log.e(TAG, "validateFile() failed: " + filepath + " not existed");
       return false;
     }
-    if (!file.canRead()) {
+    if (!file.canRead() && !file.setReadable(true)) {
       Log.e(TAG, "validateFile() failed: " + filepath + " not readable");
       return false;
     }

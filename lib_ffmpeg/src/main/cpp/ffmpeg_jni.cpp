@@ -17,6 +17,9 @@ extern "C" {
 #include "libswscale/swscale.h"
 }
 
+const char *kFfmpegHelperClass = "com/example/ffmpeg/FfmpegHelper";
+const int kBufferSize = 512;
+
 void Ffmpeg_Init(JNIEnv *env, jclass clazz) {
   ffmpeg::log::init();
 }
@@ -24,7 +27,7 @@ void Ffmpeg_Init(JNIEnv *env, jclass clazz) {
 jstring Ffmpeg_GetVersions(JNIEnv *env, jclass clazz) {
   FlogD("%s %s", __func__, avcodec_configuration())
   int offset = 0;
-  char *buf = new char[512];
+  char *buf = new char[kBufferSize];
   offset += sprintf(buf + offset, "avcodec version:    %d\n", avcodec_version());
   offset += sprintf(buf + offset, "avformat version:   %d\n", avformat_version());
   offset += sprintf(buf + offset, "avutil version:     %d\n", avutil_version());
@@ -45,11 +48,12 @@ void Ffmpeg_DumpMetaInfo(JNIEnv *env, jclass clazz, jstring filepath) {
   int res = avformat_open_input(&format_ctx, url, nullptr, nullptr);
   if (res < 0) {
     FlogE("%s, open %s error %s", __func__, url, av_err2str(res))
-    env->ReleaseStringUTFChars(filepath, url);
-    return;
+    goto exit;
   }
   av_dump_format(format_ctx, 0, url, 0);
   avformat_close_input(&format_ctx);
+  // 退出
+  exit:
   env->ReleaseStringUTFChars(filepath, url);
 }
 
@@ -131,7 +135,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     FlogD("%s GetEnv error: %d", __func__, res)
     return JNI_ERR;
   }
-  jclass cls_ffmpeg_helper = env->FindClass("com/example/ffmpeg/FfmpegHelper");
+  jclass cls_ffmpeg_helper = env->FindClass(kFfmpegHelperClass);
   env->RegisterNatives(cls_ffmpeg_helper, gMethods, sizeof(gMethods) / sizeof(JNINativeMethod));
   env->DeleteLocalRef(cls_ffmpeg_helper);
   return JNI_VERSION_1_6;
@@ -142,7 +146,7 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
   if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
     return;
   }
-  jclass cls_ffmpeg_helper = env->FindClass("com/example/ffmpeg/FfmpegHelper");
+  jclass cls_ffmpeg_helper = env->FindClass(kFfmpegHelperClass);
   env->UnregisterNatives(cls_ffmpeg_helper);
   env->DeleteLocalRef(cls_ffmpeg_helper);
 }

@@ -7,11 +7,13 @@
 
 #define LOG_TAG "FFMPEG_LOG"
 
-static int print_prefix = 1;
+const int kBufferSize = 2048;
+
+static int kPrintPrefix = 1;
 
 void log_callback_android(void *ptr, int level, const char *fmt, va_list args) {
-  char buf[2048];
-  av_log_format_line(ptr, level, fmt, args, buf, sizeof(buf), &print_prefix);
+  char buf[kBufferSize];
+  av_log_format_line(ptr, level, fmt, args, buf, sizeof(buf), &kPrintPrefix);
   switch (level) {
     case AV_LOG_TRACE:
     case AV_LOG_VERBOSE:

@@ -1,5 +1,6 @@
 package com.binlee.dl.host;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
@@ -23,9 +24,9 @@ public final class ProxyActivity extends AppCompatActivity {
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    final String targetComponent = getIntent().getStringExtra(TARGET_COMPONENT);
+    final String target = getIntent().getStringExtra(TARGET_COMPONENT);
     try {
-      mTarget = (IActivity) getClassLoader().loadClass(targetComponent).newInstance();
+      mTarget = (IActivity) getClassLoader().loadClass(target).newInstance();
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       e.printStackTrace();
       finish();
@@ -56,5 +57,13 @@ public final class ProxyActivity extends AppCompatActivity {
   @Override protected void onDestroy() {
     super.onDestroy();
     if (mTarget != null) mTarget.onDestroy();
+  }
+
+  @Override public void startActivity(Intent intent) {
+    // 保存目标 activity
+    intent.putExtra(TARGET_COMPONENT, intent.getComponent().getClassName());
+    // 重定向到代理 activity
+    intent.setComponent(new ComponentName(this, getClass()));
+    super.startActivity(intent);
   }
 }
