@@ -12,12 +12,7 @@ import com.binlee.dl.puppet.IActivity;
  *
  * @author binlee
  */
-public final class ProxyActivity extends AppCompatActivity {
-
-  // 通过 intent 拿到 target component，之后通过反射初始化并注入参数
-  // 然后通过此类代理插件类的行为
-
-  public static final String TARGET_COMPONENT = "com.binlee.dl.TARGET_COMPONENT";
+public final class ProxyActivity extends AppCompatActivity implements IMaster {
 
   private IActivity mTarget;
 
@@ -25,13 +20,12 @@ public final class ProxyActivity extends AppCompatActivity {
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     final String target = getIntent().getStringExtra(TARGET_COMPONENT);
-    try {
-      mTarget = (IActivity) getClassLoader().loadClass(target).newInstance();
-    } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-      e.printStackTrace();
+    mTarget = ComponentInitializer.initialize(getClassLoader(), target);
+    if (mTarget != null) {
+      mTarget.onCreate(savedInstanceState);
+    } else {
       finish();
     }
-    if (mTarget != null) mTarget.onCreate(savedInstanceState);
   }
 
   @Override protected void onNewIntent(Intent intent) {
