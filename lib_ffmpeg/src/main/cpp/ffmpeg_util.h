@@ -12,7 +12,11 @@ extern "C" {
 namespace ffmpeg {
 namespace util {
 
-char *AVFormatContextToString(AVFormatContext *context);
+const char *AVFormatContextToString(AVFormatContext *ctx);
+
+const char *AVInputFormatToString(const struct AVInputFormat *format);
+
+const char *AVOutputFormatToString(const struct AVOutputFormat *format);
 
 } // namespace util
 } // namespace ffmpeg

@@ -4,7 +4,9 @@
 
 #include <jni.h>
 
+#include "ffmpeg_util.h"
 #include "log_callback_impl.h"
+
 // cpp 引入 c 语言实现的库，头文件外要包一层 extern "C"
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -50,6 +52,7 @@ void Ffmpeg_DumpMetaInfo(JNIEnv *env, jclass clazz, jstring filepath) {
     FlogE("%s, open %s error %s", __func__, url, av_err2str(res))
     goto exit;
   }
+  FlogD("%s, av format context: %s", __func__, ffmpeg::util::AVFormatContextToString(format_ctx))
   av_dump_format(format_ctx, 0, url, 0);
   avformat_close_input(&format_ctx);
   // 退出
