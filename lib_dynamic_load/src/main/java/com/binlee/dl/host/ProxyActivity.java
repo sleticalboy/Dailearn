@@ -14,15 +14,15 @@ import com.binlee.dl.puppet.IActivity;
  */
 public final class ProxyActivity extends AppCompatActivity implements IMaster {
 
-  private IActivity mTarget;
+  private IActivity mPuppet;
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     final String target = getIntent().getStringExtra(TARGET_COMPONENT);
-    mTarget = ComponentInitializer.initialize(getClassLoader(), target);
-    if (mTarget != null) {
-      mTarget.onCreate(savedInstanceState);
+    mPuppet = PuppetFactory.create(getClassLoader(), target);
+    if (mPuppet != null) {
+      mPuppet.onCreate(savedInstanceState);
     } else {
       finish();
     }
@@ -30,27 +30,27 @@ public final class ProxyActivity extends AppCompatActivity implements IMaster {
 
   @Override protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
-    if (mTarget != null) mTarget.onNewIntent(intent);
+    if (mPuppet != null) mPuppet.onNewIntent(intent);
   }
 
   @Override protected void onStart() {
     super.onStart();
-    if (mTarget != null) mTarget.onStart();
+    if (mPuppet != null) mPuppet.onStart();
   }
 
   @Override protected void onResume() {
     super.onResume();
-    if (mTarget != null) mTarget.onResume();
+    if (mPuppet != null) mPuppet.onResume();
   }
 
   @Override protected void onStop() {
     super.onStop();
-    if (mTarget != null) mTarget.onStop();
+    if (mPuppet != null) mPuppet.onStop();
   }
 
   @Override protected void onDestroy() {
     super.onDestroy();
-    if (mTarget != null) mTarget.onDestroy();
+    if (mPuppet != null) mPuppet.onDestroy();
   }
 
   @Override public void startActivity(Intent intent) {

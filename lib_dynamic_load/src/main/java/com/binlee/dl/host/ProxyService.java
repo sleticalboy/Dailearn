@@ -1,7 +1,6 @@
 package com.binlee.dl.host;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
@@ -14,35 +13,35 @@ import com.binlee.dl.puppet.IService;
  */
 public class ProxyService extends Service implements IMaster {
 
-  private IService mTarget;
-
-  @Override public void onCreate() {
-    super.onCreate();
-  }
+  private boolean mCreated = false;
+  private IService mPuppet;
 
   @Override public int onStartCommand(Intent intent, int flags, int startId) {
     final String target = intent.getStringExtra(TARGET_COMPONENT);
-    mTarget = ComponentInitializer.initialize(getClassLoader(), target);
-    if (mTarget != null) {
-      mTarget.onCreate();
-      return mTarget.onStartCommand(intent, flags, startId);
+    mPuppet = PuppetFactory.create(getClassLoader(), target);
+    if (mPuppet != null) {
+      if (!mCreated) {
+        mPuppet.onCreate(/*Context*/this);
+        mCreated = true;
+      }
+      return mPuppet.onStartCommand(intent, flags, startId);
     }
     return super.onStartCommand(intent, flags, startId);
   }
 
   @Nullable @Override public IBinder onBind(Intent intent) {
-    return mTarget != null ? mTarget.onBind(intent) : null;
+    return mPuppet != null ? mPuppet.onBind(intent) : null;
   }
 
   @Override public boolean onUnbind(Intent intent) {
-    return mTarget != null ? mTarget.onUnbind(intent) : super.onUnbind(intent);
+    return mPuppet != null ? mPuppet.onUnbind(intent) : super.onUnbind(intent);
   }
 
   @Override public void onRebind(Intent intent) {
-    if (mTarget != null) mTarget.onRebind(intent);
+    if (mPuppet != null) mPuppet.onRebind(intent);
   }
 
   @Override public void onDestroy() {
-    if (mTarget != null) mTarget.onDestroy();
+    if (mPuppet != null) mPuppet.onDestroy();
   }
 }

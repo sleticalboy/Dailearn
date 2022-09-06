@@ -5,14 +5,14 @@ package com.binlee.dl.host;
  *
  * @author binlee
  */
-class ComponentInitializer {
+class PuppetFactory {
 
-  private ComponentInitializer() {
+  private PuppetFactory() {
     //no instance
   }
 
   @SuppressWarnings("unchecked")
-  static <T> T initialize(ClassLoader loader, String className) {
+  static <T> T create(ClassLoader loader, String className) {
     try {
       return (T) loader.loadClass(className).newInstance();
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {

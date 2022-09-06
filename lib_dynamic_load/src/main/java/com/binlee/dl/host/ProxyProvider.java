@@ -17,43 +17,46 @@ import com.binlee.dl.puppet.IContentProvider;
  */
 public class ProxyProvider extends ContentProvider {
 
-  private IContentProvider mProvider;
+  private IContentProvider mPuppet;
 
   @Override public void attachInfo(Context context, ProviderInfo info) {
     super.attachInfo(context, info);
+    if (ProxyProvider.class.getName().equals(info.name)) {
+      return;
+    }
     // 从 info 中拿到类名，实例化并启动
     if (info.name.startsWith(".")) {
-      mProvider = ComponentInitializer.initialize(context.getClassLoader(), info.packageName + info.name);
+      mPuppet = PuppetFactory.create(context.getClassLoader(), info.packageName + info.name);
     } else {
-      mProvider = ComponentInitializer.initialize(context.getClassLoader(), info.name);
+      mPuppet = PuppetFactory.create(context.getClassLoader(), info.name);
     }
-    if (mProvider != null) mProvider.attachInfo(context, info);
+    if (mPuppet != null) mPuppet.attachInfo(context, info);
   }
 
   @Override public boolean onCreate() {
-    return mProvider != null && mProvider.onCreate();
+    return mPuppet != null && mPuppet.onCreate();
   }
 
   @Nullable @Override
   public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection, @Nullable String[] selectionArgs,
     @Nullable String sortOrder) {
-    return mProvider != null ? mProvider.query(uri, projection, selection, selectionArgs, sortOrder) : null;
+    return mPuppet != null ? mPuppet.query(uri, projection, selection, selectionArgs, sortOrder) : null;
   }
 
   @Nullable @Override public String getType(@NonNull Uri uri) {
-    return mProvider != null ? mProvider.getType(uri) : null;
+    return mPuppet != null ? mPuppet.getType(uri) : null;
   }
 
   @Nullable @Override public Uri insert(@NonNull Uri uri, @Nullable ContentValues values) {
-    return mProvider != null ? mProvider.insert(uri, values) : null;
+    return mPuppet != null ? mPuppet.insert(uri, values) : null;
   }
 
   @Override public int delete(@NonNull Uri uri, @Nullable String selection, @Nullable String[] selectionArgs) {
-    return mProvider != null ? mProvider.delete(uri, selection, selectionArgs) : 0;
+    return mPuppet != null ? mPuppet.delete(uri, selection, selectionArgs) : 0;
   }
 
   @Override
   public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection, @Nullable String[] selectionArgs) {
-    return mProvider != null ? mProvider.update(uri, values, selection, selectionArgs) : 0;
+    return mPuppet != null ? mPuppet.update(uri, values, selection, selectionArgs) : 0;
   }
 }

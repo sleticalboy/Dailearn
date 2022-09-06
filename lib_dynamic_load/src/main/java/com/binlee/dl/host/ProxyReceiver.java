@@ -14,9 +14,9 @@ public class ProxyReceiver extends BroadcastReceiver implements IMaster {
 
   @Override public void onReceive(Context context, Intent intent) {
     final String className = intent.getStringExtra(TARGET_COMPONENT);
-    IBroadcastReceiver target = ComponentInitializer.initialize(context.getClassLoader(), className);
-    if (target != null) {
-      target.onReceive(context, intent);
+    IBroadcastReceiver puppet = PuppetFactory.create(context.getClassLoader(), className);
+    if (puppet != null) {
+      puppet.onReceive(context, intent);
     }
   }
 }

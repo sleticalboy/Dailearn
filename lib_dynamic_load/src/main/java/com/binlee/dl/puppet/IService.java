@@ -1,5 +1,7 @@
 package com.binlee.dl.puppet;
 
+import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 
@@ -10,15 +12,23 @@ import android.os.IBinder;
  */
 public interface IService {
 
-  void onCreate();
+  void onCreate(Context context);
 
-  int onStartCommand(Intent intent, int flags, int startId);
+  default int onStartCommand(Intent intent, int flags, int startId) {
+    // mStartCompatibility = getApplicationInfo().targetSdkVersion < Build.VERSION_CODES.ECLAIR;
+    // return mStartCompatibility ? START_STICKY_COMPATIBILITY : START_STICKY;
+    return Service.START_STICKY;
+  }
 
   IBinder onBind(Intent intent);
 
-  boolean onUnbind(Intent intent);
+  default boolean onUnbind(Intent intent) {
+    return false;
+  }
 
-  void onRebind(Intent intent);
+  default void onRebind(Intent intent) {
+  }
 
-  void onDestroy();
+  default void onDestroy() {
+  }
 }
