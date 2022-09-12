@@ -9,6 +9,19 @@ namespace util {
 
 const int kBufferSize = 4096;
 
+const char *GetVersionString() {
+  int offset = 0;
+  char *buf = new char[kBufferSize];
+  offset += sprintf(buf + offset, "avcodec version:    %d\n", avcodec_version());
+  offset += sprintf(buf + offset, "avformat version:   %d\n", avformat_version());
+  offset += sprintf(buf + offset, "avutil version:     %d\n", avutil_version());
+  offset += sprintf(buf + offset, "avdevice version:   %d\n", avdevice_version());
+  offset += sprintf(buf + offset, "avfilter version:   %d\n", avfilter_version());
+  offset += sprintf(buf + offset, "swresample version: %d\n", swresample_version());
+  /*offset += */sprintf(buf + offset, "swscale version:    %d", swscale_version());
+  return buf;
+}
+
 const char *AVFormatContextToString(AVFormatContext *ctx) {
   if (ctx == nullptr) {
     return nullptr;

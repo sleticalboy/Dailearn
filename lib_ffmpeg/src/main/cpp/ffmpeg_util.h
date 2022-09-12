@@ -7,10 +7,20 @@
 
 extern "C" {
 #include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+#include "libavutil/error.h"
+#include "libavutil/avutil.h"
+#include "libavdevice/avdevice.h"
+#include "libavfilter/avfilter.h"
+#include "libswresample/swresample.h"
+#include "libswscale/swscale.h"
 }
 
 namespace ffmpeg {
 namespace util {
+
+const char *GetVersionString();
 
 const char *AVFormatContextToString(AVFormatContext *ctx);
 

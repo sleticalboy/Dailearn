@@ -20,7 +20,6 @@ extern "C" {
 }
 
 const char *kFfmpegHelperClass = "com/example/ffmpeg/FfmpegHelper";
-const int kBufferSize = 512;
 
 void Ffmpeg_Init(JNIEnv *env, jclass clazz) {
   ffmpeg::log::init();
@@ -28,17 +27,7 @@ void Ffmpeg_Init(JNIEnv *env, jclass clazz) {
 
 jstring Ffmpeg_GetVersions(JNIEnv *env, jclass clazz) {
   FlogD("%s %s", __func__, avcodec_configuration())
-  int offset = 0;
-  char *buf = new char[kBufferSize];
-  offset += sprintf(buf + offset, "avcodec version:    %d\n", avcodec_version());
-  offset += sprintf(buf + offset, "avformat version:   %d\n", avformat_version());
-  offset += sprintf(buf + offset, "avutil version:     %d\n", avutil_version());
-  offset += sprintf(buf + offset, "avdevice version:   %d\n", avdevice_version());
-  offset += sprintf(buf + offset, "avfilter version:   %d\n", avfilter_version());
-  offset += sprintf(buf + offset, "swresample version: %d\n", swresample_version());
-  offset += sprintf(buf + offset, "swscale version:    %d", swscale_version());
-  FlogD("%s \n%s\noffset: %d", __func__, buf, offset)
-  return env->NewStringUTF(buf);
+  return env->NewStringUTF(ffmpeg::util::GetVersionString());
 }
 
 void Ffmpeg_DumpMetaInfo(JNIEnv *env, jclass clazz, jstring filepath) {
