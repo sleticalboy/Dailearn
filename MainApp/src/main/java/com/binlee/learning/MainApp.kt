@@ -38,11 +38,11 @@ class MainApp : Application() {
   }
 
   override fun getClassLoader(): ClassLoader {
-    return PluginManager.getClassLoader()
+    return PluginManager.classLoader()
   }
 
   override fun getResources(): Resources {
-    return PluginManager.getResources()
+    return PluginManager.resources()
   }
 
   override fun onCreate() {

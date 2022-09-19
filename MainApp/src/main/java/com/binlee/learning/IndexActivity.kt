@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.binlee.apm.jvmti.JvmtiLoader
+import com.binlee.dl.FileUtils
 import com.binlee.learning.http.bean.Apis
 import com.binlee.learning.http.IDemo
 import com.binlee.learning.http.RetrofitClient
@@ -32,6 +33,8 @@ import kotlinx.coroutines.runBlocking
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.File
+import java.io.FileOutputStream
 import java.lang.NullPointerException
 import kotlin.concurrent.thread
 
@@ -216,16 +219,18 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun loadPluginClass() {
-    Log.d(TAG, "loadPluginClass() app.classLoader: ${application.classLoader}, hash: ${application.classLoader.hashCode()}")
-    Log.d(TAG, "loadPluginClass() this.classLoader: $classLoader, hash: ${classLoader.hashCode()}")
+    val plugin = File(PLUGIN_PATH)
+    if (!plugin.exists()) {
+      FileUtils.copy(assets.open("sample-arch-debug.apk"), FileOutputStream(plugin))
+    }
     PluginManager.install(PLUGIN_PATH)
     try {
       // com.binlee.sample.model.CacheEntry
-      val entryClass = classLoader.loadClass("com.binlee.sample.model.CacheEntry")
+      val entryClass = PluginManager.classLoader().loadClass("com.binlee.sample.model.CacheEntry")
       val entry = entryClass.newInstance()
-      Log.d(TAG, "loadPluginClass() entry: $entry, loader: ${application.classLoader}")
+      Log.d(TAG, "loadPluginClass() entry: $entry, loader: $classLoader")
     } catch (e: Throwable) {
-      Log.w(TAG, "loadPluginClass() failed: $e, loader: ${application.classLoader}")
+      Log.w(TAG, "loadPluginClass() failed: $e, loader: $classLoader")
     }
   }
 

@@ -73,7 +73,7 @@ public final class PluginManager {
    *
    * @return {@link ClassLoader}
    */
-  public static ClassLoader getClassLoader() {
+  public static ClassLoader classLoader() {
     throwIfNotInitialized();
     final ClassLoader classLoader = PluginLoaders.peek();
     return classLoader == null ? sConfig.parentLoader : classLoader;
@@ -84,7 +84,7 @@ public final class PluginManager {
    *
    * @return {@link Resources}
    */
-  public static Resources getResources() {
+  public static Resources resources() {
     throwIfNotInitialized();
     final Resources resources = PluginResources.peek();
     return resources == null ? sConfig.parentResource : resources;
