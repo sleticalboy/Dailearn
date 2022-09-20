@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import androidx.annotation.Nullable;
+import com.binlee.dl.host.IMaster;
 import com.binlee.dl.puppet.IPuppetService;
 
 /**
@@ -18,7 +19,7 @@ public final class ProxyService extends Service implements IMaster {
 
   @Override public int onStartCommand(Intent intent, int flags, int startId) {
     final String target = intent.getStringExtra(TARGET_COMPONENT);
-    mPuppet = PuppetFactory.load(getClassLoader(), target);
+    mPuppet = PuppetFactory.create(target);
     if (mPuppet != null) {
       if (!mCreated) {
         mPuppet.onCreate(/*Context*/this);

@@ -1,5 +1,7 @@
 package com.binlee.dl.host.proxy;
 
+import com.binlee.dl.host.DlManager;
+
 /**
  * Created on 2022-09-04.
  *
@@ -12,9 +14,10 @@ final class PuppetFactory {
   }
 
   @SuppressWarnings("unchecked")
-  static <T> T load(ClassLoader loader, String className) {
+  static <T> T create(String className) {
     try {
-      return (T) loader.loadClass(className).newInstance();
+      final Class<?> clazz = DlManager.loadClass(className);
+      return clazz == null ? null : (T) clazz.newInstance();
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       e.printStackTrace();
       return null;

@@ -1,0 +1,33 @@
+plugins {
+  // id 'com.android.library'
+  id 'com.android.application'
+}
+
+android {
+  compileSdkVersion rootProject.ext.compile_version
+
+  defaultConfig {
+    // applicationId "com.example.plugin"
+    minSdkVersion rootProject.ext.min_version
+    targetSdkVersion rootProject.ext.target_version
+    versionCode 1
+    versionName "1.0"
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+}
+
+dependencies {
+  implementation "androidx.appcompat:appcompat:$appcompat_version"
+  implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
+  implementation implementation(project(':lib_dl:puppet',))
+}

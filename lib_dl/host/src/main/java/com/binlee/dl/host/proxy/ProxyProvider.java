@@ -26,9 +26,9 @@ public final class ProxyProvider extends ContentProvider {
     }
     // 从 info 中拿到类名，实例化并启动
     if (info.name.startsWith(".")) {
-      mPuppet = PuppetFactory.load(context.getClassLoader(), info.packageName + info.name);
+      mPuppet = PuppetFactory.create(info.packageName + info.name);
     } else {
-      mPuppet = PuppetFactory.load(context.getClassLoader(), info.name);
+      mPuppet = PuppetFactory.create(info.name);
     }
     if (mPuppet != null) mPuppet.attachInfo(context, info);
   }

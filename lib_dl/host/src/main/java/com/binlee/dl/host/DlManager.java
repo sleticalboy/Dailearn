@@ -10,7 +10,7 @@ import java.util.List;
  *
  * @author binlee
  */
-public final class PluginManager {
+public final class DlManager {
 
   // 管理
   // 1、插件的加载和卸载（资源和 dex）
@@ -21,7 +21,7 @@ public final class PluginManager {
   /** 宿主类加载器 */
   private static ClassLoader sParentLoader;
 
-  private PluginManager() {
+  private DlManager() {
     //no instance
   }
 

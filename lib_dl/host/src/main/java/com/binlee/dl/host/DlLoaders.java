@@ -110,14 +110,22 @@ final class DlLoaders {
 
     @Override
     protected Class<?> findClass(final String name) throws ClassNotFoundException {
-      Class<?> found = super.findClass(name);
-      if (found == null) {
+      try {
+        return super.findClass(name);
+      } catch (ClassNotFoundException cnf) {
+        ClassNotFoundException failed = null;
         for (PluginClassLoader child = mChild; child != null; child = child.mChild) {
-          found = child.findClass(name);
-          if (found != null) break;
+          try {
+            return child.findClass(name);
+          } catch (ClassNotFoundException e) {
+            failed = e;
+          }
         }
+        if (failed == null) {
+          failed = new ClassNotFoundException(name);
+        }
+        throw failed;
       }
-      return found;
     }
 
     @NonNull @Override public String toString() {

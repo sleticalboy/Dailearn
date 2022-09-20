@@ -1,4 +1,4 @@
-package com.binlee.dl.host.proxy;
+package com.binlee.dl.host;
 
 /**
  * Created on 2022-09-04.

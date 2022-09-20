@@ -13,7 +13,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.binlee.dl.host.PluginManager
+import com.binlee.dl.host.DlManager
+import com.binlee.dl.host.IMaster
+import com.binlee.dl.host.proxy.ProxyActivity
 import com.binlee.dl.host.util.FileUtils
 import com.binlee.learning.http.bean.Apis
 import com.binlee.learning.http.IDemo
@@ -220,21 +222,14 @@ class IndexActivity : BaseActivity() {
   private fun loadPluginClass() {
     val plugin = File(PLUGIN_PATH)
     if (!plugin.exists()) {
-      FileUtils.copy(assets.open("sample-arch-debug.apk"), FileOutputStream(plugin))
+      FileUtils.copy(assets.open("plugin.apk"), FileOutputStream(plugin))
     }
-    PluginManager.install(PLUGIN_PATH)
-    try {
-      // 插件中的类：com.binlee.sample.model.CacheEntry
-      val entryClass = PluginManager.loadClass("com.binlee.sample.model.CacheEntry")
-      val entry = entryClass?.newInstance()
-
-      // 宿主中的类：com.binlee.learning.bean.AudioItem
-      val itemClass = PluginManager.loadClass("com.binlee.learning.bean.AudioItem")
-      val item = itemClass?.newInstance()
-      Log.d(TAG, "loadPluginClass() entry: $entry, item: $item, loader: $classLoader")
-    } catch (e: Throwable) {
-      Log.w(TAG, "loadPluginClass() failed: $e, loader: $classLoader")
-    }
+    DlManager.install(PLUGIN_PATH)
+    // 插件中的类：com.example.plugin.PluginActivity
+    val intent = Intent(this, ProxyActivity::class.java)
+    intent.putExtra(IMaster.TARGET_COMPONENT, "com.example.plugin.PluginActivity")
+    startActivity(intent)
+    Log.w(TAG, "loadPluginClass() finished")
   }
 
   private class ItemHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -255,6 +250,6 @@ class IndexActivity : BaseActivity() {
 
   companion object {
     private const val TAG = "IndexActivity"
-    private const val PLUGIN_PATH = "/sdcard/Download/sample-arch-debug.apk"
+    private const val PLUGIN_PATH = "/sdcard/Download/plugin.zip"
   }
 }

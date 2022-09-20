@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import com.binlee.dl.host.IMaster;
 import com.binlee.dl.puppet.IPuppetActivity;
 
 /**
@@ -19,8 +20,7 @@ public final class ProxyActivity extends AppCompatActivity implements IMaster {
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    final String target = getIntent().getStringExtra(TARGET_COMPONENT);
-    mPuppet = PuppetFactory.load(getClassLoader(), target);
+    mPuppet = PuppetFactory.create(getIntent().getStringExtra(TARGET_COMPONENT));
     if (mPuppet != null) {
       mPuppet.onCreate(savedInstanceState);
     } else {

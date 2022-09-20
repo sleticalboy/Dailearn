@@ -4,7 +4,6 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.binlee.dl.PluginManager
 
 /**
  * Created on 18-2-1.
