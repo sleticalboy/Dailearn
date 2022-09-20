@@ -67,7 +67,7 @@ dependencies {
 
   implementation project(path: ':lib_jvmti')
   implementation project(path: ':lib_ffmpeg')
-  implementation project(path: ':lib_dynamic_load')
+  implementation project(path: ':lib_dl:host')
   implementation project(path: ':lib_hidden_relieve')
 
   //coroutines

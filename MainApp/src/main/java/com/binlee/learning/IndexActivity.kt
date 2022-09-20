@@ -13,7 +13,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.binlee.dl.util.FileUtils
+import com.binlee.dl.host.PluginManager
+import com.binlee.dl.host.util.FileUtils
 import com.binlee.learning.http.bean.Apis
 import com.binlee.learning.http.IDemo
 import com.binlee.learning.http.RetrofitClient
@@ -23,7 +24,6 @@ import com.binlee.learning.data.DataEngine
 import com.binlee.learning.data.Result
 import com.binlee.learning.databinding.ActivityIndexBinding
 import com.binlee.learning.others.KeyboardHeightProvider
-import com.binlee.dl.PluginManager
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay

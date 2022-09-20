@@ -8,7 +8,7 @@ buildscript {
     min_version = 21
     target_version = 32
     gradle_version = '4.0.0'
-    appcompat_version = '1.5.0'
+    appcompat_version = '1.5.1'
     ktx_version = '1.8.0'
     constraint_version = '2.1.4'
     material_version = '1.6.1'

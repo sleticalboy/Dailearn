@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.binlee.dl.host">
+
+  <application>
+    <activity
+      android:name=".proxy.ProxyActivity"
+      android:exported="true" />
+    <service
+      android:name=".proxy.ProxyService"
+      android:exported="true" />
+    <receiver
+      android:name=".proxy.ProxyReceiver"
+      android:exported="true" />
+    <provider
+      android:name=".proxy.ProxyProvider"
+      android:exported="true"
+      android:authorities="xxx" />
+  </application>
+
+</manifest>
