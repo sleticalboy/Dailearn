@@ -18,7 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.res.ResourcesCompat;
-import java.io.File;
+import com.binlee.dl.util.FileUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -32,7 +32,7 @@ import org.xmlpull.v1.XmlPullParserException;
  *
  * @author binlee
  */
-public final class PluginResources {
+final class DlResources {
 
   private static final String TAG = "PluginResources";
 
@@ -73,11 +73,11 @@ public final class PluginResources {
 
   private static final ResourcesCache sCache = new ResourcesCache();
 
-  private PluginResources() {
+  private DlResources() {
     //no instance
   }
 
-  public static void install(@Nullable String pluginPath, @NonNull Resources parent) {
+  static void install(@Nullable String pluginPath, @NonNull Resources parent) {
     if (pluginPath == null || pluginPath.trim().length() == 0) return;
 
     if (sCache.contains(pluginPath)) return;
@@ -109,11 +109,11 @@ public final class PluginResources {
     }
   }
 
-  public static Resources peek() {
-    return sCache.mResources;
+  static Resources peek(Resources fallback) {
+    return sCache.mResources == null ? fallback : sCache.mResources;
   }
 
-  public static void remove(String pluginPath) {
+  static void remove(String pluginPath) {
     sCache.unregister(pluginPath);
   }
 

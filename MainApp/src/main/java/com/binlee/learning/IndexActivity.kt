@@ -13,8 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.binlee.apm.jvmti.JvmtiLoader
-import com.binlee.dl.FileUtils
+import com.binlee.dl.util.FileUtils
 import com.binlee.learning.http.bean.Apis
 import com.binlee.learning.http.IDemo
 import com.binlee.learning.http.RetrofitClient
@@ -225,10 +224,14 @@ class IndexActivity : BaseActivity() {
     }
     PluginManager.install(PLUGIN_PATH)
     try {
-      // com.binlee.sample.model.CacheEntry
-      val entryClass = PluginManager.classLoader().loadClass("com.binlee.sample.model.CacheEntry")
-      val entry = entryClass.newInstance()
-      Log.d(TAG, "loadPluginClass() entry: $entry, loader: $classLoader")
+      // 插件中的类：com.binlee.sample.model.CacheEntry
+      val entryClass = PluginManager.loadClass("com.binlee.sample.model.CacheEntry")
+      val entry = entryClass?.newInstance()
+
+      // 宿主中的类：com.binlee.learning.bean.AudioItem
+      val itemClass = PluginManager.loadClass("com.binlee.learning.bean.AudioItem")
+      val item = itemClass?.newInstance()
+      Log.d(TAG, "loadPluginClass() entry: $entry, item: $item, loader: $classLoader")
     } catch (e: Throwable) {
       Log.w(TAG, "loadPluginClass() failed: $e, loader: $classLoader")
     }

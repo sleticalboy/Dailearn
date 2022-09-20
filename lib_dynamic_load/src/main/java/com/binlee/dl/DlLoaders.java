@@ -2,8 +2,8 @@ package com.binlee.dl;
 
 import android.util.Log;
 import androidx.annotation.NonNull;
+import com.binlee.dl.util.FileUtils;
 import dalvik.system.PathClassLoader;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.List;
  *
  * @author binlee
  */
-public final class PluginLoaders {
+final class DlLoaders {
 
   private static final String TAG = "PluginLoaders";
 
@@ -62,15 +62,15 @@ public final class PluginLoaders {
     // 返回新的 ClassLoader， JVM 类加载委托机制会先从父加载器查找 Class，最后通过我们的加载器查找
   }
 
-  public static ClassLoader peek() {
-    return sCache.mClassLoader;
+  static ClassLoader peek(ClassLoader fallback) {
+    return sCache.mClassLoader == null ? fallback : sCache.mClassLoader;
   }
 
-  public static void remove(String pluginPath) {
+  static void remove(String pluginPath) {
     sCache.unregister(pluginPath);
   }
 
-  public static List<String> collectAll() {
+  static List<String> collectAll() {
     return Collections.unmodifiableList(sCache.mRegistry);
   }
 

@@ -1,6 +1,8 @@
 package com.binlee.dl;
 
 import android.content.res.Resources;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -13,22 +15,11 @@ public final class PluginManager {
   // 管理
   // 1、插件的加载和卸载（资源和 dex）
 
-  public static final class Config {
-    /** 宿主资源 */
-    private Resources parentResource;
-    /** 宿主类加载器 */
-    private ClassLoader parentLoader;
 
-    public void setParentResource(Resources parent) {
-      this.parentResource = parent;
-    }
-
-    public void setParentClassLoader(ClassLoader parent) {
-      this.parentLoader = parent;
-    }
-  }
-
-  private static Config sConfig;
+  /** 宿主资源 */
+  private static Resources sParentResource;
+  /** 宿主类加载器 */
+  private static ClassLoader sParentLoader;
 
   private PluginManager() {
     //no instance
@@ -37,10 +28,12 @@ public final class PluginManager {
   /**
    * 初始化
    *
-   * @param config 配置
+   * @param loader 宿主类加载器
+   * @param resources 宿主资源
    */
-  public static void initialized(Config config) {
-    sConfig = config;
+  public static void initialize(ClassLoader loader, Resources resources) {
+    sParentLoader = loader;
+    sParentResource = resources;
   }
 
   /**
@@ -50,8 +43,8 @@ public final class PluginManager {
    */
   public static void install(String pluginPath) {
     throwIfNotInitialized();
-    PluginLoaders.install(pluginPath, sConfig.parentLoader);
-    PluginResources.install(pluginPath, sConfig.parentResource);
+    DlLoaders.install(pluginPath, sParentLoader);
+    DlResources.install(pluginPath, sParentResource);
   }
 
   /**
@@ -60,23 +53,26 @@ public final class PluginManager {
    * @param pluginPath 插件路径
    */
   public static void uninstall(String pluginPath) {
-    PluginLoaders.remove(pluginPath);
-    PluginResources.remove(pluginPath);
+    DlLoaders.remove(pluginPath);
+    DlResources.remove(pluginPath);
   }
 
   public static List<String> getAll() {
-    return PluginLoaders.collectAll();
+    return DlLoaders.collectAll();
   }
 
+
   /**
-   * 获取类加载程序
+   * 加载类
    *
-   * @return {@link ClassLoader}
+   * @param classname 类名称
+   * @return {@link Class}<{@link ?}>
+   * @throws ClassNotFoundException 类没有发现异常
    */
-  public static ClassLoader classLoader() {
+  @Nullable
+  public static Class<?> loadClass(@NonNull String classname) throws ClassNotFoundException {
     throwIfNotInitialized();
-    final ClassLoader classLoader = PluginLoaders.peek();
-    return classLoader == null ? sConfig.parentLoader : classLoader;
+    return DlLoaders.peek(sParentLoader).loadClass(classname);
   }
 
   /**
@@ -86,11 +82,12 @@ public final class PluginManager {
    */
   public static Resources resources() {
     throwIfNotInitialized();
-    final Resources resources = PluginResources.peek();
-    return resources == null ? sConfig.parentResource : resources;
+    return DlResources.peek(sParentResource);
   }
 
   private static void throwIfNotInitialized() {
-    if (sConfig == null) throw new IllegalStateException("Did you miss calling PluginManager#initialize() ?");
+    if (sParentLoader == null || sParentResource == null) {
+      throw new IllegalStateException("Did you miss calling PluginManager#initialize() ?");
+    }
   }
 }
