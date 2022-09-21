@@ -6,7 +6,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.util.Log;
 import com.binlee.dl.host.DlManager;
-import com.binlee.dl.host.IMaster;
+import com.binlee.dl.host.DlConst;
 
 /**
  * Created on 2022/9/21
@@ -29,7 +29,7 @@ public final class DlInstrumentation extends Instrumentation {
   @Override public Activity newActivity(ClassLoader cl, String className, Intent intent)
     throws ClassNotFoundException, IllegalAccessException, InstantiationException {
     // 真正要启动的组件
-    final ComponentName target = intent.getParcelableExtra(IMaster.TARGET_COMPONENT);
+    final ComponentName target = intent.getParcelableExtra(DlConst.REAL_COMPONENT);
     if (target != null) {
       final Class<?> clazz = DlManager.loadClass(target.getClassName());
       Log.d(TAG, "newActivity() proxy: " + className + ", target: " + target);

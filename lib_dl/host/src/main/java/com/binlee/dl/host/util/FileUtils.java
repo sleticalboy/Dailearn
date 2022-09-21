@@ -32,11 +32,19 @@ public final class FileUtils {
       }
     }
     try {
-      return copy(new FileInputStream(src), new FileOutputStream(dest));
+      return copy(new FileInputStream(src), dest);
     } catch (IOException e) {
       Log.e(TAG, "copy file from " + src + " to " + dest + " failed " + e.getMessage(), e);
       return false;
     }
+  }
+
+  public static boolean copy(InputStream src, File dest) throws IOException {
+    final File parent = dest.getParentFile();
+    if (parent != null) {
+      parent.mkdirs();
+    }
+    return copy(src, new FileOutputStream(dest));
   }
 
   public static boolean copy(InputStream src, OutputStream dest) throws IOException {

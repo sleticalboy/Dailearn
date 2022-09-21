@@ -1,5 +1,6 @@
 package com.binlee.dl.host.hook;
 
+import android.annotation.SuppressLint;
 import android.os.Handler;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -25,7 +26,9 @@ public final class DlHooks {
 
     if (sCurrentAt == null) {
       try {
+        @SuppressLint("PrivateApi")
         final Class<?> clazz = Class.forName("android.app.ActivityThread");
+        @SuppressLint("DiscouragedPrivateApi")
         final Method method = clazz.getDeclaredMethod("currentActivityThread");
         method.setAccessible(true);
         sCurrentAt = method.invoke(null);
@@ -52,12 +55,12 @@ public final class DlHooks {
   public static void setHandlerCallback(Handler.Callback callback) {
     final Object currentAt = getActivityThread();
     try {
-      Field field = currentAt.getClass().getDeclaredField("mH");
+      final Field field = currentAt.getClass().getDeclaredField("mH");
       field.setAccessible(true);
       final Handler handler = (Handler) field.get(currentAt);
-      field = Handler.class.getDeclaredField("mCallback");
-      field.setAccessible(true);
-      field.set(handler, callback);
+      final Field mCallback = Handler.class.getDeclaredField("mCallback");
+      mCallback.setAccessible(true);
+      mCallback.set(handler, callback);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }

@@ -54,6 +54,7 @@ public final class DlManager {
    * @param pluginPath 插件路径
    */
   public static void install(String pluginPath) {
+    Log.d(TAG, "install() called with: pluginPath = [" + pluginPath + "]");
     throwIfNotInitialized();
     DlLoaders.install(sHost, pluginPath);
     DlResources.install(sHost, pluginPath);
@@ -65,6 +66,7 @@ public final class DlManager {
    * @param pluginPath 插件路径
    */
   public static void uninstall(String pluginPath) {
+    Log.d(TAG, "uninstall() called with: pluginPath = [" + pluginPath + "]");
     DlLoaders.remove(pluginPath);
     DlResources.remove(pluginPath);
   }

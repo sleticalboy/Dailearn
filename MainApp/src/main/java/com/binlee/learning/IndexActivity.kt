@@ -15,17 +15,16 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.binlee.dl.host.DlManager
-import com.binlee.dl.host.IMaster
 import com.binlee.dl.host.proxy.ProxyActivity
 import com.binlee.dl.host.util.FileUtils
-import com.binlee.learning.http.bean.Apis
-import com.binlee.learning.http.IDemo
-import com.binlee.learning.http.RetrofitClient
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.data.DataEngine
 import com.binlee.learning.data.Result
 import com.binlee.learning.databinding.ActivityIndexBinding
+import com.binlee.learning.http.IDemo
+import com.binlee.learning.http.RetrofitClient
+import com.binlee.learning.http.bean.Apis
 import com.binlee.learning.others.KeyboardHeightProvider
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
@@ -37,7 +36,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
-import java.lang.NullPointerException
 import kotlin.concurrent.thread
 
 class IndexActivity : BaseActivity() {
@@ -221,12 +219,11 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun loadPluginClass() {
-    FileUtils.copy(assets.open("plugin.apk"), FileOutputStream(PLUGIN_PATH))
-    DlManager.install(PLUGIN_PATH)
+    val plugin = File(filesDir, "plugins/plugin.zip")
+    FileUtils.copy(assets.open("plugin.apk"), plugin)
+    DlManager.install(plugin.absolutePath)
     // 插件中的类：com.example.plugin.PluginActivity
-    val intent = Intent(this, ProxyActivity::class.java)
-    intent.putExtra(IMaster.TARGET_COMPONENT, ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"))
-    startActivity(intent)
+    ProxyActivity.start(this, ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"))
     Log.w(TAG, "loadPluginClass() finished")
   }
 
@@ -248,6 +245,5 @@ class IndexActivity : BaseActivity() {
 
   companion object {
     private const val TAG = "IndexActivity"
-    private const val PLUGIN_PATH = "/sdcard/Download/plugin.zip"
   }
 }
