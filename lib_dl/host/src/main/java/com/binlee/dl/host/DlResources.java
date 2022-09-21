@@ -1,5 +1,9 @@
 package com.binlee.dl.host;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.content.res.ColorStateList;
@@ -77,16 +81,40 @@ final class DlResources {
     //no instance
   }
 
-  static void install(@Nullable String pluginPath, @NonNull Resources parent) {
+  static void install(Context host, @Nullable String pluginPath) {
     if (pluginPath == null || pluginPath.trim().length() == 0) return;
 
     if (sCache.contains(pluginPath)) return;
 
     if (!FileUtils.validateFile(pluginPath)) return;
 
-    sCache.setParent(parent);
+    sCache.setParent(host.getResources());
     sCache.setReported(pluginPath, false);
 
+    // registerViaReflect(host, pluginPath);
+    // 拿到插件的包信息：activity、service、provider、meta_data、signatures
+    final PackageInfo packageInfo = host.getPackageManager()
+      .getPackageArchiveInfo(pluginPath, PackageManager.GET_ACTIVITIES | PackageManager.GET_SERVICES
+        | PackageManager.GET_RECEIVERS | PackageManager.GET_PROVIDERS
+        | PackageManager.GET_META_DATA | PackageManager.GET_SIGNATURES);
+    Log.d(TAG, "install() pluginPath: " + pluginPath + ", " + packageInfo);
+    try {
+      // 拿到插件的资源文件
+      final Resources resources = host.getPackageManager()
+        .getResourcesForApplication(packageInfo.applicationInfo);
+      sCache.register(resources.getAssets(), pluginPath, host.getResources());
+    } catch (PackageManager.NameNotFoundException e) {
+      e.printStackTrace();
+      Boolean reported = sCache.getReported(pluginPath);
+      if (reported == null || !reported) {
+        e.printStackTrace();
+        sCache.setReported(pluginPath, true);
+      }
+    }
+  }
+
+  @Deprecated
+  private static void registerViaReflect(Context host, String pluginPath) {
     // 通过 apk 路径构建新的 Resources，使得主 app 可以加载插件中的资源
     try {
       // Class<?> clazz = Class.forName("android.content.res.ApkAssets");
@@ -94,13 +122,13 @@ final class DlResources {
       // method.setAccessible(true);
       // Object apkAssets = method.invoke(null, pluginPath);
       final AssetManager assets = AssetManager.class.newInstance();
+      @SuppressLint("DiscouragedPrivateApi")
       Method method = AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
       method.setAccessible(true);
       final Object ret = method.invoke(assets, pluginPath);
-      Log.d(TAG, "proxy() pluginPath: " + pluginPath + ", addAssetPath: " + ret + ", parent: " + parent);
-      sCache.register(assets, pluginPath, parent);
-    } catch (IllegalAccessException | InstantiationException | NoSuchMethodException
-            | InvocationTargetException e) {
+      Log.d(TAG, "proxy() pluginPath: " + pluginPath + ", addAssetPath: " + ret + ", parent: " + host);
+      sCache.register(assets, pluginPath, host.getResources());
+    } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
       Boolean reported = sCache.getReported(pluginPath);
       if (reported == null || !reported) {
         e.printStackTrace();

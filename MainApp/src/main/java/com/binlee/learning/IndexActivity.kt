@@ -1,6 +1,7 @@
 package com.binlee.learning
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.AssetManager
@@ -220,14 +221,11 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun loadPluginClass() {
-    val plugin = File(PLUGIN_PATH)
-    if (!plugin.exists()) {
-      FileUtils.copy(assets.open("plugin.apk"), FileOutputStream(plugin))
-    }
+    FileUtils.copy(assets.open("plugin.apk"), FileOutputStream(PLUGIN_PATH))
     DlManager.install(PLUGIN_PATH)
     // 插件中的类：com.example.plugin.PluginActivity
     val intent = Intent(this, ProxyActivity::class.java)
-    intent.putExtra(IMaster.TARGET_COMPONENT, "com.example.plugin.PluginActivity")
+    intent.putExtra(IMaster.TARGET_COMPONENT, ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"))
     startActivity(intent)
     Log.w(TAG, "loadPluginClass() finished")
   }

@@ -1,5 +1,6 @@
 package com.binlee.dl.host;
 
+import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import com.binlee.dl.host.util.FileUtils;
@@ -43,7 +44,7 @@ final class DlLoaders {
 
   private static final ClassLoaderCache sCache = new ClassLoaderCache();
 
-  public static synchronized void install(String pluginPath, ClassLoader parent) {
+  static synchronized void install(Context host, String pluginPath) {
     if (pluginPath == null || pluginPath.trim().length() == 0) return;
 
     if (sCache.contains(pluginPath)) {
@@ -56,7 +57,7 @@ final class DlLoaders {
     Log.d(TAG, "proxy() start construct class loader");
 
     // 使用 apk/dex/zip 路径构建 ClassLoader
-    sCache.register(pluginPath, parent);
+    sCache.register(pluginPath, host.getClassLoader());
 
     Log.d(TAG, "proxy() pluginPath: " + pluginPath + ", loader chain -> " + sCache.mClassLoader);
     // 返回新的 ClassLoader， JVM 类加载委托机制会先从父加载器查找 Class，最后通过我们的加载器查找

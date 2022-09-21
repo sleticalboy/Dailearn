@@ -1,10 +1,8 @@
 package com.binlee.dl.host.util;
 
 import android.util.Log;
-
-import java.lang.reflect.Field;
-
 import dalvik.system.BaseDexClassLoader;
+import java.lang.reflect.Field;
 
 /**
  * Created on 19-4-5.

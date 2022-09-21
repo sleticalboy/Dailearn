@@ -26,5 +26,4 @@ android {
 
 dependencies {
   implementation("androidx.appcompat:appcompat:$appcompat_version")
-  implementation(project(":lib_dl:puppet"))
 }

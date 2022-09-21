@@ -10,6 +10,5 @@ include ':lib_jvmti'
 include ':lib_ffmpeg'
 include ':lib_hidden_relieve'
 include ':lib_dl:host'
-include ':lib_dl:puppet'
 // 插件 apk
 include ':lib_plugin'

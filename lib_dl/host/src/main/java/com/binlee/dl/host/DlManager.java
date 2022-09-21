@@ -1,8 +1,13 @@
 package com.binlee.dl.host;
 
+import android.app.Application;
 import android.content.res.Resources;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import com.binlee.dl.host.hook.DlHandlerCallback;
+import com.binlee.dl.host.hook.DlInstrumentation;
+import com.binlee.dl.host.hook.DlHooks;
 import java.util.List;
 
 /**
@@ -12,14 +17,15 @@ import java.util.List;
  */
 public final class DlManager {
 
+  private static final String TAG = "DlManager";
+
   // 管理
   // 1、插件的加载和卸载（资源和 dex）
 
-
-  /** 宿主资源 */
-  private static Resources sParentResource;
-  /** 宿主类加载器 */
-  private static ClassLoader sParentLoader;
+  /** 宿主 application */
+  private static Application sHost;
+  private static ClassLoader sHostLoader;
+  private static Resources sHostResources;
 
   private DlManager() {
     //no instance
@@ -28,12 +34,18 @@ public final class DlManager {
   /**
    * 初始化
    *
+   * @param host 宿主 app
    * @param loader 宿主类加载器
    * @param resources 宿主资源
    */
-  public static void initialize(ClassLoader loader, Resources resources) {
-    sParentLoader = loader;
-    sParentResource = resources;
+  public static void init(Application host, ClassLoader loader, Resources resources) {
+    Log.d(TAG, "init() host: " + host + ", loader: " + loader + ", res: " + resources);
+    sHost = host;
+    sHostLoader = loader;
+    sHostResources = resources;
+    // hook instrumentation & ams
+    DlHooks.setInstrumentation(new DlInstrumentation());
+    DlHooks.setHandlerCallback(new DlHandlerCallback());
   }
 
   /**
@@ -43,8 +55,8 @@ public final class DlManager {
    */
   public static void install(String pluginPath) {
     throwIfNotInitialized();
-    DlLoaders.install(pluginPath, sParentLoader);
-    DlResources.install(pluginPath, sParentResource);
+    DlLoaders.install(sHost, pluginPath);
+    DlResources.install(sHost, pluginPath);
   }
 
   /**
@@ -72,7 +84,7 @@ public final class DlManager {
   @Nullable
   public static Class<?> loadClass(@NonNull String classname) throws ClassNotFoundException {
     throwIfNotInitialized();
-    return DlLoaders.peek(sParentLoader).loadClass(classname);
+    return DlLoaders.peek(sHostLoader).loadClass(classname);
   }
 
   /**
@@ -82,11 +94,11 @@ public final class DlManager {
    */
   public static Resources resources() {
     throwIfNotInitialized();
-    return DlResources.peek(sParentResource);
+    return DlResources.peek(sHostResources);
   }
 
   private static void throwIfNotInitialized() {
-    if (sParentLoader == null || sParentResource == null) {
+    if (sHost == null) {
       throw new IllegalStateException("Did you miss calling PluginManager#initialize() ?");
     }
   }
