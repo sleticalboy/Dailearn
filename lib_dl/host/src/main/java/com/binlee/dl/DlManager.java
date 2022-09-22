@@ -1,6 +1,7 @@
-package com.binlee.dl.host;
+package com.binlee.dl;
 
 import android.app.Application;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.util.Log;
 import androidx.annotation.NonNull;
@@ -8,6 +9,7 @@ import androidx.annotation.Nullable;
 import com.binlee.dl.host.hook.DlHandlerCallback;
 import com.binlee.dl.host.hook.DlInstrumentation;
 import com.binlee.dl.host.hook.DlHooks;
+import com.binlee.dl.plugin.DlPackageManager;
 import java.util.List;
 
 /**
@@ -27,25 +29,36 @@ public final class DlManager {
   private static ClassLoader sHostLoader;
   private static Resources sHostResources;
 
+  private static final DlManager DL_MANAGER = new DlManager();
+
+  private DlPackageManager mPm;
+
   private DlManager() {
-    //no instance
+  }
+
+  public static DlManager get() {
+    return DL_MANAGER;
   }
 
   /**
    * 初始化
    *
    * @param host 宿主 app
-   * @param loader 宿主类加载器
-   * @param resources 宿主资源
    */
-  public static void init(Application host, ClassLoader loader, Resources resources) {
-    Log.d(TAG, "init() host: " + host + ", loader: " + loader + ", res: " + resources);
+  public void init(Application host) {
+    Log.d(TAG, "init() host: " + host);
+    mPm = new DlPackageManager(host);
     sHost = host;
-    sHostLoader = loader;
-    sHostResources = resources;
+    sHostLoader = host.getClassLoader();
+    sHostResources = host.getResources();
     // hook instrumentation & ams
     DlHooks.setInstrumentation(new DlInstrumentation());
     DlHooks.setHandlerCallback(new DlHandlerCallback());
+    // hook pms
+    final PackageManager pm = host.getPackageManager(); // -> ApplicationPackageManager
+    // android.app.ApplicationPackageManager#mPM -> android.app.ActivityThread#getPackageManager() -> pms
+    // com.android.server.pm.PackageManagerService#mPackages -> WatchedArrayMap<String, AndroidPackage>(implements Map)
+    // pms 解析插件并将数据插入到 mPackages 中
   }
 
   /**
@@ -53,11 +66,12 @@ public final class DlManager {
    *
    * @param pluginPath 插件路径
    */
-  public static void install(String pluginPath) {
+  public void install(String pluginPath) {
     Log.d(TAG, "install() called with: pluginPath = [" + pluginPath + "]");
     throwIfNotInitialized();
     DlLoaders.install(sHost, pluginPath);
     DlResources.install(sHost, pluginPath);
+    mPm.install(pluginPath);
   }
 
   /**
@@ -65,10 +79,11 @@ public final class DlManager {
    *
    * @param pluginPath 插件路径
    */
-  public static void uninstall(String pluginPath) {
+  public void uninstall(String pluginPath) {
     Log.d(TAG, "uninstall() called with: pluginPath = [" + pluginPath + "]");
     DlLoaders.remove(pluginPath);
     DlResources.remove(pluginPath);
+    mPm.uninstall(pluginPath);
   }
 
   public static List<String> getAll() {
@@ -103,5 +118,9 @@ public final class DlManager {
     if (sHost == null) {
       throw new IllegalStateException("Did you miss calling PluginManager#initialize() ?");
     }
+  }
+
+  public DlPackageManager getPackageManager() {
+    return mPm;
   }
 }

@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import com.binlee.dl.host.DlConst;
+import com.binlee.dl.DlConst;
 
 /**
  * Created on 2022-08-27.

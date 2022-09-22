@@ -4,11 +4,9 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.res.AssetManager
-import android.content.res.Resources
 import android.os.Build
 import android.util.Log
-import com.binlee.dl.host.DlManager
+import com.binlee.dl.DlManager
 import com.binlee.learning.components.receiver.GlobalReceiver
 import com.binlee.learning.util.NotificationHelper
 
@@ -31,21 +29,13 @@ class MainApp : Application() {
 
   override fun attachBaseContext(base: Context?) {
     super.attachBaseContext(base)
-    DlManager.init(this, super.getClassLoader(), super.getResources())
+    DlManager.get().init(this)
   }
 
   override fun onCreate() {
     super.onCreate()
     mApp = this
     registerNotificationChannels()
-  }
-
-  override fun getResources(): Resources {
-    return DlManager.resources()
-  }
-
-  override fun getAssets(): AssetManager {
-    return DlManager.resources().assets
   }
 
   private fun registerNotificationChannels() {

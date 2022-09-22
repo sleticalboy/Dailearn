@@ -5,8 +5,8 @@ import android.app.Instrumentation;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.util.Log;
-import com.binlee.dl.host.DlManager;
-import com.binlee.dl.host.DlConst;
+import com.binlee.dl.DlManager;
+import com.binlee.dl.DlConst;
 
 /**
  * Created on 2022/9/21
