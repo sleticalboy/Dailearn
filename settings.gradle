@@ -12,3 +12,4 @@ include ':lib_hidden_relieve'
 include ':lib_dl:host'
 // 插件 apk
 include ':lib_plugin'
+include ':lib_dl:aosp-stub'
