@@ -13,11 +13,20 @@ import java.lang.reflect.Method;
  */
 public final class DlHooks {
 
+  // 宿主 ActivityThread 对象
   private static Object sCurrentAt;
   private static boolean sAtFlag = false;
 
+  // hooked instrumentation
+  private static DlInstrumentation sInstrumentation;
+
   private DlHooks() {
     //no instance
+  }
+
+  // return the hooked instrumentation
+  public static DlInstrumentation getInstrumentation() {
+    return sInstrumentation;
   }
 
   public static Object getActivityThread() {
@@ -50,6 +59,7 @@ public final class DlHooks {
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }
+    sInstrumentation = instrumentation;
   }
 
   public static void setHandlerCallback(Handler.Callback callback) {

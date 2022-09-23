@@ -42,6 +42,8 @@ class IndexModel internal constructor() {
 
   private fun getTasks(): Result<List<ModuleItem>> {
     val array = arrayOf(
+      // 卸载插件
+      ModuleItem("卸载插件", "unload_plugin"),
       // 加载插件
       ModuleItem("加载插件", "load_plugin"),
       // ffmpeg 实战

@@ -209,7 +209,10 @@ class IndexActivity : BaseActivity() {
           reflectHiddenApiWithoutWarning()
           return@setOnClickListener
         } else if (item.cls == "load_plugin") {
-          loadPluginClass()
+          loadPlugin()
+          return@setOnClickListener
+        } else if (item.cls == "unload_plugin") {
+          unloadPlugin()
           return@setOnClickListener
         }
         holder.itemView.context.startActivity(Intent(holder.itemView.context, item.clazz))
@@ -217,13 +220,20 @@ class IndexActivity : BaseActivity() {
     }
   }
 
-  private fun loadPluginClass() {
+  private fun loadPlugin() {
     val plugin = File(filesDir, "plugins/plugin.zip")
     FileUtils.copy(assets.open("plugin.apk"), plugin)
     DlManager.get().install(plugin.absolutePath)
     // 插件中的类：com.example.plugin.PluginActivity
     ProxyActivity.start(this, ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"))
-    Log.w(TAG, "loadPluginClass() finished")
+    Log.w(TAG, "loadPlugin() finished")
+  }
+
+  private fun unloadPlugin() {
+    val plugin = File(filesDir, "plugins/plugin.zip")
+    DlManager.get().uninstall(plugin.absolutePath)
+    FileUtils.delete(plugin)
+    Log.w(TAG, "unloadPlugin() finished")
   }
 
   private class ItemHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

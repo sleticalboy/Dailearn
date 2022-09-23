@@ -9,7 +9,6 @@ import java.net.SocketTimeoutException;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import okhttp3.internal.http.UnrepeatableRequestBody;
 import okio.BufferedSink;
 import okio.Timeout;
 
@@ -18,7 +17,7 @@ import okio.Timeout;
  *
  * @author leebin
  */
-abstract class OutputStreamRequestBody extends RequestBody implements UnrepeatableRequestBody {
+abstract class OutputStreamRequestBody extends RequestBody {
 
   private Timeout mTimeout;
   private long expectedContentLength;

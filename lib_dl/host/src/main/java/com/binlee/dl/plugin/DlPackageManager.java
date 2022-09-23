@@ -1,5 +1,6 @@
 package com.binlee.dl.plugin;
 
+import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -29,6 +30,7 @@ import android.util.ArrayMap;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -39,13 +41,19 @@ import java.util.Map;
  */
 public final class DlPackageManager extends PackageManager {
 
-  // packageName -> DlApk
+  /** packageName -> DlApk */
   private final Map<String, DlApk> mPackages = new ArrayMap<>();
-  // pluginPath -> packageName
+  /** pluginPath -> packageName */
   private final Map<String, String> mPlugins = new ArrayMap<>();
-  // 宿主包管理器
+  /** 宿主包管理器 */
   private final PackageManager mDelegate;
-  private final Context mHostContext;
+  /** 宿主 app context */
+  private final Application mHost;
+
+  public DlPackageManager(Application host) {
+    mDelegate = host.getPackageManager();
+    mHost = host;
+  }
 
   /**
    * 安装插件
@@ -57,12 +65,13 @@ public final class DlPackageManager extends PackageManager {
     if (packageName != null && mPackages.get(packageName) != null) {
       return;
     }
-    // 1、类加载器：独立的、与宿主合并的
-    // 2、资源：theme、context、独立的、与宿主合并的
-    // 3、package info pms
+    // TODO: 2022/9/23 应该会比较耗时，是否需要放到子线程处理？
+    // 1、解析插件包，获取 application、activity、service、receiver、provider 等信息
+    // 2、创建类加载器
+    // 3、创建资源
     int flags = GET_ACTIVITIES | GET_SERVICES | GET_RECEIVERS | GET_PROVIDERS | GET_SIGNATURES;
     final PackageInfo packageInfo = mDelegate.getPackageArchiveInfo(pluginPath, flags);
-    mPackages.put(packageInfo.packageName, new DlApk(mHostContext, packageInfo, pluginPath));
+    mPackages.put(packageInfo.packageName, new DlApk(this, packageInfo, pluginPath));
     mPlugins.put(pluginPath, packageInfo.packageName);
   }
 
@@ -80,10 +89,29 @@ public final class DlPackageManager extends PackageManager {
     if (dlApk != null) dlApk.release();
   }
 
-  public DlPackageManager(Context hostContext) {
-    mDelegate = hostContext.getPackageManager();
-    mHostContext = hostContext;
+  public List<String> getPlugins() {
+    return new ArrayList<>(mPlugins.keySet());
   }
+
+  public Class<?> loadClass(String classname) throws ClassNotFoundException {
+    for (String key : mPackages.keySet()) {
+      if (classname.startsWith(key)) {
+        final DlApk dlApk = mPackages.get(key);
+        if (dlApk != null) {
+          return dlApk.getClassLoader().loadClass(classname);
+        }
+      }
+    }
+    return null;
+  }
+
+  public Context getHost() {
+    return mHost;
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // override methods
+  ///////////////////////////////////////////////////////////////////////////
 
   @Override public PackageInfo getPackageInfo(@NonNull String packageName, int flags) throws NameNotFoundException {
     final DlApk dlApk = mPackages.get(packageName);
@@ -147,12 +175,30 @@ public final class DlPackageManager extends PackageManager {
 
   @NonNull @Override public ApplicationInfo getApplicationInfo(@NonNull String packageName, int flags)
     throws NameNotFoundException {
-    return null;
+    final DlApk dlApk = mPackages.get(packageName);
+    if (dlApk != null) {
+      return dlApk.getPackageInfo().applicationInfo;
+    }
+    return mDelegate.getApplicationInfo(packageName, flags);
   }
 
   @NonNull @Override public ActivityInfo getActivityInfo(@NonNull ComponentName component, int flags)
     throws NameNotFoundException {
-    return null;
+    // 不够优雅，需要写的更优雅些，下面的 getReceiverInfo()/getServiceInfo()/getProviderInfo() 同理
+    for (String key : mPackages.keySet()) {
+      if (component.getClassName().startsWith(key)) {
+        final DlApk dlApk = mPackages.get(key);
+        if (dlApk != null) {
+          final PackageInfo packageInfo = dlApk.getPackageInfo();
+          for (ActivityInfo info : packageInfo.activities) {
+            if (component.getClassName().equals(info.name)) {
+              return info;
+            }
+          }
+        }
+      }
+    }
+    return mDelegate.getActivityInfo(component, flags);
   }
 
   @NonNull @Override public ActivityInfo getReceiverInfo(@NonNull ComponentName component, int flags)
@@ -170,8 +216,14 @@ public final class DlPackageManager extends PackageManager {
     return null;
   }
 
+  // @SuppressLint("QueryPermissionsNeeded")
   @NonNull @Override public List<PackageInfo> getInstalledPackages(int flags) {
-    return null;
+    List<PackageInfo> installedPackages = new ArrayList<>();
+    for (DlApk dlApk : mPackages.values()) {
+      installedPackages.add(dlApk.getPackageInfo());
+    }
+    installedPackages.addAll(mDelegate.getInstalledPackages(flags));
+    return installedPackages;
   }
 
   @NonNull @Override public List<PackageInfo> getPackagesHoldingPermissions(@NonNull String[] permissions, int flags) {

@@ -18,7 +18,10 @@ public class PluginActivity extends AppCompatActivity {
     // 1、修改 aapt 工具达到 id 可控
     // 2、修改 resources.asrc 文件，改变 id
     setContentView(R.layout.activity_main);
-    Log.d(TAG, "onCreate() " + getApplication() + ", res: " + getApplication().getResources());
+    Log.d(TAG, "onCreate() class loader: " + getClassLoader());
+    Log.d(TAG, "onCreate() app: " + getApplication());
+    Log.d(TAG, "onCreate() resource: " + getResources());
+    Log.d(TAG, "onCreate() base context: " + getBaseContext());
     new Handler().postDelayed(() -> {
       Toast.makeText(this, "Hello Plugin", Toast.LENGTH_SHORT).show();
     }, 500L);

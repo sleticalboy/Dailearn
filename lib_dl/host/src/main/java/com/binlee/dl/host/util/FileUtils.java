@@ -77,4 +77,20 @@ public final class FileUtils {
     }
     return true;
   }
+
+  public static boolean delete(File file) {
+    if (!file.exists()) return true;
+    if (file.isFile()) {
+      return file.delete();
+    }
+    if (file.isDirectory()) {
+      final File[] children = file.listFiles();
+      if (children != null && children.length != 0) {
+        for (File child : children) {
+          delete(child);
+        }
+      }
+    }
+    return true;
+  }
 }

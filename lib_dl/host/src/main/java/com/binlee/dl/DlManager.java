@@ -2,13 +2,12 @@ package com.binlee.dl;
 
 import android.app.Application;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.binlee.dl.host.hook.DlHandlerCallback;
-import com.binlee.dl.host.hook.DlInstrumentation;
 import com.binlee.dl.host.hook.DlHooks;
+import com.binlee.dl.host.hook.DlInstrumentation;
 import com.binlee.dl.plugin.DlPackageManager;
 import java.util.List;
 
@@ -23,11 +22,6 @@ public final class DlManager {
 
   // 管理
   // 1、插件的加载和卸载（资源和 dex）
-
-  /** 宿主 application */
-  private static Application sHost;
-  private static ClassLoader sHostLoader;
-  private static Resources sHostResources;
 
   private static final DlManager DL_MANAGER = new DlManager();
 
@@ -46,11 +40,9 @@ public final class DlManager {
    * @param host 宿主 app
    */
   public void init(Application host) {
-    Log.d(TAG, "init() host: " + host);
+    if (mPm != null) return;
+    Log.d(TAG, "init() host application: " + host);
     mPm = new DlPackageManager(host);
-    sHost = host;
-    sHostLoader = host.getClassLoader();
-    sHostResources = host.getResources();
     // hook instrumentation & ams
     DlHooks.setInstrumentation(new DlInstrumentation());
     DlHooks.setHandlerCallback(new DlHandlerCallback());
@@ -67,11 +59,10 @@ public final class DlManager {
    * @param pluginPath 插件路径
    */
   public void install(String pluginPath) {
-    Log.d(TAG, "install() called with: pluginPath = [" + pluginPath + "]");
     throwIfNotInitialized();
-    DlLoaders.install(sHost, pluginPath);
-    DlResources.install(sHost, pluginPath);
+    final long start = System.currentTimeMillis();
     mPm.install(pluginPath);
+    Log.d(TAG, "install() pluginPath: " + pluginPath + ", cost: " + (System.currentTimeMillis() - start) + "ms");
   }
 
   /**
@@ -80,47 +71,33 @@ public final class DlManager {
    * @param pluginPath 插件路径
    */
   public void uninstall(String pluginPath) {
-    Log.d(TAG, "uninstall() called with: pluginPath = [" + pluginPath + "]");
-    DlLoaders.remove(pluginPath);
-    DlResources.remove(pluginPath);
+    throwIfNotInitialized();
+    final long start = System.currentTimeMillis();
     mPm.uninstall(pluginPath);
+    Log.d(TAG, "uninstall() pluginPath: " + pluginPath + ", cost: " + (System.currentTimeMillis() - start) + "ms");
   }
 
-  public static List<String> getAll() {
-    return DlLoaders.collectAll();
+  public List<String> getAll() {
+    throwIfNotInitialized();
+    return mPm.getPlugins();
   }
-
 
   /**
    * 加载类
    *
    * @param classname 类名称
    * @return {@link Class}<{@link ?}>
-   * @throws ClassNotFoundException 类没有发现异常
+   * @throws ClassNotFoundException
    */
   @Nullable
-  public static Class<?> loadClass(@NonNull String classname) throws ClassNotFoundException {
+  public Class<?> loadClass(@NonNull String classname) throws ClassNotFoundException {
     throwIfNotInitialized();
-    return DlLoaders.peek(sHostLoader).loadClass(classname);
+    return mPm.loadClass(classname);
   }
 
-  /**
-   * 获取资源，包含宿主和插件
-   *
-   * @return {@link Resources}
-   */
-  public static Resources resources() {
-    throwIfNotInitialized();
-    return DlResources.peek(sHostResources);
-  }
-
-  private static void throwIfNotInitialized() {
-    if (sHost == null) {
+  private void throwIfNotInitialized() {
+    if (mPm == null) {
       throw new IllegalStateException("Did you miss calling PluginManager#initialize() ?");
     }
-  }
-
-  public DlPackageManager getPackageManager() {
-    return mPm;
   }
 }

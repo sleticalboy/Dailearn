@@ -1,3 +1,5 @@
+import com.google.common.base.Joiner
+
 plugins {
   id 'com.android.library'
 }
@@ -22,8 +24,38 @@ android {
     sourceCompatibility JavaVersion.VERSION_1_8
     targetCompatibility JavaVersion.VERSION_1_8
   }
+  lintOptions {
+    abortOnError false
+  }
 }
 
 dependencies {
   implementation("androidx.appcompat:appcompat:$appcompat_version")
+  compileOnly(project(":lib_dl:aosp-stub"))
+}
+
+afterEvaluate {
+  println "afterEvaluate: ${project.android.libraryVariants}"
+  project.android.libraryVariants.each { /*LibraryVariant*/ variant ->
+    println "variant: $variant"
+    variant.javaCompile.doFirst { JavaCompile javaCompile ->
+      println "javaCompile do first: $javaCompile"
+      String projectAndroidStubPath = project.project(":lib_dl:aosp-stub").projectDir.canonicalPath
+      File stubPath = javaCompile.classpath.find {
+        it.canonicalPath.startsWith(projectAndroidStubPath)
+      }
+      if (stubPath == null) {
+        throw new RuntimeException("reset bootclasspath error.")
+      }
+      println "aosp stub path: ${stubPath.path}"
+      println "bootstrap: ${javaCompile.options.getBootstrapClasspath().asPath}"
+      def bootstrapFiles = [] as List<File>
+      bootstrapFiles.add(stubPath)
+      javaCompile.options.bootstrapClasspath.each {
+        bootstrapFiles.add(it)
+      }
+      javaCompile.options.setBootstrapClasspath(files(bootstrapFiles))
+      println "new bootstrap: ${javaCompile.options.getBootstrapClasspath().asPath}"
+    }
+  }
 }
