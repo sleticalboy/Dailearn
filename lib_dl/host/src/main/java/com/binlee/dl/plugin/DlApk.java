@@ -168,13 +168,13 @@ public final class DlApk implements DlInstrumentation.Callbacks {
 
   @Override public void onNewActivity(Activity activity) {
     if (activity == null) return;
-    try {
-      final Field field = ContextThemeWrapper.class.getDeclaredField("mResources");
-      field.setAccessible(true);
-      field.set(activity, mResources);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      e.printStackTrace();
-    }
+    // try {
+    //   final Field field = ContextThemeWrapper.class.getDeclaredField("mResources");
+    //   field.setAccessible(true);
+    //   field.set(activity, mResources);
+    // } catch (NoSuchFieldException | IllegalAccessException e) {
+    //   e.printStackTrace();
+    // }
   }
 
   @Override public void onCallActivityOnCreate(Activity activity) {

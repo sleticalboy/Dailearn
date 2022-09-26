@@ -51,9 +51,7 @@ afterEvaluate {
       println "bootstrap: ${javaCompile.options.getBootstrapClasspath().asPath}"
       def bootstrapFiles = [] as List<File>
       bootstrapFiles.add(stubPath)
-      javaCompile.options.bootstrapClasspath.each {
-        bootstrapFiles.add(it)
-      }
+      bootstrapFiles.addAll(javaCompile.options.bootstrapClasspath.asList())
       javaCompile.options.setBootstrapClasspath(files(bootstrapFiles))
       println "new bootstrap: ${javaCompile.options.getBootstrapClasspath().asPath}"
     }

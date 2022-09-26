@@ -24,6 +24,10 @@
         android:name="android.app.lib_name"
         android:value="" />
     </activity>
+    <service
+      android:name=".PluginService"
+      android:exported="true"
+      android:permission="com.sample.plugin.SAMPLE_SERVICE" />
   </application>
 
 </manifest>

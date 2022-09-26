@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
-import com.binlee.learning.databinding.ActivityIndexBinding
+import com.binlee.learning.databinding.ActivityListItemBinding
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
 
@@ -29,7 +29,7 @@ class FfmpegPractise : BaseActivity() {
     //
   }
 
-  private var mBind: ActivityIndexBinding? = null
+  private var mBind: ActivityListItemBinding? = null
   private val dataSet = arrayListOf(
     ModuleItem("打印媒体 meta 信息", "dump_meta"),
     ModuleItem("音频提取", "extract_audio"),
@@ -38,7 +38,7 @@ class FfmpegPractise : BaseActivity() {
   private var flag: String? = null
 
   override fun layout(): View {
-    mBind = ActivityIndexBinding.inflate(layoutInflater)
+    mBind = ActivityListItemBinding.inflate(layoutInflater)
     return mBind!!.root
   }
 

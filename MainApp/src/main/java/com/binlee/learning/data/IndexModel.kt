@@ -2,6 +2,7 @@ package com.binlee.learning.data
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.binlee.learning.PluginManageActivity
 import com.binlee.learning.anims.JsonAnimUI
 import com.binlee.learning.anims.TransitionUI
 import com.binlee.learning.bean.ModuleItem
@@ -42,10 +43,8 @@ class IndexModel internal constructor() {
 
   private fun getTasks(): Result<List<ModuleItem>> {
     val array = arrayOf(
-      // 卸载插件
-      ModuleItem("卸载插件", "unload_plugin"),
-      // 加载插件
-      ModuleItem("加载插件", "load_plugin"),
+      // 插件管理
+      ModuleItem("插件管理", PluginManageActivity::class.java),
       // ffmpeg 实战
       ModuleItem("ffmpeg 实战", FfmpegPractise::class.java),
       // 突破系统 hidden API

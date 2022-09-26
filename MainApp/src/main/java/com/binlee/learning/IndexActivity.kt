@@ -1,7 +1,6 @@
 package com.binlee.learning
 
 import android.Manifest
-import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.AssetManager
@@ -13,15 +12,13 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
-import com.binlee.dl.DlManager
-import com.binlee.dl.host.proxy.ProxyActivity
-import com.binlee.dl.host.util.FileUtils
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.data.DataEngine
 import com.binlee.learning.data.Result
-import com.binlee.learning.databinding.ActivityIndexBinding
+import com.binlee.learning.databinding.ActivityListItemBinding
 import com.binlee.learning.http.IDemo
 import com.binlee.learning.http.RetrofitClient
 import com.binlee.learning.http.bean.Apis
@@ -34,13 +31,12 @@ import kotlinx.coroutines.runBlocking
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.File
 import kotlin.concurrent.thread
 
 class IndexActivity : BaseActivity() {
 
   private val dataSet = arrayListOf<ModuleItem>()
-  private var mBind: ActivityIndexBinding? = null
+  private var mBind: ActivityListItemBinding? = null
 
   override fun prepareWork(savedInstanceState: Bundle?) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -63,7 +59,7 @@ class IndexActivity : BaseActivity() {
 
   override fun layout(): View {
     // R.layout.activity_index
-    mBind = ActivityIndexBinding.inflate(layoutInflater)
+    mBind = ActivityListItemBinding.inflate(layoutInflater)
     return mBind!!.root
   }
 
@@ -208,32 +204,14 @@ class IndexActivity : BaseActivity() {
         if (item.cls == "crack_hidden_api") {
           reflectHiddenApiWithoutWarning()
           return@setOnClickListener
-        } else if (item.cls == "load_plugin") {
-          loadPlugin()
-          return@setOnClickListener
-        } else if (item.cls == "unload_plugin") {
-          unloadPlugin()
+        }
+        if (item.clazz == Any::class || item.cls == "java.lang.Object") {
+          Toast.makeText(holder.itemView.context, "未知 activity: ${item.clazz}", Toast.LENGTH_SHORT).show()
           return@setOnClickListener
         }
         holder.itemView.context.startActivity(Intent(holder.itemView.context, item.clazz))
       }
     }
-  }
-
-  private fun loadPlugin() {
-    val plugin = File(filesDir, "plugins/plugin.zip")
-    FileUtils.copy(assets.open("plugin.apk"), plugin)
-    DlManager.get().install(plugin.absolutePath)
-    // 插件中的类：com.example.plugin.PluginActivity
-    ProxyActivity.start(this, ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"))
-    Log.w(TAG, "loadPlugin() finished")
-  }
-
-  private fun unloadPlugin() {
-    val plugin = File(filesDir, "plugins/plugin.zip")
-    DlManager.get().uninstall(plugin.absolutePath)
-    FileUtils.delete(plugin)
-    Log.w(TAG, "unloadPlugin() finished")
   }
 
   private class ItemHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

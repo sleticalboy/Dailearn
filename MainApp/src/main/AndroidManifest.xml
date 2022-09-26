@@ -97,14 +97,31 @@
       -->
     </activity>
     <!--activity for debug-->
-    <activity android:name="com.binlee.learning.dev.DebugUI" />
+    <activity
+      android:name="com.binlee.learning.dev.DebugUI"
+      android:exported="false" />
     <!--activity for bluetooth-->
-    <activity android:name="com.binlee.learning.bt.BluetoothUI" />
-    <activity android:name="com.binlee.learning.others.NotificationsUI" />
-    <activity android:name="com.binlee.learning.components.ProviderPractise" />
-    <activity android:name="com.binlee.learning.dialogs.DialogsUI" />
-    <activity android:name="com.binlee.learning.rv.NestedRvActivity" />
-    <activity android:name=".ffmpeg.FfmpegPractise" />
+    <activity
+      android:name="com.binlee.learning.bt.BluetoothUI"
+      android:exported="false" />
+    <activity
+      android:name="com.binlee.learning.others.NotificationsUI"
+      android:exported="false" />
+    <activity
+      android:name="com.binlee.learning.components.ProviderPractise"
+      android:exported="false" />
+    <activity
+      android:name="com.binlee.learning.dialogs.DialogsUI"
+      android:exported="false" />
+    <activity
+      android:name="com.binlee.learning.rv.NestedRvActivity"
+      android:exported="false" />
+    <activity
+      android:name=".ffmpeg.FfmpegPractise"
+      android:exported="false" />
+    <activity
+      android:name=".PluginManageActivity"
+      android:exported="false" />
 
     <provider
       android:name="com.binlee.learning.accounts.ContactsProvider"
