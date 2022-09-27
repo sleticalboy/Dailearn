@@ -30,6 +30,7 @@ import android.util.ArrayMap;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import com.binlee.dl.DlConst;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -337,7 +338,20 @@ public final class DlPackageManager extends PackageManager {
   }
 
   @Nullable @Override public ResolveInfo resolveService(@NonNull Intent intent, int flags) {
-    return null;
+    ComponentName target = intent.getParcelableExtra(DlConst.REAL_COMPONENT);
+    for (String key : mPackages.keySet()) {
+      if (target.getClassName().startsWith(key)) {
+        final DlApk dlApk = mPackages.get(key);
+        for (ServiceInfo info : dlApk.getPackageInfo().services) {
+          if (info.name.equals(target.getClassName())) {
+            final ResolveInfo resolveInfo = new ResolveInfo();
+            resolveInfo.serviceInfo = info;
+            return resolveInfo;
+          }
+        }
+      }
+    }
+    return mDelegate.resolveService(intent, flags);
   }
 
   @NonNull @Override public List<ResolveInfo> queryIntentServices(@NonNull Intent intent, int flags) {

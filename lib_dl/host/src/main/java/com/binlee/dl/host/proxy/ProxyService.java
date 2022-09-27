@@ -15,14 +15,14 @@ import com.binlee.dl.DlConst;
  */
 public final class ProxyService extends Service {
 
-  public static void start(Context context, ComponentName target) {
-    context.startService(new Intent(context, ProxyService.class)
+  public static ComponentName start(Context context, ComponentName target) {
+    return context.startService(new Intent(context, ProxyService.class)
       .putExtra(DlConst.REAL_COMPONENT, target)
     );
   }
 
-  public static void stop(Context context, ComponentName target) {
-    context.stopService(new Intent(context, ProxyService.class)
+  public static boolean stop(Context context, ComponentName target) {
+    return context.stopService(new Intent(context, ProxyService.class)
       .putExtra(DlConst.REAL_COMPONENT, target)
     );
   }

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
   xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.binlee.dl.host">
+  package="com.binlee.dl.host"
+  xmlns:tools="http://schemas.android.com/tools">
 
-  <application>
+  <application
+    android:appComponentFactory="com.binlee.dl.host.hook.DlComponentFactory"
+    tools:replace="android:appComponentFactory">
     <activity
       android:name=".proxy.ProxyActivity"
       android:exported="true" />

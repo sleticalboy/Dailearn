@@ -80,12 +80,16 @@ public final class PluginManageActivity extends BaseActivity {
 
   private void stopPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
-    ProxyService.stop(this, new ComponentName("com.example.plugin", "com.example.plugin.PluginService"));
+    final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
+    final boolean stopped = ProxyService.stop(this, target);
+    Log.d(TAG, "stopPluginService() stopped: " + stopped);
   }
 
   private void startPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
-    ProxyService.start(this, new ComponentName("com.example.plugin", "com.example.plugin.PluginService"));
+    final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
+    final ComponentName result = ProxyService.start(this, target);
+    Log.d(TAG, "startPluginService() result: " + result);
   }
 
   private void startPluginActivity() {

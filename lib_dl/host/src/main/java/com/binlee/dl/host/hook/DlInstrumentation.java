@@ -4,15 +4,11 @@ import android.app.Activity;
 import android.app.Application;
 import android.app.Fragment;
 import android.app.Instrumentation;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
-import android.util.Log;
-import com.binlee.dl.DlConst;
-import com.binlee.dl.DlManager;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,20 +51,7 @@ public final class DlInstrumentation extends Instrumentation {
 
   @Override public Activity newActivity(ClassLoader cl, String className, Intent intent)
     throws ClassNotFoundException, IllegalAccessException, InstantiationException {
-    // 真正要启动的组件
-    final ComponentName target = intent.getParcelableExtra(DlConst.REAL_COMPONENT);
-    if (target != null) {
-      final Class<?> clazz = DlManager.get().loadClass(target.getClassName());
-      Log.d(TAG, "newActivity() proxy: " + className + ", target: " + target);
-      Activity activity = null;
-      if (clazz != null) {
-        activity = (Activity) clazz.newInstance();
-      }
-      dispatchOnNewActivity(activity);
-      return activity;
-    } else {
-      return mDelegate.newActivity(cl, className, intent);
-    }
+    return mDelegate.newActivity(cl, className, intent);
   }
 
   @Override public void callActivityOnCreate(Activity activity, Bundle icicle) {

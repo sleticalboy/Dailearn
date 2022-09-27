@@ -18,22 +18,9 @@ import com.binlee.learning.util.NotificationHelper
  */
 class MainApp : Application() {
 
-  // 插件化
-  // 1、代码插件化
-  //   1.1、原生代码
-  //     如何启动清单文件中未声明的 activity？
-  //   1.2、so
-  // 2、资源插件化
-  //   2.1、如何加载新的资源？
-  //   2.1、资源 id 冲突如何解决？
-
-  override fun attachBaseContext(base: Context?) {
-    super.attachBaseContext(base)
-    DlManager.get().init(this)
-  }
-
   override fun onCreate() {
     super.onCreate()
+    DlManager.get().init(this)
     mApp = this
     registerNotificationChannels()
   }

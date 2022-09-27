@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import com.binlee.dl.host.hook.DlActivityManager;
 import com.binlee.dl.host.hook.DlHandlerCallback;
 import com.binlee.dl.host.hook.DlHooks;
 import com.binlee.dl.host.hook.DlInstrumentation;
@@ -46,6 +47,7 @@ public final class DlManager {
     // hook instrumentation & ams
     DlHooks.setInstrumentation(new DlInstrumentation());
     DlHooks.setHandlerCallback(new DlHandlerCallback());
+    // DlHooks.setActivityManager(new DlActivityManager(host, mPm));
     // hook pms
     final PackageManager pm = host.getPackageManager(); // -> ApplicationPackageManager
     // android.app.ApplicationPackageManager#mPM -> android.app.ActivityThread#getPackageManager() -> pms
