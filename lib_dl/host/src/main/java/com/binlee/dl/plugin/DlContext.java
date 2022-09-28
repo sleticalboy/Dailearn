@@ -46,6 +46,11 @@ public class DlContext extends ContextWrapper {
     return mDlApk.getClassLoader();
   }
 
+  @Override
+  public String getPackageName() {
+    return mDlApk.getPackageName();
+  }
+
   @Override public Resources getResources() {
     return mDlApk.getResources();
   }

@@ -28,6 +28,14 @@
       android:name=".PluginService"
       android:exported="true"
       android:permission="com.sample.plugin.SAMPLE_SERVICE" />
+    <receiver
+      android:name=".PluginReceiver"
+      android:exported="true"
+      android:permission="com.sample.plugin.SAMPLE_RECEIVER">
+      <intent-filter>
+        <action android:name="com.sample.plugin.action.SAMPLE_ACTION"/>
+      </intent-filter>
+    </receiver>
   </application>
 
 </manifest>

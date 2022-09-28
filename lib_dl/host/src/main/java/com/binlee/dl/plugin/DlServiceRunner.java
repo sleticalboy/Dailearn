@@ -183,7 +183,6 @@ public final class DlServiceRunner {
         ", mTarget=" + mTarget +
         '}';
     }
-
   }
 
   public interface Callbacks {

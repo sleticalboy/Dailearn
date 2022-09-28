@@ -2,6 +2,7 @@ package com.example.plugin;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.util.Log;
 
 /**
@@ -21,5 +22,8 @@ public class PluginApplication extends Application {
   @Override public void onCreate() {
     super.onCreate();
     Log.d(TAG, "onCreate() " + getPackageManager());
+    final IntentFilter filter = new IntentFilter();
+    filter.addAction("com.sample.plugin.action.SAMPLE_ACTION");
+    registerReceiver(new PluginReceiver(), filter);
   }
 }

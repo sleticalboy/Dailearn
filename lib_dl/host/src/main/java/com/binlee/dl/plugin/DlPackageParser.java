@@ -76,7 +76,7 @@ public final class DlPackageParser {
     for (int i = 0; i < info.services.length; i++) {
       info.services[i] = pkg.services.get(i).info;
     }
-    // receivers
+    // receivers: 静态广播
     info.receivers = new ActivityInfo[pkg.receivers.size()];
     for (int i = 0; i < info.receivers.length; i++) {
       info.receivers[i] = pkg.receivers.get(i).info;

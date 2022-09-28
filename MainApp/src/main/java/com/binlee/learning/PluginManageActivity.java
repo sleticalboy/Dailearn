@@ -48,6 +48,8 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
     new ModuleItem("解绑 service", "unbind_service"),
     // 启动 receiver
     // 解绑 receiver
+    // 发送广播
+    new ModuleItem("发送广播", "send_broadcast"),
     // 查询 provider 数据
     // 卸载插件
     new ModuleItem("卸载插件", "unload_plugin"),
@@ -86,6 +88,8 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
       bindPluginService();
     } else if ("unbind_service".equals(item.getCls())) {
       unbindPluginService();
+    } else if ("send_broadcast".equals(item.getCls())) {
+      sendPluginBroadcast();
     } else {
       if (item.getClazz() != Object.class) {
         startActivity(new Intent(this, item.getClazz()));
@@ -93,6 +97,12 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
         Toast.makeText(this, "未实现！", Toast.LENGTH_SHORT).show();
       }
     }
+  }
+
+  private void sendPluginBroadcast() {
+    final Intent intent = new Intent("com.sample.plugin.action.SAMPLE_ACTION");
+    intent.putExtra("key_1", "value_1");
+    sendBroadcast(intent);
   }
 
   private void unbindPluginService() {
