@@ -47,7 +47,7 @@ public final class DlManager {
     // hook instrumentation & ams
     DlHooks.setInstrumentation(new DlInstrumentation());
     DlHooks.setHandlerCallback(new DlHandlerCallback());
-    // DlHooks.setActivityManager(new DlActivityManager(host, mPm));
+    DlHooks.setActivityManager(new DlActivityManager(host, mPm));
     // hook pms
     final PackageManager pm = host.getPackageManager(); // -> ApplicationPackageManager
     // android.app.ApplicationPackageManager#mPM -> android.app.ActivityThread#getPackageManager() -> pms
@@ -79,11 +79,6 @@ public final class DlManager {
     Log.d(TAG, "uninstall() pluginPath: " + pluginPath + ", cost: " + (System.currentTimeMillis() - start) + "ms");
   }
 
-  public List<String> getAll() {
-    throwIfNotInitialized();
-    return mPm.getPlugins();
-  }
-
   /**
    * 加载类
    *
@@ -91,7 +86,7 @@ public final class DlManager {
    * @return {@link Class}<{@link ?}>
    * @throws ClassNotFoundException
    */
-  @Nullable
+  @NonNull
   public Class<?> loadClass(@NonNull String classname) throws ClassNotFoundException {
     throwIfNotInitialized();
     return mPm.loadClass(classname);

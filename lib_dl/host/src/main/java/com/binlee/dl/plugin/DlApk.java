@@ -3,11 +3,16 @@ package com.binlee.dl.plugin;
 import android.app.Activity;
 import android.app.Application;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageParser;
+import android.content.pm.ProviderInfo;
+import android.content.pm.ServiceInfo;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.util.Log;
@@ -32,6 +37,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   private Context mHostContext;
 
   // 插件相关信息
+  private PackageParser.Package mOwnPackage;
   private PackageInfo mPackageInfo;
   private DlContext mBaseContext;
   private Application mApplication;
@@ -42,22 +48,24 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   // resources
   private Resources mResources;
 
-  // 已注册的 receivers
-  private Map<String, BroadcastReceiver> mRegisteredReceivers = new HashMap<>();
-
   private String mPluginPath;
+
+  public static DlApk load(PackageManager pm, String pluginPath) {
+    final DlApk dlApk = new DlApk(pm, pluginPath);
+    dlApk.initialize();
+    return dlApk;
+  }
 
   // 模拟 PMS 应用安装流程
   // 1、解析插件包，获取 application、activity、service、receiver、provider 等信息
   // 2、创建类加载器
   // 3、创建资源
-  public DlApk(PackageManager pm, PackageInfo src, String pluginPath) {
+  private DlApk(PackageManager pm, String pluginPath) {
     mHostContext = ((DlPackageManager) pm).getHost();
-    mPackageInfo = src;
+    mOwnPackage = DlPackageParser.parsePackage(pluginPath);
+    mPackageInfo = DlPackageParser.generatePackageInfo(mHostContext, mOwnPackage, pluginPath);
     mPluginPath = pluginPath;
     mBaseContext = new DlContext(this, pm);
-
-    initialize();
   }
 
   private void initialize() {
@@ -108,6 +116,10 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     inst.addCallbacks(this);
   }
 
+  public String getPackageName() {
+    return mPackageInfo.packageName;
+  }
+
   public PackageInfo getPackageInfo() {
     return mPackageInfo;
   }
@@ -139,12 +151,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   }
 
   public void release() {
-    // 移除 receivers
-    for (String key : mRegisteredReceivers.keySet()) {
-      mHostContext.unregisterReceiver(mRegisteredReceivers.remove(key));
-    }
-    mRegisteredReceivers = null;
-
+    mOwnPackage = null;
     mPackageInfo = null;
     mHostContext = null;
     mBaseContext = null;
@@ -213,5 +220,41 @@ public final class DlApk implements DlInstrumentation.Callbacks {
       + ", \nresource: " + activity.getResources()
       + ", \ntheme: " + activity.getTheme()
     );
+  }
+
+  public ActivityInfo resolveActivity(ComponentName component, int flags) {
+    for (ActivityInfo info : mPackageInfo.activities) {
+      if (component.getClassName().equals(info.name)) {
+        return info;
+      }
+    }
+    return null;
+  }
+
+  public ActivityInfo resolveReceiver(ComponentName component, int flags) {
+    for (ActivityInfo info : mPackageInfo.receivers) {
+      if (component.getClassName().equals(info.name)) {
+        return info;
+      }
+    }
+    return null;
+  }
+
+  public ServiceInfo resolveService(ComponentName component, int flags) {
+    for (ServiceInfo info : mPackageInfo.services) {
+      if (component.getClassName().equals(info.name)) {
+        return info;
+      }
+    }
+    return null;
+  }
+
+  public ProviderInfo resolveProvider(ComponentName component, int flags) {
+    for (ProviderInfo info : mPackageInfo.providers) {
+      if (component.getClassName().equals(info.name)) {
+        return info;
+      }
+    }
+    return null;
   }
 }

@@ -7,11 +7,12 @@ import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
 import android.util.Singleton;
-import com.binlee.dl.DlConst;
+import android.util.SparseArray;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 
@@ -73,18 +74,35 @@ public final class DlHooks {
     sInstrumentation = instrumentation;
   }
 
-  public static void setHandlerCallback(Handler.Callback callback) {
+  public static void setHandlerCallback(DlHandlerCallback callback) {
     final Object currentAt = getActivityThread();
     try {
       final Field field = currentAt.getClass().getDeclaredField("mH");
       field.setAccessible(true);
       final Handler handler = (Handler) field.get(currentAt);
+      callback.setWhats(parseWhats(handler));
       final Field mCallback = Handler.class.getDeclaredField("mCallback");
       mCallback.setAccessible(true);
       mCallback.set(handler, callback);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }
+  }
+
+  private static SparseArray<String> parseWhats(Handler handler) {
+    final SparseArray<String> array = new SparseArray<>();
+    if (handler != null) {
+      for (Field field : handler.getClass().getDeclaredFields()) {
+        if (field.getType() == int.class && Modifier.isStatic(field.getModifiers())) {
+          try {
+            final Object what = field.get(handler);
+            if (what != null) array.put((int) what, field.getName());
+          } catch (IllegalAccessException ignored) {
+          }
+        }
+      }
+    }
+    return array;
   }
 
   @SuppressWarnings("unchecked")
@@ -102,8 +120,15 @@ public final class DlHooks {
       final Object proxyAm = Proxy.newProxyInstance(/*loader*/handler.getClassLoader(),
         /*interfaces*/new Class[] { Class.forName("android.app.IActivityManager") },
         /*handler*/(proxy, method, args) -> {
-          final Object invoked = handler.invoke(proxy, method, args);
-          return invoked == DlConst.AM_METHOD_RESULT_MISSED ? method.invoke(am, args) : invoked;
+          // before invoked
+          handler.beforeMethod(method, args);
+
+          final Object result = method.invoke(am, args);
+
+          // after invoked
+          handler.afterMethod(method, args, result);
+
+          return result;
         });
       Log.d(TAG, "setActivityManager() proxy am: " + proxyAm);
       final Field mInstance = Singleton.class.getDeclaredField("mInstance");

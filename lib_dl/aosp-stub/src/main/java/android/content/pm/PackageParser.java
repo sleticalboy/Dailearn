@@ -351,15 +351,15 @@ public class PackageParser {
     // For now we only support one application per package.
     public final ApplicationInfo applicationInfo = new ApplicationInfo();
 
-    public final ArrayList<Permission> permissions = new ArrayList<Permission>(0);
-    public final ArrayList<PermissionGroup> permissionGroups = new ArrayList<PermissionGroup>(0);
-    public final ArrayList<Activity> activities = new ArrayList<Activity>(0);
-    public final ArrayList<Activity> receivers = new ArrayList<Activity>(0);
-    public final ArrayList<Provider> providers = new ArrayList<Provider>(0);
-    public final ArrayList<Service> services = new ArrayList<Service>(0);
-    public final ArrayList<Instrumentation> instrumentation = new ArrayList<Instrumentation>(0);
+    public final ArrayList<Permission> permissions = new ArrayList<>(0);
+    public final ArrayList<PermissionGroup> permissionGroups = new ArrayList<>(0);
+    public final ArrayList<Activity> activities = new ArrayList<>(0);
+    public final ArrayList<Activity> receivers = new ArrayList<>(0);
+    public final ArrayList<Provider> providers = new ArrayList<>(0);
+    public final ArrayList<Service> services = new ArrayList<>(0);
+    public final ArrayList<Instrumentation> instrumentation = new ArrayList<>(0);
 
-    public final ArrayList<String> requestedPermissions = new ArrayList<String>();
+    public final ArrayList<String> requestedPermissions = new ArrayList<>();
 
     public ArrayList<String> protectedBroadcasts;
 

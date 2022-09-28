@@ -2,7 +2,9 @@ package com.binlee.learning;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Color;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -15,6 +17,7 @@ import com.binlee.dl.DlManager;
 import com.binlee.dl.host.proxy.ProxyActivity;
 import com.binlee.dl.host.proxy.ProxyService;
 import com.binlee.dl.host.util.FileUtils;
+import com.binlee.dl.plugin.DlServiceRunner;
 import com.binlee.learning.base.BaseActivity;
 import com.binlee.learning.bean.ModuleItem;
 import com.binlee.learning.databinding.ActivityListItemBinding;
@@ -26,7 +29,7 @@ import java.io.IOException;
  *
  * @author binlee
  */
-public final class PluginManageActivity extends BaseActivity {
+public final class PluginManageActivity extends BaseActivity implements ServiceConnection {
 
   private static final String TAG = "PluginManageActivity";
 
@@ -40,7 +43,9 @@ public final class PluginManageActivity extends BaseActivity {
     // 停止 service
     new ModuleItem("停止 service", "stop_service"),
     // 绑定 service
+    new ModuleItem("绑定 service", "bind_service"),
     // 解绑 service
+    new ModuleItem("解绑 service", "unbind_service"),
     // 启动 receiver
     // 解绑 receiver
     // 查询 provider 数据
@@ -58,6 +63,14 @@ public final class PluginManageActivity extends BaseActivity {
     mBinding.recyclerView.setAdapter(new ItemAdapter(this));
   }
 
+  @Override public void onServiceConnected(ComponentName name, IBinder service) {
+    Log.d(TAG, "onServiceConnected() called with: name = [" + name + "], service = [" + service + "]");
+  }
+
+  @Override public void onServiceDisconnected(ComponentName name) {
+    Log.d(TAG, "onServiceDisconnected() called with: name = [" + name + "]");
+  }
+
   private void onModuleItemClick(ModuleItem item) {
     if ("load_plugin".equals(item.getCls())) {
       loadPlugin();
@@ -69,6 +82,10 @@ public final class PluginManageActivity extends BaseActivity {
       startPluginService();
     } else if ("stop_service".equals(item.getCls())) {
       stopPluginService();
+    } else if ("bind_service".equals(item.getCls())) {
+      bindPluginService();
+    } else if ("unbind_service".equals(item.getCls())) {
+      unbindPluginService();
     } else {
       if (item.getClazz() != Object.class) {
         startActivity(new Intent(this, item.getClazz()));
@@ -78,18 +95,32 @@ public final class PluginManageActivity extends BaseActivity {
     }
   }
 
+  private void unbindPluginService() {
+    // 插件中的 service：com.example.plugin.PluginService
+    final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
+    DlServiceRunner.unbind(this, target, this);
+    Log.d(TAG, "unbindPluginService()");
+  }
+
+  private void bindPluginService() {
+    // 插件中的 service：com.example.plugin.PluginService
+    final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
+    DlServiceRunner.bind(this, target, this);
+    Log.d(TAG, "bindPluginService()");
+  }
+
   private void stopPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    final boolean stopped = ProxyService.stop(this, target);
-    Log.d(TAG, "stopPluginService() stopped: " + stopped);
+    DlServiceRunner.stop(this, target);
+    Log.d(TAG, "stopPluginService()");
   }
 
   private void startPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    final ComponentName result = ProxyService.start(this, target);
-    Log.d(TAG, "startPluginService() result: " + result);
+    DlServiceRunner.start(this, target);
+    Log.d(TAG, "startPluginService()");
   }
 
   private void startPluginActivity() {

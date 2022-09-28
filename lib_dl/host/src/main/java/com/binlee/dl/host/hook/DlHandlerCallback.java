@@ -4,7 +4,9 @@ import android.content.pm.ServiceInfo;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.util.SparseArray;
 import androidx.annotation.NonNull;
+import com.binlee.dl.plugin.DlServiceRunner;
 import java.lang.reflect.Field;
 
 /**
@@ -21,10 +23,15 @@ public final class DlHandlerCallback implements Handler.Callback {
   public static final int STOP_SERVICE = 116;
   public static final int BIND_SERVICE = 121;
   public static final int UNBIND_SERVICE = 122;
-  public static final int DUMP_SERVICE = 123;
+  private SparseArray<String> mWhats;
+
+  public void setWhats(SparseArray<String> whats) {
+    mWhats = whats;
+    Log.d(TAG, "setWhats() called with: whats = [" + whats + "]");
+  }
 
   @Override public boolean handleMessage(@NonNull Message msg) {
-    Log.d(TAG, "handleMessage() what: " + what(msg.what) + ", " + msg);
+    Log.d(TAG, "handleMessage() " + mWhats.get(msg.what) + msg);
     switch (msg.what) {
       case CREATE_SERVICE: {
         // android.app.ActivityThread.CreateServiceData
@@ -37,33 +44,21 @@ public final class DlHandlerCallback implements Handler.Callback {
           field.setAccessible(true);
           final ServiceInfo originalInfo = (ServiceInfo) field.get(msg.obj);
           if (originalInfo != null) {
-            originalInfo.name = "com.example.plugin.PluginService";
+            originalInfo.name = DlServiceRunner.currentService();
           }
         } catch (NoSuchFieldException | IllegalAccessException e) {
           e.printStackTrace();
         }
       }
-      case SERVICE_ARGS: {
-        // android.app.ActivityThread.ServiceArgsData
-        // Binder token;
-        // boolean taskRemoved;
-        // int startId;
-        // int flags;
-        // Intent args;
+      break;
+      case BIND_SERVICE:
+      case SERVICE_ARGS:
+      case UNBIND_SERVICE:
+      case STOP_SERVICE: {
+        DlServiceRunner.scheduleNext();
       }
+      break;
     }
     return false;
-  }
-
-  static String what(int code) {
-    switch (code) {
-      case CREATE_SERVICE: return "CREATE_SERVICE";
-      case SERVICE_ARGS: return "SERVICE_ARGS";
-      case STOP_SERVICE: return "STOP_SERVICE";
-      case BIND_SERVICE: return "BIND_SERVICE";
-      case UNBIND_SERVICE: return "UNBIND_SERVICE";
-      case DUMP_SERVICE: return "DUMP_SERVICE";
-    }
-    return Integer.toString(code);
   }
 }

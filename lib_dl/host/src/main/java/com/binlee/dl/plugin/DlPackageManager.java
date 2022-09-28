@@ -66,14 +66,10 @@ public final class DlPackageManager extends PackageManager {
     if (packageName != null && mPackages.get(packageName) != null) {
       return;
     }
-    // TODO: 2022/9/23 应该会比较耗时，是否需要放到子线程处理？
-    // 1、解析插件包，获取 application、activity、service、receiver、provider 等信息
-    // 2、创建类加载器
-    // 3、创建资源
-    int flags = GET_ACTIVITIES | GET_SERVICES | GET_RECEIVERS | GET_PROVIDERS | GET_SIGNATURES;
-    final PackageInfo packageInfo = mDelegate.getPackageArchiveInfo(pluginPath, flags);
-    mPackages.put(packageInfo.packageName, new DlApk(this, packageInfo, pluginPath));
-    mPlugins.put(pluginPath, packageInfo.packageName);
+    // 解析插件
+    final DlApk dlApk = DlApk.load(this, pluginPath);
+    mPlugins.put(pluginPath, dlApk.getPackageName());
+    mPackages.put(dlApk.getPackageName(), dlApk);
   }
 
   /**
@@ -90,10 +86,6 @@ public final class DlPackageManager extends PackageManager {
     if (dlApk != null) dlApk.release();
   }
 
-  public List<String> getPlugins() {
-    return new ArrayList<>(mPlugins.keySet());
-  }
-
   public Class<?> loadClass(String classname) throws ClassNotFoundException {
     for (String key : mPackages.keySet()) {
       if (classname.startsWith(key)) {
@@ -103,7 +95,7 @@ public final class DlPackageManager extends PackageManager {
         }
       }
     }
-    return null;
+    throw new ClassNotFoundException(classname);
   }
 
   public Context getHost() {
@@ -189,13 +181,9 @@ public final class DlPackageManager extends PackageManager {
     for (String key : mPackages.keySet()) {
       if (component.getClassName().startsWith(key)) {
         final DlApk dlApk = mPackages.get(key);
-        if (dlApk != null) {
-          final PackageInfo packageInfo = dlApk.getPackageInfo();
-          for (ActivityInfo info : packageInfo.activities) {
-            if (component.getClassName().equals(info.name)) {
-              return info;
-            }
-          }
+        final ActivityInfo info;
+        if (dlApk != null && (info = dlApk.resolveActivity(component, flags)) != null) {
+          return info;
         }
       }
     }
@@ -204,17 +192,44 @@ public final class DlPackageManager extends PackageManager {
 
   @NonNull @Override public ActivityInfo getReceiverInfo(@NonNull ComponentName component, int flags)
     throws NameNotFoundException {
-    return null;
+    for (String key : mPackages.keySet()) {
+      if (component.getClassName().startsWith(key)) {
+        final DlApk dlApk = mPackages.get(key);
+        final ActivityInfo info;
+        if (dlApk != null && (info = dlApk.resolveReceiver(component, flags)) != null) {
+          return info;
+        }
+      }
+    }
+    return mDelegate.getReceiverInfo(component, flags);
   }
 
   @NonNull @Override public ServiceInfo getServiceInfo(@NonNull ComponentName component, int flags)
     throws NameNotFoundException {
-    return null;
+    for (String key : mPackages.keySet()) {
+      if (component.getClassName().startsWith(key)) {
+        final DlApk dlApk = mPackages.get(key);
+        final ServiceInfo info;
+        if (dlApk != null && (info = dlApk.resolveService(component, flags)) != null) {
+          return info;
+        }
+      }
+    }
+    return mDelegate.getServiceInfo(component, flags);
   }
 
   @NonNull @Override public ProviderInfo getProviderInfo(@NonNull ComponentName component, int flags)
     throws NameNotFoundException {
-    return null;
+    for (String key : mPackages.keySet()) {
+      if (component.getClassName().startsWith(key)) {
+        final DlApk dlApk = mPackages.get(key);
+        final ProviderInfo info;
+        if (dlApk != null && (info = dlApk.resolveProvider(component, flags)) != null) {
+          return info;
+        }
+      }
+    }
+    return mDelegate.getProviderInfo(component, flags);
   }
 
   // @SuppressLint("QueryPermissionsNeeded")

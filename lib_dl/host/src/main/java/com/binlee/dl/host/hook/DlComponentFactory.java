@@ -55,14 +55,8 @@ public final class DlComponentFactory extends AppComponentFactory {
     // 真正要启动的组件
     final ComponentName target;
     if (intent != null && (target = intent.getParcelableExtra(DlConst.REAL_COMPONENT)) != null) {
-      final Class<?> clazz = DlManager.get().loadClass(target.getClassName());
       Log.d(TAG, "instantiateActivity() proxy: " + className + ", target: " + target);
-      Activity activity = null;
-      if (clazz != null) {
-        activity = (Activity) clazz.newInstance();
-      }
-      // dispatchOnNewActivity(activity);
-      return activity;
+      return (Activity) DlManager.get().loadClass(target.getClassName()).newInstance();
     }
     return mDelegate.instantiateActivity(cl, className, intent);
   }
@@ -74,13 +68,8 @@ public final class DlComponentFactory extends AppComponentFactory {
     try {
       return mDelegate.instantiateService(cl, className, intent);
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-      final Class<?> clazz = DlManager.get().loadClass(className);
       Log.d(TAG, "instantiateService() plugin: " + className);
-      Service service = null;
-      if (clazz != null) {
-        service = (Service) clazz.newInstance();
-      }
-      return service;
+      return (Service) DlManager.get().loadClass(className).newInstance();
     }
   }
 
