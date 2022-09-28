@@ -44,7 +44,7 @@ public final class DlHandlerCallback implements Handler.Callback {
           field.setAccessible(true);
           final ServiceInfo originalInfo = (ServiceInfo) field.get(msg.obj);
           if (originalInfo != null) {
-            originalInfo.name = DlServiceRunner.currentService();
+            originalInfo.name = DlServiceRunner.currentName();
           }
         } catch (NoSuchFieldException | IllegalAccessException e) {
           e.printStackTrace();

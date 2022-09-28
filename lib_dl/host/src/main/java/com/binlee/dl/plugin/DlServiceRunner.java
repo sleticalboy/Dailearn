@@ -4,7 +4,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.IBinder;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import com.binlee.dl.DlConst;
@@ -20,48 +19,69 @@ import java.util.Objects;
  */
 public final class DlServiceRunner {
 
-  private static final ServiceQueue SERVICE_QUEUE = new ServiceQueue();
+  private enum Command {
+    START, STOP, BIND, UNBIND
+  }
+
+  private enum Result {
+    STARTED, STOPPED, BOUND, UNBOUND, NONE
+  }
+
+  private static final ServiceQueue sQueue = new ServiceQueue();
 
   public static void start(Context context, ComponentName target) {
-    SERVICE_QUEUE.enqueue(new RunnerSpec(context, target, RunnerSpec.CMD_START));
+    sQueue.enqueue(new RunnerSpec(context, target, Command.START));
   }
 
   public static void stop(Context context, ComponentName target) {
-    SERVICE_QUEUE.enqueue(new RunnerSpec(context, target, RunnerSpec.CMD_STOP));
+    sQueue.enqueue(new RunnerSpec(context, target, Command.STOP));
   }
 
   public static void bind(Context context, ComponentName target, ServiceConnection connection) {
-    final RunnerSpec bind = new RunnerSpec(context, target, RunnerSpec.CMD_BIND);
+    final RunnerSpec bind = new RunnerSpec(context, target, Command.BIND);
     bind.mConnection = connection;
-    SERVICE_QUEUE.enqueue(bind);
+    sQueue.enqueue(bind);
   }
 
   public static void unbind(Context context, ComponentName target, ServiceConnection connection) {
-    final RunnerSpec unbind = new RunnerSpec(context, target, RunnerSpec.CMD_UNBIND);
+    final RunnerSpec unbind = new RunnerSpec(context, target, Command.UNBIND);
     unbind.mConnection = connection;
-    SERVICE_QUEUE.enqueue(unbind);
+    sQueue.enqueue(unbind);
   }
 
   public static void scheduleNext() {
-    SERVICE_QUEUE.scheduleNext();
+    sQueue.scheduleNext();
   }
 
-  public static String currentService() {
-    final RunnerSpec spec = SERVICE_QUEUE.getCurrent();
+  public static String currentName() {
+    final RunnerSpec spec = sQueue.getCurrent();
     return spec == null ? null : spec.mTarget.getClassName();
   }
 
   private static class ServiceQueue {
+
+    private static final String TAG = "ServiceQueue";
 
     private final List<RunnerSpec> mServices = new ArrayList<RunnerSpec>() {
       @Override public boolean add(RunnerSpec runner) {
         return !contains(runner) && super.add(runner);
       }
     };
+    // 已绑定的 service
+    private final List<ServiceConnection> mConnections = new ArrayList<>();
     private RunnerSpec mCurrent;
 
-    void enqueue(RunnerSpec item) {
-      mServices.add(item);
+    void enqueue(RunnerSpec spec) {
+      spec.throwIfInvalid();
+      if (spec.mCommand == Command.BIND && mConnections.contains(spec.mConnection)) {
+        Log.w(TAG, "enqueue() already bound: " + spec);
+        return;
+      }
+      if (spec.mCommand == Command.UNBIND && !mConnections.contains(spec.mConnection)) {
+        Log.w(TAG, "enqueue() already unbound: " + spec);
+        return;
+      }
+      mServices.add(spec);
       tryExecuteNext();
     }
 
@@ -78,72 +98,68 @@ public final class DlServiceRunner {
       dump();
       if (mServices.size() > 0 && mCurrent == null) {
         mCurrent = mServices.remove(0);
-        mCurrent.execute();
+        final Result result = mCurrent.execute();
+        if (result == Result.BOUND) {
+          mConnections.add(mCurrent.mConnection);
+        } else if (result == Result.UNBOUND) {
+          mConnections.remove(mCurrent.mConnection);
+        }
+        Log.d(TAG, "tryExecuteNext() result: " + result);
       }
     }
 
     private void dump() {
-      Log.wtf("ServiceQueue", "mCurrent=" + mCurrent + ", mServices=" + mServices);
+      Log.wtf("ServiceQueue", "mCurrent=" + mCurrent
+        + ", mServices=" + mServices
+        + ", mConnections=" + mConnections
+      );
     }
   }
 
-  private static class RunnerSpec implements ServiceConnection {
+  private static class RunnerSpec {
 
     private static final String TAG = "RunnerSpec";
 
-    private static final int CMD_START = 0x01;
-    private static final int CMD_STOP = 0x02;
-    private static final int CMD_BIND = 0x03;
-    private static final int CMD_UNBIND = 0x04;
-
-    private final int mCmd;
+    private final Command mCommand;
     private final Context mContext;
     private final ComponentName mTarget;
     private ServiceConnection mConnection;
 
-    private RunnerSpec(Context context, ComponentName target, int cmd) {
+    private RunnerSpec(Context context, ComponentName target, Command command) {
       mContext = context;
       mTarget = target;
-      mCmd = cmd;
+      mCommand = command;
     }
 
-    void execute() {
+    Result execute() {
       final Intent service = new Intent(mContext, ProxyService.class)
         .putExtra(DlConst.REAL_COMPONENT, mTarget);
-      switch (mCmd) {
-        case CMD_START:
+      switch (mCommand) {
+        case START:
           final ComponentName component = mContext.startService(service);
           Log.d(TAG, "startService() component: " + component);
-          break;
-        case CMD_BIND:
-          final boolean bound = mContext.bindService(service, this, Context.BIND_AUTO_CREATE);
-          Log.d(TAG, "bindService() bound: " + bound + ", connection: " + this);
-          break;
-        case CMD_STOP:
+          return Result.STARTED;
+        case BIND:
+          final boolean bound = mContext.bindService(service, mConnection, Context.BIND_AUTO_CREATE);
+          Log.d(TAG, "bindService() bound: " + bound + ", connection: " + mConnection);
+          return Result.BOUND;
+        case STOP:
           final boolean stopped = mContext.stopService(service);
           Log.d(TAG, "stopService() stopped: " + stopped);
-          break;
-        case CMD_UNBIND:
-          mContext.unbindService(this);
-          Log.d(TAG, "unbindService() connection: " + this);
-          break;
+          return Result.STOPPED;
+        case UNBIND:
+          mContext.unbindService(mConnection);
+          Log.d(TAG, "unbindService() connection: " + mConnection);
+          return Result.UNBOUND;
         default:
-          Log.d(TAG, "run() invalid cmd: " + mCmd);
-          break;
+          Log.d(TAG, "run() invalid command: " + mCommand);
+          return Result.NONE;
       }
     }
 
-    @Override public void onServiceConnected(ComponentName name, IBinder service) {
-      Log.d(TAG, "onServiceConnected() called with: name = [" + name + "], service = [" + service + "]");
-      if (mConnection != null) {
-        mConnection.onServiceConnected(name, service);
-      }
-    }
-
-    @Override public void onServiceDisconnected(ComponentName name) {
-      Log.d(TAG, "onServiceDisconnected() called with: name = [" + name + "]");
-      if (mConnection != null) {
-        mConnection.onServiceDisconnected(name);
+    void throwIfInvalid() {
+      if ((mCommand == Command.BIND || mCommand == Command.UNBIND) && mConnection == null) {
+        throw new IllegalArgumentException("connection is null");
       }
     }
 
@@ -151,30 +167,23 @@ public final class DlServiceRunner {
       if (this == o) return true;
       if (!(o instanceof RunnerSpec)) return false;
       RunnerSpec that = (RunnerSpec) o;
-      return mCmd == that.mCmd &&
+      return mCommand == that.mCommand &&
         Objects.equals(mTarget, that.mTarget) &&
         Objects.equals(mContext, that.mContext);
     }
 
     @Override public int hashCode() {
-      return Objects.hash(mCmd, mTarget, mContext);
+      return Objects.hash(mCommand, mTarget, mContext);
     }
 
     @NonNull @Override public String toString() {
       return "RunnerSpec{" +
-        "mCmd=" + cmdString(mCmd) +
+        "mCommand=" + mCommand +
         ", mContext=" + mContext +
         ", mTarget=" + mTarget +
         '}';
     }
 
-    private static String cmdString(int cmd) {
-      if (cmd == CMD_START) return "CMD_START";
-      if (cmd == CMD_STOP) return "CMD_STOP";
-      if (cmd == CMD_BIND) return "CMD_BIND";
-      if (cmd == CMD_UNBIND) return "CMD_UNBIND";
-      return String.format("Invalid cmd: 0x%x", cmd);
-    }
   }
 
   public interface Callbacks {
