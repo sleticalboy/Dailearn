@@ -47,10 +47,18 @@ public final class DlActivityManager {
       case "bindIsolatedService":
         Log.d(TAG, "bindService() method = [" + method + "], args = [" + Arrays.toString(args) + "], res: " + result);
         break;
-      case "unbindService": {
+      case "unbindService":
         Log.d(TAG, "unbindService() method = [" + method + "], args = [" + Arrays.toString(args) + "], res: " + result);
         break;
-      }
+      case "registerReceiverWithFeature":
+        Log.d(TAG, "registerReceiverWithFeature() method = [" + method + "], args = [" + Arrays.toString(args) + "], res: " + result);
+        break;
+      case "broadcastIntentWithFeature":
+        Log.d(TAG, "broadcastIntentWithFeature() method = [" + method + "], args = [" + Arrays.toString(args) + "], res: " + result);
+        break;
+      case "unregisterReceiver":
+        Log.d(TAG, "unregisterReceiver() method = [" + method + "], args = [" + Arrays.toString(args) + "], res: " + result);
+        break;
     }
   }
 }

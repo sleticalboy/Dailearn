@@ -46,10 +46,12 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
     new ModuleItem("绑定 service", "bind_service"),
     // 解绑 service
     new ModuleItem("解绑 service", "unbind_service"),
-    // 启动 receiver
-    // 解绑 receiver
+    // 注册 receiver
+    // new ModuleItem("注册 receiver", "register_receiver"),
     // 发送广播
     new ModuleItem("发送广播", "send_broadcast"),
+    // 解除 receiver
+    // new ModuleItem("解除 receiver", "unregister_receiver"),
     // 查询 provider 数据
     // 卸载插件
     new ModuleItem("卸载插件", "unload_plugin"),
@@ -73,76 +75,105 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
     Log.d(TAG, "onServiceDisconnected() called with: name = [" + name + "]");
   }
 
-  private void onModuleItemClick(ModuleItem item) {
-    if ("load_plugin".equals(item.getCls())) {
-      loadPlugin();
-    } else if ("unload_plugin".equals(item.getCls())) {
-      unloadPlugin();
-    } else if ("start_activity".equals(item.getCls())) {
-      startPluginActivity();
-    } else if ("start_service".equals(item.getCls())) {
-      startPluginService();
-    } else if ("stop_service".equals(item.getCls())) {
-      stopPluginService();
-    } else if ("bind_service".equals(item.getCls())) {
-      bindPluginService();
-    } else if ("unbind_service".equals(item.getCls())) {
-      unbindPluginService();
-    } else if ("send_broadcast".equals(item.getCls())) {
-      sendPluginBroadcast();
-    } else {
-      if (item.getClazz() != Object.class) {
-        startActivity(new Intent(this, item.getClazz()));
-      } else {
-        Toast.makeText(this, "未实现！", Toast.LENGTH_SHORT).show();
-      }
+  private void onModuleItemClick(@NonNull ModuleItem item) {
+    if (item.getCls() == null) return;
+
+    switch (item.getCls()) {
+      case "load_plugin":
+        loadPlugin();
+        break;
+      case "unload_plugin":
+        unloadPlugin();
+        break;
+      case "start_activity":
+        startPluginActivity();
+        break;
+      case "start_service":
+        startPluginService();
+        break;
+      case "stop_service":
+        stopPluginService();
+        break;
+      case "bind_service":
+        bindPluginService();
+        break;
+      case "unbind_service":
+        unbindPluginService();
+        break;
+      case "send_broadcast":
+        sendPluginBroadcast();
+        break;
+      default:
+        if (item.getClazz() != Object.class) {
+          startActivity(new Intent(this, item.getClazz()));
+        } else {
+          Toast.makeText(this, "未实现！", Toast.LENGTH_SHORT).show();
+        }
+        break;
     }
   }
 
   private void sendPluginBroadcast() {
-    final Intent intent = new Intent("com.sample.plugin.action.SAMPLE_ACTION");
-    intent.putExtra("key_1", "value_1");
+    // 静态广播
+    Intent intent = new Intent("com.example.plugin.action.SAMPLE_ACTION_STATIC");
+    // android 8.0+ 自定义静态广播无效，解决方式有以下 2 种：
+    // 1、设置 ComponentName，即包名 + 全类名
+    //   1.1、针对本应用：
+    //     intent.setClassName(this, "com.example.plugin.PluginReceiver");
+    //   1.1、针对其他应用：
+    //     intent.setClassName("com.example.plugin", "com.example.plugin.PluginReceiver");
+    // 2、intent 增加 0x01000000 标志位，来源：Intent#FLAG_RECEIVER_INCLUDE_BACKGROUND
+    //   intent.addFlags(0x01000000);
+    intent.putExtra("key_1", "static receiver with permission");
     sendBroadcast(intent);
+
+    // 动态广播
+    intent = new Intent("com.example.plugin.action.SAMPLE_ACTION_DYNAMIC");
+    intent.putExtra("key_2", "dynamic receiver without permission");
+    sendBroadcast(intent);
+
+    Log.d(TAG, "sendPluginBroadcast() called");
   }
 
   private void unbindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
     DlServiceRunner.unbind(this, target, this);
-    Log.d(TAG, "unbindPluginService()");
+    Log.d(TAG, "unbindPluginService() called");
   }
 
   private void bindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
     DlServiceRunner.bind(this, target, this);
-    Log.d(TAG, "bindPluginService()");
+    Log.d(TAG, "bindPluginService() called");
   }
 
   private void stopPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
     DlServiceRunner.stop(this, target);
-    Log.d(TAG, "stopPluginService()");
+    Log.d(TAG, "stopPluginService() called");
   }
 
   private void startPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
     DlServiceRunner.start(this, target);
-    Log.d(TAG, "startPluginService()");
+    Log.d(TAG, "startPluginService() called");
   }
 
   private void startPluginActivity() {
     // 插件中的 activity：com.example.plugin.PluginActivity
     ProxyActivity.start(this, new ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"));
+    Log.d(TAG, "startPluginActivity() called");
   }
 
   private void unloadPlugin() {
     File plugin = new File(getFilesDir(), "plugins/plugin.zip");
     DlManager.get().uninstall(plugin.getAbsolutePath());
     FileUtils.delete(plugin);
-    Log.w(TAG, "unloadPlugin() finished");
+    Log.w(TAG, "unloadPlugin() called");
   }
 
   private void loadPlugin() {

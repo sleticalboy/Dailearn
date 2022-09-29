@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -16,13 +18,12 @@ import android.content.pm.ServiceInfo;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.util.Log;
-import android.view.ContextThemeWrapper;
 import com.binlee.dl.host.hook.DlHooks;
 import com.binlee.dl.host.hook.DlInstrumentation;
 import dalvik.system.PathClassLoader;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created on 2022/9/22
@@ -39,9 +40,10 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   // 插件相关信息
   private PackageParser.Package mOwnPackage;
   private PackageInfo mPackageInfo;
-  private DlContext mBaseContext;
+  private DlContext mContext;
   private Application mApplication;
   private DlActivityLifecycleCallbacks mActivityLifecycleCallbacks;
+  private List<BroadcastReceiver> mReceivers = new ArrayList<>();
 
   // class loader
   private ClassLoader mClassLoader;
@@ -62,10 +64,10 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   // 3、创建资源
   private DlApk(PackageManager pm, String pluginPath) {
     mHostContext = ((DlPackageManager) pm).getHost();
-    mOwnPackage = DlPackageParser.parsePackage(pluginPath);
-    mPackageInfo = DlPackageParser.generatePackageInfo(mHostContext, mOwnPackage, pluginPath);
+    mOwnPackage = DlPackageUtil.parsePackage(pluginPath);
+    mPackageInfo = DlPackageUtil.generatePackageInfo(mHostContext, mOwnPackage, pluginPath);
     mPluginPath = pluginPath;
-    mBaseContext = new DlContext(this, pm);
+    mContext = new DlContext(this, pm);
   }
 
   private void initialize() {
@@ -75,6 +77,34 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     makeApplication(mPackageInfo.applicationInfo.className);
     // 创建资源
     makeResource();
+    // 注册静态广播
+    registerReceiver();
+  }
+
+  private void registerReceiver() {
+    for (PackageParser.Activity activity : mOwnPackage.receivers) {
+      BroadcastReceiver receiver;
+      try {
+        receiver = (BroadcastReceiver) mClassLoader.loadClass(activity.className).newInstance();
+      } catch (IllegalAccessException | InstantiationException | ClassNotFoundException e) {
+        continue;
+      }
+      IntentFilter filter = new IntentFilter();
+      for (PackageParser.ActivityIntentInfo intent : activity.intents) {
+        for (int i = 0; i < intent.countActions(); i++) {
+          filter.addAction(intent.getAction(i));
+        }
+      }
+      final Intent intent = mContext.registerReceiver(receiver, filter);
+      mReceivers.add(receiver);
+      Log.d(TAG, "registerReceiver() " + activity.className + ", intent: " + intent);
+    }
+  }
+
+  private void unregisterReceiver() {
+    for (int i = 0; i < mReceivers.size(); i++) {
+      mContext.unregisterReceiver(mReceivers.remove(0));
+    }
   }
 
   private void makeClassLoader() {
@@ -103,7 +133,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
 
     final DlInstrumentation inst = DlHooks.getInstrumentation();
     try {
-      mApplication = inst.newApplication(mClassLoader, className, mBaseContext);
+      mApplication = inst.newApplication(mClassLoader, className, mContext);
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
       e.printStackTrace();
     }
@@ -151,37 +181,26 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   }
 
   public void release() {
+    unregisterReceiver();
+    // 移除 ActivityLifecycleCallbacks
+    mApplication.unregisterActivityLifecycleCallbacks(mActivityLifecycleCallbacks);
+    // 解除注册
+    DlHooks.getInstrumentation().removeCallbacks(this);
+
     mOwnPackage = null;
     mPackageInfo = null;
     mHostContext = null;
-    mBaseContext = null;
-
-    // 移除 ActivityLifecycleCallbacks
-    mApplication.unregisterActivityLifecycleCallbacks(mActivityLifecycleCallbacks);
+    mContext = null;
     mActivityLifecycleCallbacks = null;
     mApplication = null;
+    mReceivers = null;
 
     // 卸载插件类
     mClassLoader = null;
     // 释放资源
     mResources.getAssets().close();
     mResources = null;
-
-    // 解除注册
-    DlHooks.getInstrumentation().removeCallbacks(this);
-
     mPluginPath = null;
-  }
-
-  @Override public void onNewActivity(Activity activity) {
-    if (activity == null) return;
-    // try {
-    //   final Field field = ContextThemeWrapper.class.getDeclaredField("mResources");
-    //   field.setAccessible(true);
-    //   field.set(activity, mResources);
-    // } catch (NoSuchFieldException | IllegalAccessException e) {
-    //   e.printStackTrace();
-    // }
   }
 
   @Override public void onCallActivityOnCreate(Activity activity) {
@@ -206,7 +225,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
 
       field = ContextWrapper.class.getDeclaredField("mBase");
       field.setAccessible(true);
-      field.set(activity, mBaseContext);
+      field.set(activity, mContext);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }

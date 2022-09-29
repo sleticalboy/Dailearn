@@ -97,7 +97,8 @@ public final class DlInstrumentation extends Instrumentation {
   
   public interface Callbacks {
 
-    void onNewActivity(Activity activity);
+    default void onNewActivity(Activity activity) {
+    }
 
     void onCallActivityOnCreate(Activity activity);
   }

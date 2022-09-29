@@ -10,6 +10,7 @@ import android.content.pm.PermissionInfo;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
+import android.util.Log;
 import java.io.File;
 
 /**
@@ -17,9 +18,11 @@ import java.io.File;
  *
  * @author binlee
  */
-public final class DlPackageParser {
+public final class DlPackageUtil {
 
-  private DlPackageParser() {
+  private static final String TAG = "DlPackageUtil";
+
+  private DlPackageUtil() {
     //no instance
   }
 
@@ -80,6 +83,7 @@ public final class DlPackageParser {
     info.receivers = new ActivityInfo[pkg.receivers.size()];
     for (int i = 0; i < info.receivers.length; i++) {
       info.receivers[i] = pkg.receivers.get(i).info;
+      dumpReceiver(pkg.receivers.get(i));
     }
     // providers
     info.providers = new ProviderInfo[pkg.providers.size()];
@@ -87,5 +91,17 @@ public final class DlPackageParser {
       info.providers[i] = pkg.providers.get(i).info;
     }
     return info;
+  }
+
+  private static void dumpReceiver(PackageParser.Activity receiver) {
+    final StringBuilder buffer = new StringBuilder();
+    for (PackageParser.ActivityIntentInfo intent : receiver.intents) {
+      for (int i = 0; i < intent.countActions(); i++) {
+        buffer.append(intent.getAction(i)).append('\n');
+      }
+    }
+    Log.d(TAG, "dumpReceiver() name: " + receiver.className
+      + ", permission: " + receiver.info.permission
+      + ", intents: " + buffer);
   }
 }

@@ -2,6 +2,7 @@ package com.example.plugin;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
@@ -22,8 +23,21 @@ public class PluginApplication extends Application {
   @Override public void onCreate() {
     super.onCreate();
     Log.d(TAG, "onCreate() " + getPackageManager());
+    // staticReceiver();
+    dynamicReceiver();
+  }
+
+  private void staticReceiver() {
     final IntentFilter filter = new IntentFilter();
-    filter.addAction("com.sample.plugin.action.SAMPLE_ACTION");
-    registerReceiver(new PluginReceiver(), filter);
+    filter.addAction("com.example.plugin.action.SAMPLE_ACTION_STATIC");
+    final Intent intent = registerReceiver(new PluginReceiver(), filter);
+    Log.d(TAG, "staticReceiver() register com.example.plugin.PluginReceiver: " + intent);
+  }
+
+  private void dynamicReceiver() {
+    final IntentFilter filter = new IntentFilter();
+    filter.addAction("com.example.plugin.action.SAMPLE_ACTION_DYNAMIC");
+    final Intent intent = registerReceiver(new DynamicReceiver(), filter);
+    Log.d(TAG, "dynamicReceiver() register com.example.plugin.DynamicReceiver: " + intent);
   }
 }
