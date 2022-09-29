@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Gravity;
@@ -53,6 +54,7 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
     // 解除 receiver
     // new ModuleItem("解除 receiver", "unregister_receiver"),
     // 查询 provider 数据
+    new ModuleItem("查询 provider 数据", "query_provider"),
     // 卸载插件
     new ModuleItem("卸载插件", "unload_plugin"),
   };
@@ -103,6 +105,9 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
       case "send_broadcast":
         sendPluginBroadcast();
         break;
+      case "query_provider":
+        queryPluginProvider();
+        break;
       default:
         if (item.getClazz() != Object.class) {
           startActivity(new Intent(this, item.getClazz()));
@@ -111,6 +116,11 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
         }
         break;
     }
+  }
+
+  private void queryPluginProvider() {
+    getContentResolver().call("com.example.plugin.SAMPLE_PROVIDER", "sampleMethod", "empty args", null);
+    Log.d(TAG, "queryPluginProvider() called");
   }
 
   private void sendPluginBroadcast() {

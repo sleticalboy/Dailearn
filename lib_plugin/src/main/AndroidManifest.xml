@@ -26,14 +26,18 @@
     </activity>
     <service
       android:name=".PluginService"
-      android:exported="false"/>
+      android:exported="false" />
     <receiver
       android:name=".PluginReceiver"
       android:exported="false">
       <intent-filter>
-        <action android:name="com.example.plugin.action.SAMPLE_ACTION_STATIC"/>
+        <action android:name="com.example.plugin.action.SAMPLE_ACTION_STATIC" />
       </intent-filter>
     </receiver>
+    <provider
+      android:authorities="com.example.plugin.SAMPLE_PROVIDER"
+      android:name=".PluginProvider"
+      android:exported="false" />
   </application>
 
 </manifest>

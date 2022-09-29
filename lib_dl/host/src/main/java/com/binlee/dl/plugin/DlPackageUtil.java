@@ -83,14 +83,24 @@ public final class DlPackageUtil {
     info.receivers = new ActivityInfo[pkg.receivers.size()];
     for (int i = 0; i < info.receivers.length; i++) {
       info.receivers[i] = pkg.receivers.get(i).info;
-      dumpReceiver(pkg.receivers.get(i));
+      // dumpReceiver(pkg.receivers.get(i));
     }
     // providers
     info.providers = new ProviderInfo[pkg.providers.size()];
     for (int i = 0; i < info.providers.length; i++) {
       info.providers[i] = pkg.providers.get(i).info;
+      dumpProvider(pkg.providers.get(i));
     }
     return info;
+  }
+
+  private static void dumpProvider(PackageParser.Provider provider) {
+    final StringBuilder buffer = new StringBuilder();
+    Log.d(TAG, "dumpReceiver() name: " + provider.className
+      + ", authority: " + provider.info.authority
+      + ", readPermission: " + provider.info.readPermission
+      + ", writePermission: " + provider.info.writePermission
+    );
   }
 
   private static void dumpReceiver(PackageParser.Activity receiver) {

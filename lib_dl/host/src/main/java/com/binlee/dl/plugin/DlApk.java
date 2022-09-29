@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentProvider;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -22,6 +23,8 @@ import com.binlee.dl.host.hook.DlHooks;
 import com.binlee.dl.host.hook.DlInstrumentation;
 import dalvik.system.PathClassLoader;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,10 +81,29 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     // 创建资源
     makeResource();
     // 注册静态广播
-    registerReceiver();
+    registerReceivers();
+    // 安装 provider
+    installProviders();
   }
 
-  private void registerReceiver() {
+  private void installProviders() {
+    // private void installContentProviders(Context context, List<ProviderInfo> providers) {}
+    // android.app.ActivityThread#installContentProviders
+    Object currentAt = DlHooks.getActivityThread();
+    try {
+      Method method = currentAt.getClass().getDeclaredMethod("installContentProviders", Context.class, List.class);
+      method.setAccessible(true);
+      final List<ProviderInfo> providers = new ArrayList<>(mOwnPackage.providers.size());
+      for (PackageParser.Provider provider : mOwnPackage.providers) {
+        providers.add(provider.info);
+      }
+      method.invoke(currentAt, mContext, providers);
+    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void registerReceivers() {
     for (PackageParser.Activity activity : mOwnPackage.receivers) {
       BroadcastReceiver receiver;
       try {
@@ -101,7 +123,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     }
   }
 
-  private void unregisterReceiver() {
+  private void unregisterReceivers() {
     for (int i = 0; i < mReceivers.size(); i++) {
       mContext.unregisterReceiver(mReceivers.remove(0));
     }
@@ -181,7 +203,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   }
 
   public void release() {
-    unregisterReceiver();
+    unregisterReceivers();
     // 移除 ActivityLifecycleCallbacks
     mApplication.unregisterActivityLifecycleCallbacks(mActivityLifecycleCallbacks);
     // 解除注册
