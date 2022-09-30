@@ -13,6 +13,7 @@ import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import com.binlee.dl.DlConst;
 import com.binlee.dl.DlManager;
 
@@ -21,6 +22,7 @@ import com.binlee.dl.DlManager;
  *
  * @author binlee
  */
+@RequiresApi(api = Build.VERSION_CODES.P)
 public final class DlComponentFactory extends AppComponentFactory {
 
   private static final String TAG = "DlComponentFactory";
@@ -36,7 +38,7 @@ public final class DlComponentFactory extends AppComponentFactory {
     Log.d(TAG, "DlComponentFactory() delegate: " + mDelegate);
   }
 
-  @NonNull @Override
+  @RequiresApi(api = Build.VERSION_CODES.Q) @NonNull @Override
   public ClassLoader instantiateClassLoader(@NonNull ClassLoader cl, @NonNull ApplicationInfo aInfo) {
     Log.d(TAG, "instantiateClassLoader() app Info: " + aInfo);
     return mDelegate.instantiateClassLoader(cl, aInfo);

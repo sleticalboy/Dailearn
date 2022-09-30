@@ -6,7 +6,8 @@
 
   <application
     android:appComponentFactory="com.binlee.dl.host.hook.DlComponentFactory"
-    tools:replace="android:appComponentFactory">
+    tools:replace="android:appComponentFactory"
+    tools:targetApi="p">
     <activity
       android:name=".proxy.ProxyActivity"
       android:exported="true" />

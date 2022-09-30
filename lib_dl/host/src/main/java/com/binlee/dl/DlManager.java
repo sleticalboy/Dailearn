@@ -1,16 +1,12 @@
 package com.binlee.dl;
 
 import android.app.Application;
-import android.content.pm.PackageManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import com.binlee.dl.host.hook.DlActivityManager;
 import com.binlee.dl.host.hook.DlHandlerCallback;
 import com.binlee.dl.host.hook.DlHooks;
 import com.binlee.dl.host.hook.DlInstrumentation;
 import com.binlee.dl.plugin.DlPackageManager;
-import java.util.List;
 
 /**
  * Created on 2022/8/16
@@ -44,15 +40,9 @@ public final class DlManager {
     if (mPm != null) return;
     Log.d(TAG, "init() host application: " + host);
     mPm = new DlPackageManager(host);
-    // hook instrumentation & ams
+    // hook instrumentation、Handler#mCallback
     DlHooks.setInstrumentation(new DlInstrumentation());
     DlHooks.setHandlerCallback(new DlHandlerCallback());
-    DlHooks.setActivityManager(new DlActivityManager(host, mPm));
-    // hook pms
-    final PackageManager pm = host.getPackageManager(); // -> ApplicationPackageManager
-    // android.app.ApplicationPackageManager#mPM -> android.app.ActivityThread#getPackageManager() -> pms
-    // com.android.server.pm.PackageManagerService#mPackages -> WatchedArrayMap<String, AndroidPackage>(implements Map)
-    // pms 解析插件并将数据插入到 mPackages 中
   }
 
   /**
