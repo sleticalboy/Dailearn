@@ -34,52 +34,54 @@ final class DlActivityLifecycleCallbacks implements Application.ActivityLifecycl
     mDelegate = delegate;
   }
 
-  private List<Application.ActivityLifecycleCallbacks> collectCallbacks() {
-    if (mDelegate == null) return Collections.emptyList();
+  private Application.ActivityLifecycleCallbacks[] collectedCallbacks() {
+    if (mDelegate == null) {
+      return new Application.ActivityLifecycleCallbacks[0];
+    }
 
     synchronized (mDelegate) {
-      return new ArrayList<>(mDelegate);
+      return mDelegate.toArray(new Application.ActivityLifecycleCallbacks[0]);
     }
   }
 
   @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
-    for (Application.ActivityLifecycleCallbacks callbacks : collectCallbacks()) {
+    for (Application.ActivityLifecycleCallbacks callbacks : collectedCallbacks()) {
       callbacks.onActivityCreated(activity, savedInstanceState);
     }
   }
 
   @Override public void onActivityStarted(@NonNull Activity activity) {
-    for (Application.ActivityLifecycleCallbacks callbacks : collectCallbacks()) {
+    for (Application.ActivityLifecycleCallbacks callbacks : collectedCallbacks()) {
       callbacks.onActivityStarted(activity);
     }
   }
 
   @Override public void onActivityResumed(@NonNull Activity activity) {
-    for (Application.ActivityLifecycleCallbacks callbacks : collectCallbacks()) {
+    for (Application.ActivityLifecycleCallbacks callbacks : collectedCallbacks()) {
       callbacks.onActivityResumed(activity);
     }
   }
 
   @Override public void onActivityPaused(@NonNull Activity activity) {
-    for (Application.ActivityLifecycleCallbacks callbacks : collectCallbacks()) {
+    for (Application.ActivityLifecycleCallbacks callbacks : collectedCallbacks()) {
       callbacks.onActivityPaused(activity);
     }
   }
 
   @Override public void onActivityStopped(@NonNull Activity activity) {
-    for (Application.ActivityLifecycleCallbacks callbacks : collectCallbacks()) {
+    for (Application.ActivityLifecycleCallbacks callbacks : collectedCallbacks()) {
       callbacks.onActivityStopped(activity);
     }
   }
 
   @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
-    for (Application.ActivityLifecycleCallbacks callbacks : collectCallbacks()) {
+    for (Application.ActivityLifecycleCallbacks callbacks : collectedCallbacks()) {
       callbacks.onActivitySaveInstanceState(activity, outState);
     }
   }
 
   @Override public void onActivityDestroyed(@NonNull Activity activity) {
-    for (Application.ActivityLifecycleCallbacks callbacks : collectCallbacks()) {
+    for (Application.ActivityLifecycleCallbacks callbacks : collectedCallbacks()) {
       callbacks.onActivityDestroyed(activity);
     }
   }

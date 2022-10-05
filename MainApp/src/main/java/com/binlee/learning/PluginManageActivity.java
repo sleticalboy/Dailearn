@@ -1,10 +1,12 @@
 package com.binlee.learning;
 
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Gravity;
@@ -16,7 +18,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.binlee.dl.DlManager;
 import com.binlee.dl.host.proxy.ProxyActivity;
-import com.binlee.dl.host.proxy.ProxyService;
 import com.binlee.dl.host.util.FileUtils;
 import com.binlee.dl.plugin.DlServiceRunner;
 import com.binlee.learning.base.BaseActivity;
@@ -30,11 +31,11 @@ import java.io.IOException;
  *
  * @author binlee
  */
-public final class PluginManageActivity extends BaseActivity implements ServiceConnection {
+public final class PluginManageActivity extends BaseActivity {
 
   private static final String TAG = "PluginManageActivity";
 
-  private static final ModuleItem[] MODULE_ITEMS = {
+  private static final ModuleItem[] FEATURES = {
     // 加载插件
     new ModuleItem("加载插件", "load_plugin"),
     // 启动 activity
@@ -60,21 +61,28 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
   };
   private ActivityListItemBinding mBinding;
 
+  private ServiceConnection mConnection = new ServiceConnection() {
+    @Override public void onServiceConnected(ComponentName name, IBinder service) {
+      Log.d(TAG, "onServiceConnected() called with: name = [" + name + "], service = [" + service + "]");
+    }
+
+    @Override public void onServiceDisconnected(ComponentName name) {
+      Log.d(TAG, "onServiceDisconnected() called with: name = [" + name + "]");
+    }
+  };
+
   @NonNull @Override protected View layout() {
     mBinding = ActivityListItemBinding.inflate(getLayoutInflater());
     return mBinding.getRoot();
   }
 
   @Override protected void initView() {
-    mBinding.recyclerView.setAdapter(new ItemAdapter(this));
+    mBinding.recyclerView.setAdapter(new FeaturesAdapter(this));
   }
 
-  @Override public void onServiceConnected(ComponentName name, IBinder service) {
-    Log.d(TAG, "onServiceConnected() called with: name = [" + name + "], service = [" + service + "]");
-  }
-
-  @Override public void onServiceDisconnected(ComponentName name) {
-    Log.d(TAG, "onServiceDisconnected() called with: name = [" + name + "]");
+  @Override protected void onDestroy() {
+    super.onDestroy();
+    mConnection = null;
   }
 
   private void onModuleItemClick(@NonNull ModuleItem item) {
@@ -119,8 +127,20 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
   }
 
   private void queryPluginProvider() {
-    getContentResolver().call("com.example.plugin.SAMPLE_PROVIDER", "sampleMethod", "empty args", null);
+    final ContentResolver resolver = getContentResolver();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      resolver.call("com.example.plugin.SAMPLE_PROVIDER", "sampleMethod", "empty args", null);
+    } else {
+      resolver.call(Uri.parse("content://com.example.plugin.SAMPLE_PROVIDER"), "sampleMethod", "empty args", null);
+    }
     Log.d(TAG, "queryPluginProvider() called");
+
+    if (Boolean.TRUE) return;
+
+    final Uri uri = Uri.parse("content://com.example.plugin.SAMPLE_PROVIDER");
+    String[] projection = null;
+    String selection = null;
+    resolver.query(uri, projection, selection, null, null);
   }
 
   private void sendPluginBroadcast() {
@@ -148,14 +168,14 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
   private void unbindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServiceRunner.unbind(this, target, this);
+    DlServiceRunner.unbind(this, target, mConnection);
     Log.d(TAG, "unbindPluginService() called");
   }
 
   private void bindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServiceRunner.bind(this, target, this);
+    DlServiceRunner.bind(this, target, mConnection);
     Log.d(TAG, "bindPluginService() called");
   }
 
@@ -198,36 +218,36 @@ public final class PluginManageActivity extends BaseActivity implements ServiceC
     Toast.makeText(this, "加载插件成功", Toast.LENGTH_SHORT).show();
   }
 
-  private static class ItemAdapter extends RecyclerView.Adapter<ItemHolder> {
+  private static class FeaturesAdapter extends RecyclerView.Adapter<FeatureHolder> {
 
     private final PluginManageActivity mHost;
 
-    private ItemAdapter(PluginManageActivity host) {
+    private FeaturesAdapter(PluginManageActivity host) {
       mHost = host;
     }
 
-    @NonNull @Override public ItemHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-      final TextView itemView = new TextView(mHost);
+    @NonNull @Override public FeatureHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+      final TextView itemView = new TextView(parent.getContext());
       itemView.setBackgroundResource(R.drawable.module_item_bg);
-      return new ItemHolder(itemView);
+      return new FeatureHolder(itemView);
     }
 
-    @Override public void onBindViewHolder(@NonNull ItemHolder holder, int position) {
-      final ModuleItem item = MODULE_ITEMS[position];
+    @Override public void onBindViewHolder(@NonNull FeatureHolder holder, int position) {
+      final ModuleItem item = FEATURES[position];
       holder.mTextView.setText(item.getTitle());
       holder.itemView.setOnClickListener(v -> mHost.onModuleItemClick(item));
     }
 
     @Override public int getItemCount() {
-      return MODULE_ITEMS.length;
+      return FEATURES.length;
     }
   }
 
-  private static class ItemHolder extends RecyclerView.ViewHolder {
+  private static class FeatureHolder extends RecyclerView.ViewHolder {
 
     private final TextView mTextView;
 
-    public ItemHolder(@NonNull View itemView) {
+    public FeatureHolder(@NonNull View itemView) {
       super(itemView);
       mTextView = (TextView) itemView;
       mTextView.setGravity(Gravity.CENTER);

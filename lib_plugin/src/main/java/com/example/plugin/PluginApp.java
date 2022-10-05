@@ -11,7 +11,7 @@ import android.util.Log;
  *
  * @author binlee
  */
-public class PluginApplication extends Application {
+public class PluginApp extends Application {
 
   private static final String TAG = "PluginApplication";
 

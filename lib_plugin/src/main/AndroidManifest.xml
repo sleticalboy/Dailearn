@@ -4,7 +4,7 @@
   package="com.example.plugin">
 
   <application
-    android:name=".PluginApplication"
+    android:name=".PluginApp"
     android:allowBackup="true"
     android:icon="@mipmap/ic_launcher"
     android:label="@string/app_name"

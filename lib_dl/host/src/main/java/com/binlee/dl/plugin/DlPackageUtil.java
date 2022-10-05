@@ -83,7 +83,7 @@ public final class DlPackageUtil {
     info.receivers = new ActivityInfo[pkg.receivers.size()];
     for (int i = 0; i < info.receivers.length; i++) {
       info.receivers[i] = pkg.receivers.get(i).info;
-      // dumpReceiver(pkg.receivers.get(i));
+      dumpReceiver(pkg.receivers.get(i));
     }
     // providers
     info.providers = new ProviderInfo[pkg.providers.size()];
@@ -95,8 +95,7 @@ public final class DlPackageUtil {
   }
 
   private static void dumpProvider(PackageParser.Provider provider) {
-    final StringBuilder buffer = new StringBuilder();
-    Log.d(TAG, "dumpReceiver() name: " + provider.className
+    Log.d(TAG, "dumpProvider() name: " + provider.className
       + ", authority: " + provider.info.authority
       + ", readPermission: " + provider.info.readPermission
       + ", writePermission: " + provider.info.writePermission
