@@ -6,7 +6,7 @@ import android.os.Message;
 import android.util.Log;
 import android.util.SparseArray;
 import androidx.annotation.NonNull;
-import com.binlee.dl.plugin.DlServiceRunner;
+import com.binlee.dl.plugin.DlServices;
 import java.lang.reflect.Field;
 
 /**
@@ -18,11 +18,11 @@ public final class DlHandlerCallback implements Handler.Callback {
 
   private static final String TAG = "DlHandlerCallback";
 
-  public static final int CREATE_SERVICE = 114;
-  public static final int SERVICE_ARGS = 115;
-  public static final int STOP_SERVICE = 116;
-  public static final int BIND_SERVICE = 121;
-  public static final int UNBIND_SERVICE = 122;
+  private static final int CREATE_SERVICE = 114;
+  private static final int SERVICE_ARGS = 115;
+  private static final int STOP_SERVICE = 116;
+  private static final int BIND_SERVICE = 121;
+  private static final int UNBIND_SERVICE = 122;
   private SparseArray<String> mWhats;
 
   public void setWhats(SparseArray<String> whats) {
@@ -44,7 +44,7 @@ public final class DlHandlerCallback implements Handler.Callback {
           field.setAccessible(true);
           final ServiceInfo originalInfo = (ServiceInfo) field.get(msg.obj);
           if (originalInfo != null) {
-            originalInfo.name = DlServiceRunner.currentName();
+            originalInfo.name = DlServices.currentName();
           }
         } catch (NoSuchFieldException | IllegalAccessException e) {
           e.printStackTrace();
@@ -55,7 +55,7 @@ public final class DlHandlerCallback implements Handler.Callback {
       case SERVICE_ARGS:
       case UNBIND_SERVICE:
       case STOP_SERVICE: {
-        DlServiceRunner.scheduleNext();
+        DlServices.scheduleNext();
       }
       break;
     }

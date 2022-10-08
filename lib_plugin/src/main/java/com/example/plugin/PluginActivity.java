@@ -12,16 +12,17 @@ public class PluginActivity extends AppCompatActivity {
 
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    Log.d(TAG, "onCreate() app: " + getApplication());
+    Log.d(TAG, "onCreate() resource: " + getResources());
+    Log.d(TAG, "onCreate() class loader: " + getClassLoader());
+    Log.d(TAG, "onCreate() base context: " + getBaseContext());
+    Log.d(TAG, "onCreate() package name: " + getPackageName());
     // TODO: 2022/9/21 这里实际显示的是 alarm_activity，资源冲突了，要解决
     // int layout activity_main 0x7f0b001c
     // int layout activity_alarm 0x7f0b001c
     // 1、修改 aapt 工具达到 id 可控
     // 2、修改 resources.asrc 文件，改变 id
     setContentView(R.layout.activity_main);
-    Log.d(TAG, "onCreate() class loader: " + getClassLoader());
-    Log.d(TAG, "onCreate() app: " + getApplication());
-    Log.d(TAG, "onCreate() resource: " + getResources());
-    Log.d(TAG, "onCreate() base context: " + getBaseContext());
     new Handler().postDelayed(() -> {
       Toast.makeText(this, "Hello Plugin", Toast.LENGTH_SHORT).show();
     }, 500L);

@@ -16,11 +16,16 @@ import android.content.pm.PackageParser;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ServiceInfo;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.ContextThemeWrapper;
+import androidx.appcompat.app.AppCompatActivity;
 import com.binlee.dl.host.hook.DlHooks;
 import com.binlee.dl.host.hook.DlInstrumentation;
 import dalvik.system.PathClassLoader;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -43,6 +48,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   private PackageParser.Package mOwnPackage;
   private PackageInfo mPackageInfo;
   private DlContext mContext;
+  private DlThemeContext mThemeContext;
   private Application mApplication;
   private DlActivityLifecycleCallbacks mActivityLifecycleCallbacks;
   private List<BroadcastReceiver> mReceivers = new ArrayList<>();
@@ -70,40 +76,47 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     mPackageInfo = DlPackageUtil.generatePackageInfo(mHostContext, mOwnPackage, pluginPath);
     mPluginPath = pluginPath;
     mContext = new DlContext(this, pm);
+    if (mOwnPackage.activities.size() > 0) {
+      // 创建资源
+      makeResource(mHostContext.getResources());
+      mThemeContext = new DlThemeContext(mContext, mResources, mPackageInfo.applicationInfo.theme);
+    }
   }
 
   private void initialize() {
     // 创建类加载器
     makeClassLoader();
+
+    // 安装 provider
+    final List<ProviderInfo> providers = new ArrayList<>(mOwnPackage.providers.size());
+    for (PackageParser.Provider provider : mOwnPackage.providers) {
+      providers.add(provider.info);
+    }
+    installProviders(providers);
+
     // 创建 application
     makeApplication(mPackageInfo.applicationInfo.className);
-    // 创建资源
-    makeResource();
+
     // 注册静态广播
-    registerReceivers();
-    // 安装 provider
-    installProviders();
+    registerReceivers(mOwnPackage.receivers);
   }
 
-  private void installProviders() {
+  private void installProviders(List<ProviderInfo> providers) {
     // private void installContentProviders(Context context, List<ProviderInfo> providers) {}
     // android.app.ActivityThread#installContentProviders
-    Object currentAt = DlHooks.getActivityThread();
+
+    final Object currentAt = DlHooks.getActivityThread();
     try {
       Method method = currentAt.getClass().getDeclaredMethod("installContentProviders", Context.class, List.class);
       method.setAccessible(true);
-      final List<ProviderInfo> providers = new ArrayList<>(mOwnPackage.providers.size());
-      for (PackageParser.Provider provider : mOwnPackage.providers) {
-        providers.add(provider.info);
-      }
       method.invoke(currentAt, mContext, providers);
     } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
       e.printStackTrace();
     }
   }
 
-  private void registerReceivers() {
-    for (PackageParser.Activity activity : mOwnPackage.receivers) {
+  private void registerReceivers(List<PackageParser.Activity> receivers) {
+    for (PackageParser.Activity activity : receivers) {
       BroadcastReceiver receiver;
       try {
         receiver = (BroadcastReceiver) mClassLoader.loadClass(activity.className).newInstance();
@@ -135,14 +148,44 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     // 是否与宿主类合并？
   }
 
-  private void makeResource() {
-    try {
-      mResources = mHostContext.getPackageManager().getResourcesForApplication(mPackageInfo.applicationInfo);
-    } catch (PackageManager.NameNotFoundException e) {
-      e.printStackTrace();
+  private void makeResource(Resources parent) {
+    if (Boolean.TRUE) {
+      try {
+        mResources = mHostContext.getPackageManager().getResourcesForApplication(mPackageInfo.applicationInfo);
+      } catch (PackageManager.NameNotFoundException e) {
+        e.printStackTrace();
+      }
+      Log.d(TAG, "makeResource() resources from parent pms: " + mResources);
+      return;
     }
+
+    final AssetManager assets;
+    try {
+      assets = AssetManager.class.newInstance();
+      final Method method = AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
+      method.setAccessible(true);
+      final Object obj = method.invoke(assets, mPluginPath);
+      Log.d(TAG, "makeResource() addAssetPath: " + obj);
+    } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
+      e.printStackTrace();
+      return;
+    }
+    // miui: android.content.res.MiuiResources
+    // vivo: android.content.res.VivoResources
+    // nubia: android.content.res.NubiaResources
+    // aosp: android.content.res.Resources
+    try {
+      final Constructor<? extends Resources> constructor =
+        parent.getClass().getDeclaredConstructor(AssetManager.class, DisplayMetrics.class, Configuration.class);
+      constructor.setAccessible(true);
+      mResources = constructor.newInstance(assets, parent.getDisplayMetrics(), parent.getConfiguration());
+    } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+      Log.w(TAG, "makeResource() failed, no such method: " + e.getMessage());
+      mResources = new Resources(assets, parent.getDisplayMetrics(), parent.getConfiguration());
+    }
+    Log.d(TAG, "makeResource() parent: " + parent + ", plugin: " + mResources);
     // 是否与宿主资源合并？
-    // 资源冲突如何解决？
+    // 合并后资源冲突如何解决？
   }
 
   private void makeApplication(String className) {
@@ -187,20 +230,6 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     return mClassLoader;
   }
 
-  public Resources getResources() {
-    return mResources;
-  }
-
-  public AssetManager getAssets() {
-    return mResources.getAssets();
-  }
-
-  public Resources.Theme getTheme() {
-    final Resources.Theme theme = mResources.newTheme();
-    theme.applyStyle(mPackageInfo.applicationInfo.theme, false);
-    return theme;
-  }
-
   public void release() {
     unregisterReceivers();
     // 移除 ActivityLifecycleCallbacks
@@ -239,14 +268,34 @@ public final class DlApk implements DlInstrumentation.Callbacks {
       + ", \ntheme: " + activity.getTheme()
     );
 
+    Field field;
+    // try inject Activity#mApplication
     try {
-      Field field = Activity.class.getDeclaredField("mApplication");
+      field = Activity.class.getDeclaredField("mApplication");
       field.setAccessible(true);
       field.set(activity, mApplication);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      e.printStackTrace();
+    }
 
+    // try inject ContextWrapper#mBase
+    try {
       field = ContextWrapper.class.getDeclaredField("mBase");
       field.setAccessible(true);
-      field.set(activity, mContext);
+      field.set(activity, mThemeContext);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      e.printStackTrace();
+    }
+
+    // try inject AppCompatActivity/ContextThemeWrapper#mResource
+    try {
+      if (activity instanceof AppCompatActivity) {
+        field = AppCompatActivity.class.getDeclaredField("mResources");
+      } else/* if (activity instanceof ContextThemeWrapper)*/ {
+        field = ContextThemeWrapper.class.getDeclaredField("mResources");
+      }
+      field.setAccessible(true);
+      field.set(activity, mResources);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }

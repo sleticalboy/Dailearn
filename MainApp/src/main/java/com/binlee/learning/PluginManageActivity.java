@@ -19,7 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.binlee.dl.DlManager;
 import com.binlee.dl.host.proxy.ProxyActivity;
 import com.binlee.dl.host.util.FileUtils;
-import com.binlee.dl.plugin.DlServiceRunner;
+import com.binlee.dl.plugin.DlServices;
 import com.binlee.learning.base.BaseActivity;
 import com.binlee.learning.bean.ModuleItem;
 import com.binlee.learning.databinding.ActivityListItemBinding;
@@ -168,28 +168,28 @@ public final class PluginManageActivity extends BaseActivity {
   private void unbindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServiceRunner.unbind(this, target, mConnection);
+    DlServices.unbind(this, target, mConnection);
     Log.d(TAG, "unbindPluginService() called");
   }
 
   private void bindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServiceRunner.bind(this, target, mConnection);
+    DlServices.bind(this, target, mConnection);
     Log.d(TAG, "bindPluginService() called");
   }
 
   private void stopPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServiceRunner.stop(this, target);
+    DlServices.stop(this, target);
     Log.d(TAG, "stopPluginService() called");
   }
 
   private void startPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServiceRunner.start(this, target);
+    DlServices.start(this, target);
     Log.d(TAG, "startPluginService() called");
   }
 
@@ -204,6 +204,8 @@ public final class PluginManageActivity extends BaseActivity {
     DlManager.get().uninstall(plugin.getAbsolutePath());
     FileUtils.delete(plugin);
     Log.w(TAG, "unloadPlugin() called");
+
+    DlServices.setMonitor(null);
   }
 
   private void loadPlugin() {
@@ -216,6 +218,16 @@ public final class PluginManageActivity extends BaseActivity {
     }
     DlManager.get().install(plugin.getAbsolutePath());
     Toast.makeText(this, "加载插件成功", Toast.LENGTH_SHORT).show();
+
+    DlServices.setMonitor((component, action, result) -> {
+      Log.d(TAG, "Monitor#onResult() called with: component = ["
+        + component
+        + "], action = ["
+        + action
+        + "], result = ["
+        + result
+        + "]");
+    });
   }
 
   private static class FeaturesAdapter extends RecyclerView.Adapter<FeatureHolder> {
