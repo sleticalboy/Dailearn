@@ -483,17 +483,33 @@ public final class DlPackageManager extends PackageManager {
 
   @NonNull @Override public Resources getResourcesForActivity(@NonNull ComponentName activityName)
     throws NameNotFoundException {
-    return null;
+    for (String key : mPackages.keySet()) {
+      if (activityName.getPackageName().equals(key)) {
+        final DlApk dlApk = mPackages.get(key);
+        if (dlApk != null) {
+          return dlApk.getResources();
+        }
+      }
+    }
+    return mDelegate.getResourcesForActivity(activityName);
   }
 
   @NonNull @Override public Resources getResourcesForApplication(@NonNull ApplicationInfo app)
     throws NameNotFoundException {
-    return null;
+    final DlApk dlApk = mPackages.get(app.packageName);
+    if (dlApk != null) {
+      return dlApk.getResources();
+    }
+    return mDelegate.getResourcesForApplication(app);
   }
 
   @NonNull @Override public Resources getResourcesForApplication(@NonNull String packageName)
     throws NameNotFoundException {
-    return null;
+    final DlApk dlApk = mPackages.get(packageName);
+    if (dlApk != null) {
+      return dlApk.getResources();
+    }
+    return mDelegate.getResourcesForApplication(packageName);
   }
 
   @Override public void verifyPendingInstall(int id, int verificationCode) {

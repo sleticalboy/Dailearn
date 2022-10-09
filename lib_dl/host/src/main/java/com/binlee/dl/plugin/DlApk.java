@@ -1,5 +1,6 @@
 package com.binlee.dl.plugin;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.BroadcastReceiver;
@@ -16,16 +17,13 @@ import android.content.pm.PackageParser;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ServiceInfo;
 import android.content.res.AssetManager;
-import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import androidx.appcompat.app.AppCompatActivity;
 import com.binlee.dl.host.hook.DlHooks;
 import com.binlee.dl.host.hook.DlInstrumentation;
 import dalvik.system.PathClassLoader;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -149,43 +147,69 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   }
 
   private void makeResource(Resources parent) {
-    if (Boolean.TRUE) {
-      try {
-        mResources = mHostContext.getPackageManager().getResourcesForApplication(mPackageInfo.applicationInfo);
-      } catch (PackageManager.NameNotFoundException e) {
-        e.printStackTrace();
-      }
-      Log.d(TAG, "makeResource() resources from parent pms: " + mResources);
-      return;
+    // 1、利用系统 pms 创建 Resources，可兼容不同的 rom
+    try {
+      mResources = mHostContext.getPackageManager().getResourcesForApplication(mPackageInfo.applicationInfo);
+      Log.d(TAG, "makeResource() resources from pms: " + mResources);
+    } catch (PackageManager.NameNotFoundException e) {
+      e.printStackTrace();
     }
 
+    // 2、创建 asset manager 并添加资源
     final AssetManager assets;
     try {
       assets = AssetManager.class.newInstance();
+      @SuppressLint("DiscouragedPrivateApi")
       final Method method = AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
       method.setAccessible(true);
       final Object obj = method.invoke(assets, mPluginPath);
       Log.d(TAG, "makeResource() addAssetPath: " + obj);
     } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
-      e.printStackTrace();
+      Log.w(TAG, "makeResource() failed to init AssetManager", e);
       return;
     }
-    // miui: android.content.res.MiuiResources
-    // vivo: android.content.res.VivoResources
-    // nubia: android.content.res.NubiaResources
-    // aosp: android.content.res.Resources
+    // 使用 asset manager 构造 resources，使生成 mResourceImpl
+    Resources resources = new Resources(assets, parent.getDisplayMetrics(), parent.getConfiguration());
+
+    dumpResources(resources, "before replace ");
+
+    // 3、偷梁换柱，替换掉 mResourceImpl
+    // public android.content.res.ResourcesImpl android.content.res.Resources.getImpl()
+    // public void android.content.res.Resources.setImpl(android.content.res.ResourcesImpl)
     try {
-      final Constructor<? extends Resources> constructor =
-        parent.getClass().getDeclaredConstructor(AssetManager.class, DisplayMetrics.class, Configuration.class);
-      constructor.setAccessible(true);
-      mResources = constructor.newInstance(assets, parent.getDisplayMetrics(), parent.getConfiguration());
-    } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-      Log.w(TAG, "makeResource() failed, no such method: " + e.getMessage());
-      mResources = new Resources(assets, parent.getDisplayMetrics(), parent.getConfiguration());
+      @SuppressLint("DiscouragedPrivateApi")
+      final Method getImpl = Resources.class.getDeclaredMethod("getImpl");
+      getImpl.setAccessible(true);
+      final Object resourceImpl = getImpl.invoke(resources);
+      Log.d(TAG, "makeResource() getImpl return type: " + getImpl.getReturnType() + ", returns: " + resourceImpl);
+
+      @SuppressLint("DiscouragedPrivateApi")
+      final Method setImpl = Resources.class.getDeclaredMethod("setImpl", getImpl.getReturnType());
+      setImpl.setAccessible(true);
+      setImpl.invoke(mResources, resourceImpl);
+    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+      e.printStackTrace();
     }
+
+    dumpResources(mResources, "after replace ");
+
     Log.d(TAG, "makeResource() parent: " + parent + ", plugin: " + mResources);
+
     // 是否与宿主资源合并？
     // 合并后资源冲突如何解决？
+  }
+
+  private void dumpResources(Resources resources, String prefix) {
+    try {
+      int layoutId = resources.getIdentifier("activity_plugin", "layout", mPackageInfo.packageName);
+      Log.d(TAG, prefix + "dumpResources() R.layout.activity_plugin: " + layoutId);
+      Log.d(TAG, prefix + "dumpResources() layout: " + resources.getLayout(layoutId));
+      final int stringId = resources.getIdentifier("app_name", "string", mPackageInfo.packageName);
+      Log.d(TAG, prefix + "dumpResources() R.string.app_name: " + layoutId);
+      Log.d(TAG, prefix + "dumpResources() app_name: " + resources.getString(stringId));
+    } catch (Resources.NotFoundException e) {
+      e.printStackTrace();
+    }
   }
 
   private void makeApplication(String className) {
@@ -228,6 +252,10 @@ public final class DlApk implements DlInstrumentation.Callbacks {
 
   public ClassLoader getClassLoader() {
     return mClassLoader;
+  }
+
+  public Resources getResources() {
+    return mResources;
   }
 
   public void release() {

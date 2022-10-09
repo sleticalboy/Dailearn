@@ -1,8 +1,8 @@
 package com.example.plugin;
 
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -22,10 +22,12 @@ public class PluginActivity extends AppCompatActivity {
     // int layout activity_alarm 0x7f0b001c
     // 1、修改 aapt 工具达到 id 可控
     // 2、修改 resources.asrc 文件，改变 id
-    setContentView(R.layout.activity_main);
-    new Handler().postDelayed(() -> {
-      Toast.makeText(this, "Hello Plugin", Toast.LENGTH_SHORT).show();
+    setContentView(R.layout.activity_plugin);
+    getWindow().getDecorView().postDelayed(() -> {
+      Toast.makeText(this, R.string.app_name, Toast.LENGTH_SHORT).show();
     }, 500L);
+    final TextView textView = findViewById(R.id.tv);
+    Log.d(TAG, "onCreate() text: " + textView.getText().toString());
   }
 
   @Override

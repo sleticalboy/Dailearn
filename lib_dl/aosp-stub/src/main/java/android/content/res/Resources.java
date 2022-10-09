@@ -44,6 +44,14 @@ public class Resources {
     throw new RuntimeException("Stub!");
   }
 
+  public int getIdentifier(String name, String defType, String defPackage) {
+    throw new RuntimeException("Stub!");
+  }
+
+  public XmlResourceParser getLayout(int id) throws NotFoundException {
+    throw new RuntimeException("Stub!");
+  }
+
   public ResourcesImpl getImpl() {
     throw new RuntimeException("Stub!");
   }
