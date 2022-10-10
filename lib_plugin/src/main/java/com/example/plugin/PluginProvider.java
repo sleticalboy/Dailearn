@@ -6,8 +6,11 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created on 2022/9/29
@@ -24,6 +27,21 @@ public final class PluginProvider extends ContentProvider {
 
   @Nullable @Override public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection,
     @Nullable String[] selectionArgs, @Nullable String sortOrder) {
+    Log.d(TAG, "query() called with: uri = ["
+      + uri
+      + "], projection = "
+      + Arrays.toString(projection)
+      + ", selection = ["
+      + selection
+      + "], selectionArgs = "
+      + Arrays.toString(selectionArgs)
+      + ", sortOrder = ["
+      + sortOrder
+      + "]");
+    Log.d(TAG, "query() path: " + uri.getPath());
+    Log.d(TAG, "query() authority: " + uri.getAuthority());
+    Log.d(TAG, "query() query: " + uri.getQuery());
+    Log.d(TAG, "query() path segments: " + uri.getPathSegments());
     return null;
   }
 

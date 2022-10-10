@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -48,12 +49,8 @@ public final class PluginManageActivity extends BaseActivity {
     new ModuleItem("绑定 service", "bind_service"),
     // 解绑 service
     new ModuleItem("解绑 service", "unbind_service"),
-    // 注册 receiver
-    // new ModuleItem("注册 receiver", "register_receiver"),
     // 发送广播
     new ModuleItem("发送广播", "send_broadcast"),
-    // 解除 receiver
-    // new ModuleItem("解除 receiver", "unregister_receiver"),
     // 查询 provider 数据
     new ModuleItem("查询 provider 数据", "query_provider"),
     // 卸载插件
@@ -135,12 +132,12 @@ public final class PluginManageActivity extends BaseActivity {
     }
     Log.d(TAG, "queryPluginProvider() called");
 
-    if (Boolean.TRUE) return;
-
-    final Uri uri = Uri.parse("content://com.example.plugin.SAMPLE_PROVIDER");
-    String[] projection = null;
-    String selection = null;
-    resolver.query(uri, projection, selection, null, null);
+    final Uri uri = Uri.parse("content://com.example.plugin.SAMPLE_PROVIDER?key=val");
+    String[] projection = { "_data", "_value" };
+    String selection = "name = ?";
+    try (Cursor cursor = resolver.query(uri, projection, selection, null, null)) {
+      Log.d(TAG, "queryPluginProvider() cursor: " + cursor);
+    }
   }
 
   private void sendPluginBroadcast() {
