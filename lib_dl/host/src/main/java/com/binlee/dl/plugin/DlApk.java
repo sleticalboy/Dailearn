@@ -74,16 +74,15 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     mPackageInfo = DlPackageUtil.generatePackageInfo(mHostContext, mOwnPackage, pluginPath);
     mPluginPath = pluginPath;
     mContext = new DlContext(this, pm);
-    if (mOwnPackage.activities.size() > 0) {
-      // 创建资源
-      makeResource(mHostContext.getResources());
-      mThemeContext = new DlThemeContext(mContext, mResources, mPackageInfo.applicationInfo.theme);
-    }
   }
 
   private void initialize() {
     // 创建类加载器
     makeClassLoader();
+
+    // 创建资源
+    makeResource(mHostContext.getResources());
+    mThemeContext = new DlThemeContext(mContext, mResources, mPackageInfo.applicationInfo.theme);
 
     // 安装 provider
     final List<ProviderInfo> providers = new ArrayList<>(mOwnPackage.providers.size());
@@ -191,6 +190,15 @@ public final class DlApk implements DlInstrumentation.Callbacks {
       e.printStackTrace();
     }
 
+    // 替换 mClassLoader，用于初始化自定义 drawable
+    try {
+      final Field field = Resources.class.getDeclaredField("mClassLoader");
+      field.setAccessible(true);
+      field.set(mResources, mClassLoader);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      e.printStackTrace();
+    }
+
     dumpResources(mResources, "after replace ");
 
     Log.d(TAG, "makeResource() parent: " + parent + ", plugin: " + mResources);
@@ -283,18 +291,15 @@ public final class DlApk implements DlInstrumentation.Callbacks {
 
   @Override public void onCallActivityOnCreate(Activity activity) {
     if (activity == null) return;
+
+    // plugin's Activity#mBase -> DlThemeContext
+    // DlThemeContext#mBase -> DlContext
+    // DlContext#mBase -> host application
+
     // 注入相关属性：application、baseContext、resource、theme
     // android.app.Activity#mApplication
     // android.content.ContextWrapper#mBase
-    Log.d(TAG, "onCallActivityOnCreate() before: " + activity
-      + ", \npackage manager: " + activity.getPackageManager()
-      + ", \nbase context: " + activity.getBaseContext()
-      + ", \napp context: " + activity.getApplicationContext()
-      + ", \napplication: " + activity.getApplication()
-      + ", \nclassloader: " + activity.getClassLoader()
-      + ", \nresource: " + activity.getResources()
-      + ", \ntheme: " + activity.getTheme()
-    );
+    dumpActivity(activity, "before inject ");
 
     Field field;
     // try inject Activity#mApplication
@@ -306,6 +311,9 @@ public final class DlApk implements DlInstrumentation.Callbacks {
       e.printStackTrace();
     }
 
+    // base context chain:
+    // androidx.appcompat.view.ContextThemeWrapper -> android.app.ContextImpl
+    // com.binlee.dl.plugin.DlThemeContext -> com.binlee.dl.plugin.DlContext -> com.binlee.learning.MainApp -> android.app.ContextImpl
     // try inject ContextWrapper#mBase
     try {
       field = ContextWrapper.class.getDeclaredField("mBase");
@@ -315,28 +323,64 @@ public final class DlApk implements DlInstrumentation.Callbacks {
       e.printStackTrace();
     }
 
+    Context base = activity.getBaseContext();
+    if (base instanceof androidx.appcompat.view.ContextThemeWrapper) {
+      // ContextImpl
+      base = ((androidx.appcompat.view.ContextThemeWrapper) base).getBaseContext();
+    }
+
+    activity.setTheme(mThemeContext.getThemeResource());
+
     // try inject AppCompatActivity/ContextThemeWrapper#mResource
     try {
-      if (activity instanceof AppCompatActivity) {
-        field = AppCompatActivity.class.getDeclaredField("mResources");
-      } else/* if (activity instanceof ContextThemeWrapper)*/ {
-        field = ContextThemeWrapper.class.getDeclaredField("mResources");
+      boolean injected = false;
+      try {
+        final Class<?> clazz = Class.forName("androidx.appcompat.widget.ResourcesWrapper");
+        if (clazz.isAssignableFrom(activity.getResources().getClass())) {
+          field = clazz.getDeclaredField("mResources");
+          field.setAccessible(true);
+          field.set(activity.getResources(), mResources);
+          injected = true;
+        }
+      } catch (ClassNotFoundException ignored) {
       }
-      field.setAccessible(true);
-      field.set(activity, mResources);
+      if (!injected) {
+        if (activity instanceof AppCompatActivity) {
+          field = AppCompatActivity.class.getDeclaredField("mResources");
+        } else/* if (activity instanceof ContextThemeWrapper)*/ {
+          field = ContextThemeWrapper.class.getDeclaredField("mResources");
+        }
+        field.setAccessible(true);
+        field.set(activity, mResources);
+      }
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }
 
-    Log.d(TAG, "onCallActivityOnCreate() after: " + activity
+    dumpActivity(activity, "after inject ");
+  }
+
+  private void dumpActivity(Activity activity, String prefix) {
+    Log.d(TAG, prefix + "dumpActivity() " + activity
       + ", \npackage manager: " + activity.getPackageManager()
-      + ", \nbase context: " + activity.getBaseContext()
+      + ", \nbase context chain: " + getContextChain(activity)
       + ", \napp context: " + activity.getApplicationContext()
       + ", \napplication: " + activity.getApplication()
       + ", \nclassloader: " + activity.getClassLoader()
       + ", \nresource: " + activity.getResources()
       + ", \ntheme: " + activity.getTheme()
     );
+  }
+
+  private String getContextChain(Activity activity) {
+    StringBuilder buffer = new StringBuilder();
+    Context context = activity.getBaseContext();
+    buffer.append(context).append("->");
+    while (context instanceof ContextWrapper) {
+      context = ((ContextWrapper) context).getBaseContext();
+      buffer.append(context).append("->");
+    }
+    return buffer.toString();
   }
 
   public ActivityInfo resolveActivity(ComponentName component, int flags) {

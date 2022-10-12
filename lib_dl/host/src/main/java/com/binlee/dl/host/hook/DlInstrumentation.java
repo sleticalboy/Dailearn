@@ -19,8 +19,6 @@ import java.util.List;
  */
 public final class DlInstrumentation extends Instrumentation {
 
-  private static final String TAG = "DlInstrumentation";
-
   private Instrumentation mDelegate;
   
   private final List<Callbacks> mCallbacks = new ArrayList<Callbacks>() {
@@ -83,12 +81,6 @@ public final class DlInstrumentation extends Instrumentation {
     return mDelegate.execStartActivity(who, contextThread, token, target, intent, requestCode, options);
   }
 
-  private void dispatchOnNewActivity(Activity activity) {
-    for (Callbacks callback : mCallbacks) {
-      callback.onNewActivity(activity);
-    }
-  }
-
   private void dispatchOnCallActivityOnCreate(Activity activity) {
     for (Callbacks callback : mCallbacks) {
       callback.onCallActivityOnCreate(activity);
@@ -96,9 +88,6 @@ public final class DlInstrumentation extends Instrumentation {
   }
   
   public interface Callbacks {
-
-    default void onNewActivity(Activity activity) {
-    }
 
     void onCallActivityOnCreate(Activity activity);
   }

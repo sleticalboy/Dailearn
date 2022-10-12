@@ -27,7 +27,11 @@ public class PluginActivity extends AppCompatActivity {
       Toast.makeText(this, R.string.app_name, Toast.LENGTH_SHORT).show();
     }, 500L);
     final TextView textView = findViewById(R.id.tv);
-    Log.d(TAG, "onCreate() text: " + textView.getText().toString());
+    // onCreate() text: @2131623964, app_name: lib_plugin, 2131623964
+    final String s = textView.getText().toString();
+    textView.setText(Integer.parseInt(s.substring(1)));
+    Log.d(TAG, "onCreate() text: " + textView.getText());
+    Log.d(TAG, "onCreate() text color: " + textView.getTextColors() + ", " + R.color.black);
   }
 
   @Override
