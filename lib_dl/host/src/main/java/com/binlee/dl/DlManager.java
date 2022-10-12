@@ -3,6 +3,7 @@ package com.binlee.dl;
 import android.app.Application;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import com.binlee.dl.host.hook.DlActivityManager;
 import com.binlee.dl.host.hook.DlHandlerCallback;
 import com.binlee.dl.host.hook.DlHooks;
 import com.binlee.dl.host.hook.DlInstrumentation;
@@ -43,6 +44,7 @@ public final class DlManager {
     // hook instrumentation、Handler#mCallback
     DlHooks.setInstrumentation(new DlInstrumentation());
     DlHooks.setHandlerCallback(new DlHandlerCallback());
+    DlHooks.setActivityManager(new DlActivityManager());
   }
 
   /**
@@ -74,7 +76,6 @@ public final class DlManager {
    *
    * @param classname 类名称
    * @return {@link Class}<{@link ?}>
-   * @throws ClassNotFoundException
    */
   @NonNull
   public Class<?> loadClass(@NonNull String classname) throws ClassNotFoundException {

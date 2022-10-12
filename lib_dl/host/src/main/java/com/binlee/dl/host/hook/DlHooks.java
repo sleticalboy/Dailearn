@@ -1,12 +1,16 @@
 package com.binlee.dl.host.hook;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.os.Handler;
+import android.util.Singleton;
 import android.util.SparseArray;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
 
 /**
  * Created on 2022/9/21
@@ -77,6 +81,37 @@ public final class DlHooks {
       mCallback.setAccessible(true);
       mCallback.set(handler, callback);
     } catch (NoSuchFieldException | IllegalAccessException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public static void setActivityManager(DlActivityManager manager) {
+    // hook ams
+    // android.app.ActivityManager#IActivityManagerSingleton
+    // android.util.Singleton#mInstance
+
+    try {
+      @SuppressLint("DiscouragedPrivateApi")
+      Field field = ActivityManager.class.getDeclaredField("IActivityManagerSingleton");
+      field.setAccessible(true);
+      Singleton<?> singleton = (Singleton<?>) field.get(null);
+
+      if (singleton == null) {
+        return;
+      }
+
+      manager.setDelegate(singleton.get());
+
+      field = Singleton.class.getDeclaredField("mInstance");
+      field.setAccessible(true);
+
+      // 创建 proxy
+      Object proxy = Proxy.newProxyInstance(ClassLoader.getSystemClassLoader(),
+        new Class[] { Class.forName("android.app.IActivityManager") }, manager);
+
+      // 代理
+      field.set(singleton, proxy);
+    } catch (NoSuchFieldException | ClassNotFoundException | IllegalAccessException e) {
       e.printStackTrace();
     }
   }
