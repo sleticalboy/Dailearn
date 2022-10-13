@@ -26,12 +26,12 @@ public final class Hidden {
     if (!sInitialized) {
       try {
         reflectRelieve(context);
+        sInitialized = true;
       } catch (Throwable thr) {
         Log.w(TAG, "relieve() via reflect error, fallback to native. error is: " + thr);
         System.loadLibrary("unseal-hidden-api");
-        nativeRelieve(context.getApplicationInfo().targetSdkVersion, Build.FINGERPRINT);
+        sInitialized = nativeRelieve(context.getApplicationInfo().targetSdkVersion, Build.FINGERPRINT);
       }
-      sInitialized = true;
     }
   }
 
@@ -60,5 +60,5 @@ public final class Hidden {
     );
   }
 
-  private static native void nativeRelieve(int targetSdkVersion, String fingerprint);
+  private static native boolean nativeRelieve(int targetSdkVersion, String fingerprint);
 }

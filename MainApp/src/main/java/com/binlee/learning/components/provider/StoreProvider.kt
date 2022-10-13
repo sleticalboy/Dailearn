@@ -9,7 +9,6 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.util.Log
-import com.binlee.hidden.Hidden
 
 class StoreProvider : ContentProvider() {
 
@@ -38,7 +37,6 @@ class StoreProvider : ContentProvider() {
 
   override fun attachInfo(context: Context?, info: ProviderInfo?) {
     Log.d(TAG, "attachInfo() start --->")
-    Hidden.relieve(context)
     super.attachInfo(context, info)
   }
 

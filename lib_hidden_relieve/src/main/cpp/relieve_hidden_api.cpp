@@ -51,11 +51,11 @@ int FindStringOffset(void *addr, int start, int limit, const char *target) {
   return kNotFound;
 }
 
-void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring fingerprint) {
+jboolean Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring fingerprint) {
   JavaVM *vm = nullptr;
   if (env->GetJavaVM(&vm) != JNI_OK) {
     ALOGE("%s GetJavaVM failed", __func__)
-    return;
+    return false;
   }
 
   ALOGW("%s target_sdk_version_ offset: %lu", __func__, offsetof(PartialRuntime, target_sdk_version_))
@@ -73,6 +73,8 @@ void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring 
   // 这里不能直接对 runtime 赋值，需要从内存中找出某个定值的偏移量，然后 vm_start + offset 对 runtime 进行赋值
   void *vm_start = java_vm->runtime;
 
+  int res = 0;
+  PartialRuntimeR *runtime = nullptr;
   const char *fingerprint_ = env->GetStringUTFChars(fingerprint, JNI_FALSE);
   ALOGD("%s fingerprint from java: %s", __func__, fingerprint_)
   // 获取当前系统信息
@@ -99,6 +101,7 @@ void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring 
   offset = FindOffset(vm_start, offset, kMaxLength, target_sdk_version);
   if (offset == kInvalid || offset == kNotFound) {
     ALOGE("%s can not find target_sdk_version offset, error: %d", __func__, offset)
+    res = offset;
     goto exit;
   }
   ALOGD("%s target_sdk_version offset: %d", __func__, offset)
@@ -107,19 +110,22 @@ void Hidden_relieve(JNIEnv *env, jclass clazz, jint target_sdk_version, jstring 
   offset = FindStringOffset(vm_start, offset, kMaxLength, fingerprint_);
   if (offset == kInvalid || offset == kNotFound) {
     ALOGE("%s can not find fingerprint_ offset, error: %d", __func__, offset)
+    res = offset;
     goto exit;
   }
   ALOGD("%s fingerprint_ offset: %d", __func__, offset)
 
-  // PartialRuntimeR *runtime = reinterpret_cast<PartialRuntimeR *>((char *) vm_start + offset);
-  // ALOGE("%s runtime: %p, fingerprint_: %s", __func__, runtime, runtime->fingerprint_.c_str())
+  runtime = reinterpret_cast<PartialRuntimeR *>((char *) vm_start + offset);
+  ALOGE("%s runtime: %p, fingerprint_: %s", __func__, runtime, runtime->fingerprint_.c_str())
 
   exit:
   env->ReleaseStringUTFChars(fingerprint, fingerprint_);
+
+  return res == 0;
 }
 
 JNINativeMethod gMethods[] = {
-  {"nativeRelieve", "(ILjava/lang/String;)V", (void *) Hidden_relieve}
+  {"nativeRelieve", "(ILjava/lang/String;)Z", (void *) Hidden_relieve}
 };
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {

@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.binlee.hidden.Hidden
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.data.DataEngine
@@ -168,6 +169,7 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun reflectHiddenApiWithoutWarning() {
+    Hidden.relieve(application)
     try {
       val atClass = Class.forName("android.app.ActivityThread")
       var method = atClass.getDeclaredMethod("currentActivityThread")
