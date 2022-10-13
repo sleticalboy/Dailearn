@@ -18,9 +18,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.binlee.dl.DlManager;
-import com.binlee.dl.host.proxy.ProxyActivity;
-import com.binlee.dl.host.util.FileUtils;
-import com.binlee.dl.plugin.DlServices;
+import com.binlee.dl.util.FileUtils;
+import com.binlee.dl.internal.DlServices;
 import com.binlee.learning.base.BaseActivity;
 import com.binlee.learning.bean.ModuleItem;
 import com.binlee.learning.databinding.ActivityListItemBinding;
@@ -165,34 +164,34 @@ public final class PluginManageActivity extends BaseActivity {
   private void unbindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServices.unbind(this, target, mConnection);
+    DlManager.unbindService(this, target, mConnection);
     Log.d(TAG, "unbindPluginService() called");
   }
 
   private void bindPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServices.bind(this, target, mConnection);
+    DlManager.bindService(this, target, mConnection);
     Log.d(TAG, "bindPluginService() called");
   }
 
   private void stopPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServices.stop(this, target);
+    DlManager.stopService(this, target);
     Log.d(TAG, "stopPluginService() called");
   }
 
   private void startPluginService() {
     // 插件中的 service：com.example.plugin.PluginService
     final ComponentName target = new ComponentName("com.example.plugin", "com.example.plugin.PluginService");
-    DlServices.start(this, target);
+    DlManager.startService(this, target);
     Log.d(TAG, "startPluginService() called");
   }
 
   private void startPluginActivity() {
     // 插件中的 activity：com.example.plugin.PluginActivity
-    ProxyActivity.start(this, new ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"));
+    DlManager.startActivity(this, new ComponentName("com.example.plugin", "com.example.plugin.PluginActivity"));
     Log.d(TAG, "startPluginActivity() called");
   }
 

@@ -1,13 +1,18 @@
 package com.binlee.dl;
 
 import android.app.Application;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.ServiceConnection;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import com.binlee.dl.host.hook.DlActivityManager;
-import com.binlee.dl.host.hook.DlHandlerCallback;
-import com.binlee.dl.host.hook.DlHooks;
-import com.binlee.dl.host.hook.DlInstrumentation;
-import com.binlee.dl.plugin.DlPackageManager;
+import com.binlee.dl.hook.DlActivityManager;
+import com.binlee.dl.hook.DlHandlerCallback;
+import com.binlee.dl.hook.DlHooks;
+import com.binlee.dl.hook.DlInstrumentation;
+import com.binlee.dl.internal.DlActivities;
+import com.binlee.dl.internal.DlPackageManager;
+import com.binlee.dl.internal.DlServices;
 
 /**
  * Created on 2022/8/16
@@ -83,9 +88,59 @@ public final class DlManager {
     return mPm.loadClass(classname);
   }
 
+  ///////////////////////////////////////////////////////////////////////////
+  // activity api
+  ///////////////////////////////////////////////////////////////////////////
+
+  public static void startActivity(@NonNull Context context, @NonNull ComponentName target) {
+    checkComponent(target);
+    DlActivities.start(context, target);
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // service api
+  ///////////////////////////////////////////////////////////////////////////
+
+  public static void startService(Context context, ComponentName target) {
+    checkComponent(target);
+    DlServices.start(context, target);
+  }
+
+  public static void stopService(Context context, ComponentName target) {
+    checkComponent(target);
+    DlServices.stop(context, target);
+  }
+
+  public static void bindService(Context context, ComponentName target, ServiceConnection connection) {
+    checkComponent(target);
+    DlServices.bind(context, target, connection);
+  }
+
+  public static void unbindService(Context context, ComponentName target, ServiceConnection connection) {
+    checkComponent(target);
+    DlServices.unbind(context, target, connection);
+  }
+
+  private static void checkComponent(ComponentName target) {
+    if (!DL_MANAGER.mPm.hasPlugin(target.getPackageName())) {
+      throw new PluginNotFoundException(target.getPackageName());
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // internal check
+  ///////////////////////////////////////////////////////////////////////////
+
   private void throwIfNotInitialized() {
     if (mPm == null) {
       throw new IllegalStateException("Did you miss calling PluginManager#initialize() ?");
+    }
+  }
+
+  public static class PluginNotFoundException extends RuntimeException {
+
+    public PluginNotFoundException(String packageName) {
+      super("package " + packageName);
     }
   }
 }

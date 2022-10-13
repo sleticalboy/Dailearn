@@ -1,4 +1,4 @@
-package com.binlee.dl.host.proxy;
+package com.binlee.dl.proxy;
 
 import android.app.Service;
 import android.content.Intent;

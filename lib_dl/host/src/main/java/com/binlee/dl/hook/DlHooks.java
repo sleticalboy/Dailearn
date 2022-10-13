@@ -1,4 +1,4 @@
-package com.binlee.dl.host.hook;
+package com.binlee.dl.hook;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
@@ -6,7 +6,6 @@ import android.os.Handler;
 import android.util.Singleton;
 import android.util.SparseArray;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;

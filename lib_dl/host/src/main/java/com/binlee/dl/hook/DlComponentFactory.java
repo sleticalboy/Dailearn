@@ -1,4 +1,4 @@
-package com.binlee.dl.host.hook;
+package com.binlee.dl.hook;
 
 import android.app.Activity;
 import android.app.AppComponentFactory;

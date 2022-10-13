@@ -1,4 +1,4 @@
-package com.binlee.dl.host.hook;
+package com.binlee.dl.hook;
 
 import android.content.pm.ServiceInfo;
 import android.os.Handler;
@@ -6,7 +6,7 @@ import android.os.Message;
 import android.util.Log;
 import android.util.SparseArray;
 import androidx.annotation.NonNull;
-import com.binlee.dl.plugin.DlServices;
+import com.binlee.dl.internal.DlServices;
 import java.lang.reflect.Field;
 
 /**

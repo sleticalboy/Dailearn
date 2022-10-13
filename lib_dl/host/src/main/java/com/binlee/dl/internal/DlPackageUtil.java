@@ -1,4 +1,4 @@
-package com.binlee.dl.plugin;
+package com.binlee.dl.internal;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;

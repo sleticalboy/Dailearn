@@ -1,4 +1,4 @@
-package com.binlee.dl.host.util;
+package com.binlee.dl.util;
 
 import android.util.Log;
 import dalvik.system.BaseDexClassLoader;

@@ -1,4 +1,4 @@
-package com.binlee.dl.plugin;
+package com.binlee.dl.internal;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -7,7 +7,7 @@ import android.content.ServiceConnection;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import com.binlee.dl.DlConst;
-import com.binlee.dl.host.proxy.ProxyService;
+import com.binlee.dl.proxy.ProxyService;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -35,6 +35,10 @@ public final class DlServices {
 
   private static final ServiceQueue sQueue = new ServiceQueue();
   private static IMonitor sMonitor;
+
+  private DlServices() {
+    //no instance
+  }
 
   ///////////////////////////////////////////////////////////////////////////
   // public api

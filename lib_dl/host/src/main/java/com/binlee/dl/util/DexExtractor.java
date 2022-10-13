@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.binlee.dl.host.util;
+package com.binlee.dl.util;
 
 import android.util.Log;
 

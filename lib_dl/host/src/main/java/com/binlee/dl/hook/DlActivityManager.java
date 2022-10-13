@@ -1,4 +1,4 @@
-package com.binlee.dl.host.hook;
+package com.binlee.dl.hook;
 
 import android.util.Log;
 import java.lang.reflect.InvocationHandler;
@@ -28,7 +28,11 @@ public final class DlActivityManager implements InvocationHandler {
   private void intercept(Method method, Object[] args) {
     // startActivity
     // startService/stopService
+    // public android.content.ComponentName startService(android.app.IApplicationThread caller, android.content.Intent service, java.lang.String resolvedType, java.lang.String callingPackage, int userId) throws android.os.RemoteException
+    // public int stopService(android.app.IApplicationThread caller, android.content.Intent service, java.lang.String resolvedType, int userId) throws android.os.RemoteException
     // bindService/bindIsolatedService/unbindService
+    // public int bindService(android.app.IApplicationThread caller, android.os.IBinder token, android.content.Intent service, java.lang.String resolvedType, android.app.IServiceConnection connection, int flags, java.lang.String callingPackage, int userId) throws android.os.RemoteException
+    // public boolean unbindService(android.app.IServiceConnection connection) throws android.os.RemoteException
     Log.d(TAG, "intercept() method: " + method + ", args: " + Arrays.toString(args));
     // 如果是插件，就注入占坑的类
   }

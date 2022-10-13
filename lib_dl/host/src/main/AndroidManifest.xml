@@ -9,16 +9,16 @@
     tools:replace="android:appComponentFactory"
     tools:targetApi="p">
     <activity
-      android:name=".proxy.ProxyActivity"
+      android:name="com.binlee.dl.proxy.ProxyActivity"
       android:exported="true" />
     <service
-      android:name=".proxy.ProxyService"
+      android:name="com.binlee.dl.proxy.ProxyService"
       android:exported="true" />
     <receiver
-      android:name=".proxy.ProxyReceiver"
+      android:name="com.binlee.dl.proxy.ProxyReceiver"
       android:exported="true" />
     <provider
-      android:name=".proxy.ProxyProvider"
+      android:name="com.binlee.dl.proxy.ProxyProvider"
       android:exported="true"
       android:authorities="xxx" />
   </application>

@@ -1,10 +1,8 @@
-package com.binlee.dl.host.util;
+package com.binlee.dl.util;
 
 import android.content.Context;
 import android.util.Log;
 
-import com.binlee.dl.host.util.ArrayUtils;
-import com.binlee.dl.host.util.ReflectUtils;
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;

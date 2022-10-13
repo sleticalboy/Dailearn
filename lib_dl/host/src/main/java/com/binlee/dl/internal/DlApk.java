@@ -1,4 +1,4 @@
-package com.binlee.dl.plugin;
+package com.binlee.dl.internal;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -21,8 +21,8 @@ import android.content.res.Resources;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import androidx.appcompat.app.AppCompatActivity;
-import com.binlee.dl.host.hook.DlHooks;
-import com.binlee.dl.host.hook.DlInstrumentation;
+import com.binlee.dl.hook.DlHooks;
+import com.binlee.dl.hook.DlInstrumentation;
 import dalvik.system.PathClassLoader;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -313,7 +313,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
 
     // base context chain:
     // androidx.appcompat.view.ContextThemeWrapper -> android.app.ContextImpl
-    // com.binlee.dl.plugin.DlThemeContext -> com.binlee.dl.plugin.DlContext -> com.binlee.learning.MainApp -> android.app.ContextImpl
+    // com.binlee.dl.internal.DlThemeContext -> com.binlee.dl.internal.DlContext -> com.binlee.learning.MainApp -> android.app.ContextImpl
     // try inject ContextWrapper#mBase
     try {
       field = ContextWrapper.class.getDeclaredField("mBase");

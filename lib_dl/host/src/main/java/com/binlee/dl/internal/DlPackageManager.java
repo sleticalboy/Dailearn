@@ -1,4 +1,4 @@
-package com.binlee.dl.plugin;
+package com.binlee.dl.internal;
 
 import android.app.Application;
 import android.content.ComponentName;
@@ -100,6 +100,10 @@ public final class DlPackageManager extends PackageManager {
 
   public Context getHost() {
     return mHost;
+  }
+
+  public boolean hasPlugin(String packageName) {
+    return mPackages.get(packageName) != null;
   }
 
   ///////////////////////////////////////////////////////////////////////////
