@@ -2,7 +2,9 @@ package com.binlee.dl.hook;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
+import android.app.Instrumentation;
 import android.os.Handler;
+import android.util.Log;
 import android.util.Singleton;
 import android.util.SparseArray;
 import java.lang.reflect.Field;
@@ -25,14 +27,32 @@ public final class DlHooks {
   private static boolean sAtFlag = false;
 
   // hooked instrumentation
-  private static DlInstrumentation sInst;
+  private static Instrumentation sInst;
+
+  static {
+    final Object currentAt = getActivityThread();
+    try {
+      final Field field = currentAt.getClass().getDeclaredField("mInstrumentation");
+      field.setAccessible(true);
+      sInst = (Instrumentation) field.get(currentAt);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      e.printStackTrace();
+    }
+  }
 
   private DlHooks() {
     //no instance
   }
 
+  // hook instrumentation、Handler#mCallback
+  public static void trigger() {
+    setInstrumentation(new DlInstrumentation());
+    setHandlerCallback(new DlHandlerCallback());
+    setActivityManager(new DlActivityManager());
+  }
+
   // return the hooked instrumentation
-  public static DlInstrumentation getInstrumentation() {
+  public static Instrumentation getInstrumentation() {
     return sInst;
   }
 
@@ -56,20 +76,21 @@ public final class DlHooks {
     return sCurrentAt;
   }
 
-  public static void setInstrumentation(DlInstrumentation instrumentation) {
+  private static void setInstrumentation(DlInstrumentation instrumentation) {
     final Object currentAt = getActivityThread();
     try {
       final Field field = currentAt.getClass().getDeclaredField("mInstrumentation");
       field.setAccessible(true);
       instrumentation.setDelegate(field.get(currentAt));
       field.set(currentAt, instrumentation);
+      Log.d(TAG, "setInstrumentation() " + instrumentation);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }
     sInst = instrumentation;
   }
 
-  public static void setHandlerCallback(DlHandlerCallback callback) {
+  private static void setHandlerCallback(DlHandlerCallback callback) {
     final Object currentAt = getActivityThread();
     try {
       final Field field = currentAt.getClass().getDeclaredField("mH");
@@ -79,12 +100,13 @@ public final class DlHooks {
       final Field mCallback = Handler.class.getDeclaredField("mCallback");
       mCallback.setAccessible(true);
       mCallback.set(handler, callback);
+      Log.d(TAG, "setHandlerCallback() " + callback);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
     }
   }
 
-  public static void setActivityManager(DlActivityManager manager) {
+  private static void setActivityManager(DlActivityManager manager) {
     // hook ams
     // android.app.ActivityManager#IActivityManagerSingleton
     // android.util.Singleton#mInstance
@@ -110,6 +132,8 @@ public final class DlHooks {
 
       // 代理
       field.set(singleton, proxy);
+
+      Log.d(TAG, "setActivityManager() " + proxy);
     } catch (NoSuchFieldException | ClassNotFoundException | IllegalAccessException e) {
       e.printStackTrace();
     }

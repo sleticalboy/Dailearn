@@ -3,6 +3,7 @@ package com.binlee.dl.internal;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
+import android.app.Instrumentation;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -50,7 +51,6 @@ public final class DlApk implements DlInstrumentation.Callbacks {
   private Application mApplication;
   private DlActivityLifecycleCallbacks mActivityLifecycleCallbacks;
   private List<BroadcastReceiver> mReceivers = new ArrayList<>();
-
   // class loader
   private ClassLoader mClassLoader;
   // resources
@@ -227,7 +227,7 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     }
     Log.d(TAG, "makeApplication() " + className);
 
-    final DlInstrumentation inst = DlHooks.getInstrumentation();
+    final Instrumentation inst = DlHooks.getInstrumentation();
     try {
       mApplication = inst.newApplication(mClassLoader, className, mContext);
     } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
@@ -239,7 +239,9 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     mApplication.registerActivityLifecycleCallbacks(this.mActivityLifecycleCallbacks);
 
     // hook onNewActivity 事件
-    inst.addCallbacks(this);
+    if (inst instanceof DlInstrumentation) {
+      ((DlInstrumentation) inst).addCallbacks(this);
+    }
   }
 
   public String getPackageName() {
@@ -271,7 +273,10 @@ public final class DlApk implements DlInstrumentation.Callbacks {
     // 移除 ActivityLifecycleCallbacks
     mApplication.unregisterActivityLifecycleCallbacks(mActivityLifecycleCallbacks);
     // 解除注册
-    DlHooks.getInstrumentation().removeCallbacks(this);
+    Instrumentation inst = DlHooks.getInstrumentation();
+    if (inst instanceof DlInstrumentation) {
+      ((DlInstrumentation) inst).removeCallbacks(this);
+    }
 
     mOwnPackage = null;
     mPackageInfo = null;
@@ -321,12 +326,6 @@ public final class DlApk implements DlInstrumentation.Callbacks {
       field.set(activity, mThemeContext);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       e.printStackTrace();
-    }
-
-    Context base = activity.getBaseContext();
-    if (base instanceof androidx.appcompat.view.ContextThemeWrapper) {
-      // ContextImpl
-      base = ((androidx.appcompat.view.ContextThemeWrapper) base).getBaseContext();
     }
 
     activity.setTheme(mThemeContext.getThemeResource());

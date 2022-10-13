@@ -1,5 +1,6 @@
 package com.example.plugin;
 
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -24,14 +25,20 @@ public class PluginActivity extends AppCompatActivity {
     // 2、修改 resources.asrc 文件，改变 id
     setContentView(R.layout.activity_plugin);
     getWindow().getDecorView().postDelayed(() -> {
-      Toast.makeText(this, R.string.app_name, Toast.LENGTH_SHORT).show();
+      try {
+        Toast.makeText(this, R.string.app_name, Toast.LENGTH_SHORT).show();
+      } catch (Resources.NotFoundException e) {
+        e.printStackTrace();
+      }
     }, 500L);
     final TextView textView = findViewById(R.id.tv);
     // onCreate() text: @2131623964, app_name: lib_plugin, 2131623964
-    final String s = textView.getText().toString();
-    textView.setText(Integer.parseInt(s.substring(1)));
-    Log.d(TAG, "onCreate() text: " + textView.getText());
-    Log.d(TAG, "onCreate() text color: " + textView.getTextColors() + ", " + R.color.black);
+    if (textView != null) {
+      final String s = textView.getText().toString();
+      textView.setText(Integer.parseInt(s.substring(1)));
+      Log.d(TAG, "onCreate() text: " + textView.getText());
+      Log.d(TAG, "onCreate() text color: " + textView.getTextColors() + ", " + R.color.black);
+    }
   }
 
   @Override

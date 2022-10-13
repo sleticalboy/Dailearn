@@ -6,10 +6,7 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import com.binlee.dl.hook.DlActivityManager;
-import com.binlee.dl.hook.DlHandlerCallback;
 import com.binlee.dl.hook.DlHooks;
-import com.binlee.dl.hook.DlInstrumentation;
 import com.binlee.dl.internal.DlActivities;
 import com.binlee.dl.internal.DlPackageManager;
 import com.binlee.dl.internal.DlServices;
@@ -46,10 +43,7 @@ public final class DlManager {
     if (mPm != null) return;
     Log.d(TAG, "init() host application: " + host);
     mPm = new DlPackageManager(host);
-    // hook instrumentation、Handler#mCallback
-    DlHooks.setInstrumentation(new DlInstrumentation());
-    DlHooks.setHandlerCallback(new DlHandlerCallback());
-    DlHooks.setActivityManager(new DlActivityManager());
+    DlHooks.trigger();
   }
 
   /**

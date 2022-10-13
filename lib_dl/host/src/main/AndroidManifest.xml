@@ -5,7 +5,7 @@
   xmlns:tools="http://schemas.android.com/tools">
 
   <application
-    android:appComponentFactory="com.binlee.dl.host.hook.DlComponentFactory"
+    android:appComponentFactory="com.binlee.dl.hook.DlComponentFactory"
     tools:replace="android:appComponentFactory"
     tools:targetApi="p">
     <activity
