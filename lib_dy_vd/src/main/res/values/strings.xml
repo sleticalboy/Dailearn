@@ -1,0 +1,5 @@
+<resources>
+  <string name="app_name">抖音视频下载器</string>
+  <string name="past_share_url">请粘贴分享链接到这里</string>
+  <string name="btn_resolve">解析地址</string>
+</resources>
