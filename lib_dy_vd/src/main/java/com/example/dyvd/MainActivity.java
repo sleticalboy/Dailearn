@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
     Log.d(TAG, "postResult() " + item);
     if (item == null) return;
     mAdapter.insertVideo(item);
+    mBinding.rvVideos.scrollToPosition(0);
     mSp.edit().putString(item.getShareUrl(), item.getTextJson()).apply();
   }
 
@@ -93,13 +94,15 @@ public class MainActivity extends AppCompatActivity {
     Log.d(TAG, "onResume() focus: " + getCurrentFocus());
 
     final ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-    final ClipData data = manager.getPrimaryClip();
-    Log.d(TAG, "onResume() clip data: " + data);
-    final ClipDescription desc = manager.getPrimaryClipDescription();
-    Log.d(TAG, "onResume() clip desc: " + desc);
-    Log.d(TAG, "onResume() has primary clip: " + manager.hasPrimaryClip());
-    manager.addPrimaryClipChangedListener(() -> {
-      Log.d(TAG, "onPrimaryClipChanged() " + manager.getPrimaryClip());
-    });
+    if (manager.hasPrimaryClip()) {
+      final ClipData data = manager.getPrimaryClip();
+      Log.d(TAG, "onResume() clip data: " + data);
+      for (int i = 0; i < data.getItemCount(); i++) {
+        final ClipData.Item item = data.getItemAt(i);
+        resolveDownloadUrl(item.getText().toString());
+      }
+      return;
+    }
+    Log.d(TAG, "onResume() no clipboard data");
   }
 }
