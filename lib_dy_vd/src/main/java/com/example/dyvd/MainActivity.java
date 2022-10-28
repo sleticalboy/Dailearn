@@ -1,7 +1,6 @@
 package com.example.dyvd;
 
 import android.content.ClipData;
-import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -91,21 +90,23 @@ public class MainActivity extends AppCompatActivity {
     mSp.edit().putString(item.getShareUrl(), item.getTextJson()).apply();
   }
 
-  @Override protected void onResume() {
-    super.onResume();
+  @Override public void onWindowFocusChanged(boolean hasFocus) {
+    if (hasFocus) {
+      spyClipboard();
+    }
+  }
 
-    Log.d(TAG, "onResume() focus: " + getCurrentFocus());
-
+  private void spyClipboard() {
     final ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
     if (manager.hasPrimaryClip()) {
       final ClipData data = manager.getPrimaryClip();
-      Log.d(TAG, "onResume() clip data: " + data);
+      Log.d(TAG, "spyClipboard() clip data: " + data);
       for (int i = 0; i < data.getItemCount(); i++) {
         final ClipData.Item item = data.getItemAt(i);
         resolveDownloadUrl(item.getText().toString());
       }
       return;
     }
-    Log.d(TAG, "onResume() no clipboard data");
+    Log.d(TAG, "spyClipboard() no data");
   }
 }
