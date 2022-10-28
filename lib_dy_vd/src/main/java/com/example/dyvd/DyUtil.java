@@ -1,12 +1,24 @@
 package com.example.dyvd;
 
+import android.app.DownloadManager;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.util.Log;
+
+import androidx.annotation.UiThread;
 import androidx.annotation.WorkerThread;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.function.Supplier;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -23,6 +35,15 @@ public final class DyUtil {
   private static final String TOOL_URL = "https://www.ilovetools.cn/douyin/search-video-info";
   private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 12; M2012K11AG Build/SKQ1.211006.001; wv)"
     + " AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.126 Mobile Safari/537.36";
+
+  private static final Handler sMain = new Handler(Looper.getMainLooper());
+  private static final Handler sWorker;
+
+  static {
+    HandlerThread worker = new HandlerThread("DyWorker");
+    worker.start();
+    sWorker = new Handler(worker.getLooper());
+  }
 
   private DyUtil() {
     //no instance
@@ -45,9 +66,23 @@ public final class DyUtil {
     return end < 0 ? text.substring(start) : text.substring(start, end + 1);
   }
 
-  @WorkerThread
-  public static VideoItem parseItem(String shareUrl) throws IOException, JSONException {
-    return VideoItem.parse(shareUrl, getVideoJson(shareUrl));
+  public interface ParseCallback {
+    @UiThread void onResult(VideoItem item);
+
+    @UiThread default void onError(Throwable thr) {
+    }
+  }
+
+  public static void parseItem(String shareUrl, ParseCallback callback) {
+    sWorker.post(() -> {
+      try {
+        final VideoItem videoItem = VideoItem.parse(shareUrl, getVideoJson(shareUrl));
+        sMain.post(() -> callback.onResult(videoItem));
+      } catch (IOException | JSONException e) {
+        e.printStackTrace();
+        sMain.post(() -> callback.onError(e));
+      }
+    });
   }
 
   private static String getVideoJson(String shareText) throws IOException, JSONException {
@@ -83,5 +118,48 @@ public final class DyUtil {
       baos.write(buffer, 0, len);
     }
     return baos.toString();
+  }
+
+  public interface DownloadCallback {}
+
+  public static void download(Context context, final String url, DownloadCallback callback) {
+    sWorker.post(() -> {
+      try {
+        final HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setRequestMethod("GET");
+        connection.addRequestProperty("User-Agent", USER_AGENT);
+        final int code = connection.getResponseCode();
+        Log.d(TAG, "download() http code: " + code
+                + ", msg: [" + connection.getResponseMessage() + "]"
+                + ", mime: " + connection.getContentType()
+                + ", length: " + connection.getContentLength()
+        );
+
+        if (code >= 400) return;
+
+        // 写入文件
+        // final InputStream stream = connection.getInputStream();
+        // 把文件插入到系统媒体库中
+
+        final File dir = context.getExternalFilesDir(null);
+        final File dest = File.createTempFile("dy-", ".mp4", dir);
+        final String name = dest.getName();
+        dest.delete();
+
+        // 使用系统下载库？
+        DownloadManager mgr = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+        final DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
+                .setTitle("抖音视频下载器")
+                .setDescription("下载抖音无水印视频")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
+                .setMimeType("video/mp4")
+                .addRequestHeader("User-Agent", USER_AGENT);
+        final long id = mgr.enqueue(request);
+        Log.d(TAG, "download() id: " + id);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    });
   }
 }

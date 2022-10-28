@@ -1,21 +1,27 @@
 package com.example.dyvd;
 
+import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
 import com.example.dyvd.databinding.ActivityVideoListBinding;
-import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.List;
-import org.json.JSONException;
 
-public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback {
+public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback,
+        ClipboardManager.OnPrimaryClipChangedListener {
 
   private static final String TAG = "MainActivity";
 
@@ -23,12 +29,16 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   // key: shareUrl, value: json
   private SharedPreferences mSp;
   private VideoAdapter mAdapter;
+  private ClipboardManager mClipboard;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     mBinding = ActivityVideoListBinding.inflate(getLayoutInflater());
     setContentView(mBinding.getRoot());
+
+    mClipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+    mClipboard.addPrimaryClipChangedListener(this);
 
     // 读取剪切板数据，判断是否是抖音分享链接
     // 如果是则发送网络请求，获取响应数据
@@ -71,22 +81,14 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
       return;
     }
 
-    new Thread(() -> {
-      // Log.d(TAG, "resolveDownloadUrl() " + text);
-      try {
-        // stream to string
-        final VideoItem item = DyUtil.parseItem(shareUrl);
-        Log.d(TAG, "resolveDownloadUrl() item: " + item);
-        runOnUiThread(() -> postResult(item));
-      } catch (IOException | JSONException e) {
-        e.printStackTrace();
-      }
-    }).start();
+    // Log.d(TAG, "resolveDownloadUrl() " + text);
+    DyUtil.parseItem(shareUrl, this::postResult);
   }
 
   private void postResult(VideoItem item) {
     Log.d(TAG, "postResult() " + item);
     if (item == null) return;
+
     mAdapter.insertVideo(item);
     mBinding.rvVideos.scrollToPosition(0);
     mSp.edit().putString(item.getShareUrl(), item.getTextJson()).apply();
@@ -94,27 +96,29 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
 
   @Override public void onWindowFocusChanged(boolean hasFocus) {
     if (hasFocus) {
-      spyClipboard();
+      fetchClipData();
     }
   }
 
-  private void spyClipboard() {
-    final ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-    if (manager.hasPrimaryClip()) {
-      final ClipData data = manager.getPrimaryClip();
-      Log.d(TAG, "spyClipboard() clip data: " + data);
-      for (int i = 0; i < data.getItemCount(); i++) {
-        final ClipData.Item item = data.getItemAt(i);
-        resolveDownloadUrl(item.getText().toString());
-      }
+  @Override public void onPrimaryClipChanged() {
+    fetchClipData();
+  }
+
+  private void fetchClipData() {
+    final ClipData data = mClipboard.getPrimaryClip();
+    if (data != null && data.getItemCount() > 0) {
+      Log.d(TAG, "fetchClipData() clip data: " + data + ", size: " + data.getItemCount());
+      resolveDownloadUrl(data.getItemAt(0).getText().toString());
       return;
     }
-    Log.d(TAG, "spyClipboard() no data");
+    Log.d(TAG, "fetchClipData() no data");
   }
 
   @Override public void onCoverClick(String coverUrl) {
     FullCoverActivity.start(this, coverUrl);
   }
+
+  private String mPendingUrl;
 
   @Override public void onStateClick(DyState state, String url) {
     Log.d(TAG, "onStateClick() called with: state = [" + state + "], url = [" + url + "]");
@@ -122,15 +126,42 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
       case NONE:
         // 下载
         Toast.makeText(this, "下载", Toast.LENGTH_SHORT).show();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
+            mPendingUrl = url;
+            return;
+          }
+        }
+        downloadVideo(url);
         break;
       case DOWNLOADING:
         // 暂停
         Toast.makeText(this, "暂停", Toast.LENGTH_SHORT).show();
         break;
       case DOWNLOADED:
-        // 删除
+        // 删除或打开
         Toast.makeText(this, "删除", Toast.LENGTH_SHORT).show();
         break;
     }
+  }
+
+  @Override
+  public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions, @NonNull final int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    if (requestCode == 100 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      downloadVideo(mPendingUrl);
+      mPendingUrl = null;
+    }
+  }
+
+  private void downloadVideo(final String url) {
+    DyUtil.download(this, url, new DyUtil.DownloadCallback() {
+    });
+  }
+
+  @Override protected void onDestroy() {
+    super.onDestroy();
+    mClipboard.removePrimaryClipChangedListener(this);
   }
 }
