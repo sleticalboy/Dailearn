@@ -9,17 +9,17 @@ import android.util.Log;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import com.example.dyvd.databinding.ActivityMainBinding;
+import com.example.dyvd.databinding.ActivityVideoListBinding;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONException;
 
-public class MainActivity extends AppCompatActivity {
+public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback {
 
   private static final String TAG = "MainActivity";
 
-  private ActivityMainBinding mBinding;
+  private ActivityVideoListBinding mBinding;
   // key: shareUrl, value: json
   private SharedPreferences mSp;
   private VideoAdapter mAdapter;
@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    mBinding = ActivityMainBinding.inflate(getLayoutInflater());
+    mBinding = ActivityVideoListBinding.inflate(getLayoutInflater());
     setContentView(mBinding.getRoot());
 
     // 读取剪切板数据，判断是否是抖音分享链接
@@ -53,29 +53,31 @@ public class MainActivity extends AppCompatActivity {
       }
     }
     mAdapter = new VideoAdapter(this, items);
+    mAdapter.setCallback(this);
     mBinding.rvVideos.setAdapter(mAdapter);
   }
 
   private void resolveDownloadUrl(String text) {
+    // 目前仅支持抖音分享链接，后续会考虑支持快手等
     final String shareUrl = DyUtil.getOriginalShareUrl(text);
     if (TextUtils.isEmpty(shareUrl)) {
       Toast.makeText(this, "链接错误: " + text, Toast.LENGTH_SHORT).show();
       return;
     }
-    // Log.d(TAG, "resolveDownloadUrl() " + text);
 
     if (mSp.getString(shareUrl, null) != null) {
-      // 已存在，不用解析
-      Toast.makeText(this, "已存在，不用解析", Toast.LENGTH_SHORT).show();
+      // Toast.makeText(this, "已存在，不用解析", Toast.LENGTH_SHORT).show();
+      Log.d(TAG, "resolveDownloadUrl() 已存在，不用解析");
       return;
     }
 
     new Thread(() -> {
+      // Log.d(TAG, "resolveDownloadUrl() " + text);
       try {
         // stream to string
-        String result = DyUtil.getClearJson(shareUrl);
-        Log.d(TAG, "resolveDownloadUrl() result: " + result);
-        runOnUiThread(() -> postResult(VideoItem.parse(shareUrl, result)));
+        final VideoItem item = DyUtil.parseItem(shareUrl);
+        Log.d(TAG, "resolveDownloadUrl() item: " + item);
+        runOnUiThread(() -> postResult(item));
       } catch (IOException | JSONException e) {
         e.printStackTrace();
       }
@@ -108,5 +110,27 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
     Log.d(TAG, "spyClipboard() no data");
+  }
+
+  @Override public void onCoverClick(String coverUrl) {
+    FullCoverActivity.start(this, coverUrl);
+  }
+
+  @Override public void onStateClick(DyState state, String url) {
+    Log.d(TAG, "onStateClick() called with: state = [" + state + "], url = [" + url + "]");
+    switch (state) {
+      case NONE:
+        // 下载
+        Toast.makeText(this, "下载", Toast.LENGTH_SHORT).show();
+        break;
+      case DOWNLOADING:
+        // 暂停
+        Toast.makeText(this, "暂停", Toast.LENGTH_SHORT).show();
+        break;
+      case DOWNLOADED:
+        // 删除
+        Toast.makeText(this, "删除", Toast.LENGTH_SHORT).show();
+        break;
+    }
   }
 }

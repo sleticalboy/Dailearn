@@ -21,6 +21,8 @@ public final class DyUtil {
 
   private static final String DY_DOMAIN = "v.douyin.com";
   private static final String TOOL_URL = "https://www.ilovetools.cn/douyin/search-video-info";
+  private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 12; M2012K11AG Build/SKQ1.211006.001; wv)"
+    + " AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.126 Mobile Safari/537.36";
 
   private DyUtil() {
     //no instance
@@ -44,15 +46,18 @@ public final class DyUtil {
   }
 
   @WorkerThread
-  public static String getClearJson(String shareText) throws IOException, JSONException {
+  public static VideoItem parseItem(String shareUrl) throws IOException, JSONException {
+    return VideoItem.parse(shareUrl, getVideoJson(shareUrl));
+  }
+
+  private static String getVideoJson(String shareText) throws IOException, JSONException {
     final HttpURLConnection connection = (HttpURLConnection) new URL(TOOL_URL).openConnection();
     connection.setRequestMethod("POST");
     connection.addRequestProperty("Accept", "*/*");
     connection.addRequestProperty("Host", "www.ilovetools.cn");
     connection.addRequestProperty("Origin", "https://www.ilovetools.cn");
     connection.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-    connection.addRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 12; M2012K11AG Build/SKQ1.211006.001;"
-      + " wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.126 Mobile Safari/537.36");
+    connection.addRequestProperty("User-Agent", USER_AGENT);
     connection.setDoOutput(true);
     connection.getOutputStream().write(("shareUrl=" + shareText).getBytes());
     final int code = connection.getResponseCode();

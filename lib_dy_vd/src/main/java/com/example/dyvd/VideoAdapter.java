@@ -19,9 +19,15 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
   private final Context mContext;
   private final List<VideoItem> mItems;
 
+  private Callback mCallback;
+
   public VideoAdapter(Context context, List<VideoItem> items) {
     mContext = context;
     mItems = items;
+  }
+
+  public void setCallback(Callback callback) {
+    mCallback = callback;
   }
 
   @NonNull @Override public VideoHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -29,7 +35,7 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
   }
 
   @Override public void onBindViewHolder(@NonNull VideoHolder holder, int position) {
-    holder.bindView(mItems.get(position));
+    holder.bindView(mItems.get(position), mCallback);
   }
 
   @Override public int getItemCount() {
@@ -41,6 +47,24 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
     notifyItemInserted(0);
   }
 
+  public interface Callback {
+
+    /**
+     * 点击封面，查看全图
+     *
+     * @param coverUrl 封面 url
+     */
+    void onCoverClick(String coverUrl);
+
+    /**
+     * 点击状态
+     *
+     * @param state 状态
+     * @param url 视频链接
+     */
+    void onStateClick(DyState state, String url);
+  }
+
   private static String getState(DyState state) {
     if (state == DyState.DOWNLOADED) return "已下载";
     if (state == DyState.DOWNLOADING) return "正在下载";
@@ -48,7 +72,6 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
   }
 
   static class VideoHolder extends RecyclerView.ViewHolder {
-
 
     @NonNull
     private final LayoutVideoItemBinding mBinding;
@@ -58,10 +81,16 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
       mBinding = binding;
     }
 
-    public void bindView(VideoItem item) {
+    public void bindView(VideoItem item, Callback callback) {
       mBinding.tvTitle.setText(item.title);
       mBinding.tvState.setText(getState(item.state));
       Glide.with(itemView.getContext()).load(item.coverUrl).into(mBinding.ivCover);
+      mBinding.ivCover.setOnClickListener(v -> {
+        if (callback != null) callback.onCoverClick(item.coverUrl);
+      });
+      mBinding.tvState.setOnClickListener(v -> {
+        if (callback != null) callback.onStateClick(item.state, item.url);
+      });
     }
   }
 }
