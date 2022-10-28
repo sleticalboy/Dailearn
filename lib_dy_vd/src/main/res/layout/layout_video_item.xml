@@ -8,7 +8,7 @@
   xmlns:tools="http://schemas.android.com/tools"
   >
 
-  <!-- 标题，封面、下载状态、删除按钮 -->
+  <!-- 标题，封面、下载状态、删除按钮、视频来源 -->
   <TextView
     android:id="@+id/tv_title"
     android:layout_width="0dp"

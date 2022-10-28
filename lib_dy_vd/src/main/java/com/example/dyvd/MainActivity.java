@@ -36,8 +36,11 @@ public class MainActivity extends AppCompatActivity {
     // 通过 jsoup 解析响应数据，获取视频下载链接
     // 下载视频并存入数据库
 
-    mBinding.btnResolve.setOnClickListener(v -> {
-      resolveDownloadUrl(mBinding.tvHello.getText().toString());
+    mBinding.btnResolveUrl.setOnClickListener(v -> {
+      resolveDownloadUrl(mBinding.tvShareText.getText().toString());
+    });
+    mBinding.ivClearUrl.setOnClickListener(v -> {
+      mBinding.tvShareText.setText(null);
     });
 
     mSp = getSharedPreferences("all_dy_videos", MODE_PRIVATE);
