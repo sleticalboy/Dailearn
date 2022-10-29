@@ -37,16 +37,16 @@ public final class DyUtil {
     + " AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.126 Mobile Safari/537.36";
 
   private static final Handler sMain = new Handler(Looper.getMainLooper());
-  private static final Handler sWorker;
-
-  static {
-    HandlerThread worker = new HandlerThread("DyWorker");
-    worker.start();
-    sWorker = new Handler(worker.getLooper());
-  }
+  private static final Handler sWorker = createWorker();
 
   private DyUtil() {
     //no instance
+  }
+
+  private static Handler createWorker() {
+    HandlerThread worker = new HandlerThread("DyWorker");
+    worker.start();
+    return new Handler(worker.getLooper());
   }
 
   // 1.20 VLj:/ “别让这个城市留下了你的青春，却留不下你”# 离开 # 城市 # 回乡 # 逃离北上广 # 服务员 # 生活 https://v.douyin.com/MxFGWAS/ 复制此链接，打开Dou音搜索，直接观看视频！

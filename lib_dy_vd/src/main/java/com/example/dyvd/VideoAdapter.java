@@ -68,6 +68,7 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
   private static String getState(DyState state) {
     if (state == DyState.DOWNLOADED) return "已下载";
     if (state == DyState.DOWNLOADING) return "正在下载";
+    if (state == DyState.BROKEN) return "无法下载";
     return "未下载";
   }
 
@@ -91,6 +92,7 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
       mBinding.tvState.setOnClickListener(v -> {
         if (callback != null) callback.onStateClick(item.state, item.url);
       });
+      mBinding.tvSource.setText(itemView.getContext().getString(R.string.source_from, "抖音"));
     }
   }
 }
