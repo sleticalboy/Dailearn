@@ -4,12 +4,13 @@ plugins {
 
 android {
   // namespace 'com.example.dyvd'
-  compileSdkVersion 32
+  compileSdkVersion rootProject.ext.compile_version
+  buildToolsVersion rootProject.ext.build_version
 
   defaultConfig {
     applicationId "com.example.dyvd"
-    minSdkVersion 21
-    targetSdkVersion 32
+    minSdkVersion rootProject.ext.min_version
+    targetSdkVersion rootProject.ext.target_version
     versionCode 1
     versionName "1.0"
   }
@@ -36,4 +37,13 @@ dependencies {
   // jsoup 用于解析网页内容
   // implementation 'org.jsoup:jsoup:1.15.3'
   implementation("com.github.bumptech.glide:glide:$glide_version")
+
+
+  // 流利说下载器
+  implementation 'com.liulishuo.filedownloader:library:1.7.7'
+  // // v2 版本
+  // // core
+  // implementation "com.liulishuo.okdownload:okdownload:1.0.7"
+  // // provide sqlite to store breakpoints"
+  // implementation "com.liulishuo.okdownload:sqlite:1.0.7"
 }

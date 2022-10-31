@@ -49,20 +49,11 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
 
   public interface Callback {
 
-    /**
-     * 点击封面，查看全图
-     *
-     * @param coverUrl 封面 url
-     */
-    void onCoverClick(String coverUrl);
+    /** 点击封面，查看全图 */
+    void onClickCover(VideoItem item);
 
-    /**
-     * 点击状态
-     *
-     * @param state 状态
-     * @param url 视频链接
-     */
-    void onStateClick(DyState state, String url);
+    /** 点击状态 */
+    void onClickState(VideoItem item);
   }
 
   private static String getState(DyState state) {
@@ -87,10 +78,10 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
       mBinding.tvState.setText(getState(item.state));
       Glide.with(itemView.getContext()).load(item.coverUrl).into(mBinding.ivCover);
       mBinding.ivCover.setOnClickListener(v -> {
-        if (callback != null) callback.onCoverClick(item.coverUrl);
+        if (callback != null) callback.onClickCover(item);
       });
       mBinding.tvState.setOnClickListener(v -> {
-        if (callback != null) callback.onStateClick(item.state, item.url);
+        if (callback != null) callback.onClickState(item);
       });
       mBinding.tvSource.setText(itemView.getContext().getString(R.string.source_from, "抖音"));
     }

@@ -24,6 +24,8 @@ public final class VideoItem {
   private final String shareUrl;
   /** 下载状态状态 */
   public DyState state = DyState.NONE;
+  /** 系统下载器生成的唯一标识 */
+  public long id;
 
   public static VideoItem parse(String shareUrl, String text) {
     try {

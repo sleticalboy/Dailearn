@@ -11,6 +11,10 @@ import android.util.Log;
 
 import androidx.annotation.UiThread;
 import androidx.annotation.WorkerThread;
+import com.liulishuo.filedownloader.BaseDownloadTask;
+import com.liulishuo.filedownloader.FileDownloadListener;
+import com.liulishuo.filedownloader.FileDownloadSampleListener;
+import com.liulishuo.filedownloader.FileDownloader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -122,10 +126,10 @@ public final class DyUtil {
 
   public interface DownloadCallback {}
 
-  public static void download(Context context, final String url, DownloadCallback callback) {
+  public static void download(Context context, final VideoItem item, DownloadCallback callback) {
     sWorker.post(() -> {
       try {
-        final HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        final HttpURLConnection connection = (HttpURLConnection) new URL(item.url).openConnection();
         connection.setRequestMethod("GET");
         connection.addRequestProperty("User-Agent", USER_AGENT);
         final int code = connection.getResponseCode();
@@ -148,15 +152,20 @@ public final class DyUtil {
 
         // 使用系统下载库？
         DownloadManager mgr = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-        final DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
+        final DownloadManager.Request request = new DownloadManager.Request(Uri.parse(item.url))
                 .setTitle("抖音视频下载器")
                 .setDescription("下载抖音无水印视频")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
                 .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
                 .setMimeType("video/mp4")
                 .addRequestHeader("User-Agent", USER_AGENT);
         final long id = mgr.enqueue(request);
         Log.d(TAG, "download() id: " + id);
+        // 把 id 更新给 item
+        item.id = id;
+
+        // 获取文件路径
+        // mgr.getUriForDownloadedFile(id);
       } catch (IOException e) {
         e.printStackTrace();
       }

@@ -107,33 +107,32 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   private void fetchClipData() {
     final ClipData data = mClipboard.getPrimaryClip();
     if (data != null && data.getItemCount() > 0) {
-      Log.d(TAG, "fetchClipData() clip data: " + data + ", size: " + data.getItemCount());
       resolveDownloadUrl(data.getItemAt(0).getText().toString());
       return;
     }
     Log.d(TAG, "fetchClipData() no data");
   }
 
-  @Override public void onCoverClick(String coverUrl) {
-    FullCoverActivity.start(this, coverUrl);
+  @Override public void onClickCover(VideoItem item) {
+    FullCoverActivity.start(this, item.coverUrl);
   }
 
-  private String mPendingUrl;
+  private VideoItem mPendingItem;
 
-  @Override public void onStateClick(DyState state, String url) {
-    Log.d(TAG, "onStateClick() called with: state = [" + state + "], url = [" + url + "]");
-    switch (state) {
+  @Override public void onClickState(VideoItem item) {
+    Log.d(TAG, "onStateClick() item: " + item);
+    switch (item.state) {
       case NONE:
         // 下载
         Toast.makeText(this, "下载", Toast.LENGTH_SHORT).show();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
           if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
-            mPendingUrl = url;
+            mPendingItem = item;
             return;
           }
         }
-        downloadVideo(url);
+        downloadVideo(item);
         break;
       case DOWNLOADING:
         // 暂停
@@ -150,13 +149,13 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions, @NonNull final int[] grantResults) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == 100 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-      downloadVideo(mPendingUrl);
-      mPendingUrl = null;
+      downloadVideo(mPendingItem);
+      mPendingItem = null;
     }
   }
 
-  private void downloadVideo(final String url) {
-    DyUtil.download(this, url, new DyUtil.DownloadCallback() {
+  private void downloadVideo(final VideoItem item) {
+    DyUtil.download(this, item, new DyUtil.DownloadCallback() {
     });
   }
 
