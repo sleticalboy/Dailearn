@@ -47,6 +47,11 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
     notifyItemInserted(0);
   }
 
+  public void notifyItemChanged(VideoItem item) {
+    final int index = mItems.indexOf(item);
+    if (index >= 0) notifyItemChanged(index);
+  }
+
   public interface Callback {
 
     /** 点击封面，查看全图 */
@@ -54,13 +59,6 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
 
     /** 点击状态 */
     void onClickState(VideoItem item);
-  }
-
-  private static String getState(DyState state) {
-    if (state == DyState.DOWNLOADED) return "已下载";
-    if (state == DyState.DOWNLOADING) return "正在下载";
-    if (state == DyState.BROKEN) return "无法下载";
-    return "未下载";
   }
 
   static class VideoHolder extends RecyclerView.ViewHolder {
@@ -75,7 +73,8 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
 
     public void bindView(VideoItem item, Callback callback) {
       mBinding.tvTitle.setText(item.title);
-      mBinding.tvState.setText(getState(item.state));
+      mBinding.tvVideoTags.setText(item.tags);
+      mBinding.tvState.setText(translateState(item.state));
       Glide.with(itemView.getContext()).load(item.coverUrl).into(mBinding.ivCover);
       mBinding.ivCover.setOnClickListener(v -> {
         if (callback != null) callback.onClickCover(item);
@@ -84,6 +83,13 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
         if (callback != null) callback.onClickState(item);
       });
       mBinding.tvSource.setText(itemView.getContext().getString(R.string.source_from, "抖音"));
+    }
+
+    private int translateState(DyState state) {
+      if (state == DyState.DOWNLOADED) return R.string.state_downloaded;
+      if (state == DyState.DOWNLOADING) return R.string.state_downloading;
+      if (state == DyState.BROKEN) return R.string.state_broken;
+      return R.string.state_none;
     }
   }
 }

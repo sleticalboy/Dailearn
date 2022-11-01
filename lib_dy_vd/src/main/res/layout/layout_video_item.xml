@@ -8,17 +8,29 @@
   xmlns:tools="http://schemas.android.com/tools"
   >
 
-  <!-- 标题，封面、下载状态、删除按钮、视频来源 -->
+  <!-- 标题、标签、封面、下载状态、删除按钮、视频来源 -->
   <TextView
     android:id="@+id/tv_title"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
     android:padding="8dp"
+    android:textColor="@color/black"
     app:layout_constraintLeft_toLeftOf="parent"
     app:layout_constraintTop_toTopOf="parent"
     app:layout_constraintRight_toLeftOf="@+id/iv_cover"
-    android:textColor="@color/black"
     tools:text="@string/app_name"
+    />
+
+  <TextView
+    android:id="@+id/tv_video_tags"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:padding="8dp"
+    android:textColor="@color/black"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintTop_toBottomOf="@+id/tv_title"
+    app:layout_constraintRight_toLeftOf="@+id/iv_cover"
+    tools:text="@string/video_tags"
     />
 
   <TextView
@@ -27,7 +39,7 @@
     android:layout_height="wrap_content"
     android:padding="8dp"
     app:layout_constraintLeft_toLeftOf="parent"
-    app:layout_constraintTop_toBottomOf="@+id/tv_title"
+    app:layout_constraintTop_toBottomOf="@+id/tv_video_tags"
     tools:text="@string/state_none"
     />
 
@@ -38,7 +50,7 @@
     android:padding="8dp"
     android:textColor="@color/teal_700"
     app:layout_constraintLeft_toRightOf="@+id/tv_state"
-    app:layout_constraintTop_toBottomOf="@+id/tv_title"
+    app:layout_constraintTop_toBottomOf="@+id/tv_video_tags"
     tools:text="@string/source_from"
     />
 

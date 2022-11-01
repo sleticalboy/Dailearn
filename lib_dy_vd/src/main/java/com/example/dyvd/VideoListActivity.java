@@ -3,22 +3,17 @@ package com.example.dyvd;
 import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
-
 import com.example.dyvd.databinding.ActivityVideoListBinding;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.example.dyvd.db.FakeVideoDb;
 
 public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback,
         ClipboardManager.OnPrimaryClipChangedListener {
@@ -26,10 +21,10 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   private static final String TAG = "MainActivity";
 
   private ActivityVideoListBinding mBinding;
-  // key: shareUrl, value: json
-  private SharedPreferences mSp;
   private VideoAdapter mAdapter;
   private ClipboardManager mClipboard;
+
+  private FakeVideoDb mDb;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -46,28 +41,20 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
     // 下载视频并存入数据库
 
     mBinding.btnResolveUrl.setOnClickListener(v -> {
-      resolveDownloadUrl(mBinding.tvShareText.getText().toString());
+      resolveVideo(mBinding.tvShareText.getText().toString());
     });
     mBinding.ivClearUrl.setOnClickListener(v -> {
       mBinding.tvShareText.setText(null);
     });
-
-    mSp = getSharedPreferences("all_dy_videos", MODE_PRIVATE);
-
     mBinding.rvVideos.setLayoutManager(new LinearLayoutManager(this));
-    final List<VideoItem> items = new ArrayList<>();
-    for (String key : mSp.getAll().keySet()) {
-      final String text = mSp.getString(key, null);
-      if (text != null) {
-        items.add(VideoItem.parse(key, text));
-      }
-    }
-    mAdapter = new VideoAdapter(this, items);
+
+    mDb = new FakeVideoDb(getApplicationContext());
+    mAdapter = new VideoAdapter(this, mDb.getAllVideos());
     mAdapter.setCallback(this);
     mBinding.rvVideos.setAdapter(mAdapter);
   }
 
-  private void resolveDownloadUrl(String text) {
+  private void resolveVideo(String text) {
     // 目前仅支持抖音分享链接，后续会考虑支持快手等
     final String shareUrl = DyUtil.getOriginalShareUrl(text);
     if (TextUtils.isEmpty(shareUrl)) {
@@ -75,13 +62,11 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
       return;
     }
 
-    if (mSp.getString(shareUrl, null) != null) {
-      // Toast.makeText(this, "已存在，不用解析", Toast.LENGTH_SHORT).show();
-      Log.d(TAG, "resolveDownloadUrl() 已存在，不用解析");
+    if (mDb.hasVideo(shareUrl)) {
+      Log.d(TAG, "resolveVideo() aborted as existed");
       return;
     }
 
-    // Log.d(TAG, "resolveDownloadUrl() " + text);
     DyUtil.parseItem(shareUrl, this::postResult);
   }
 
@@ -91,7 +76,7 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
 
     mAdapter.insertVideo(item);
     mBinding.rvVideos.scrollToPosition(0);
-    mSp.edit().putString(item.getShareUrl(), item.getTextJson()).apply();
+    mDb.insert(item);
   }
 
   @Override public void onWindowFocusChanged(boolean hasFocus) {
@@ -107,7 +92,7 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   private void fetchClipData() {
     final ClipData data = mClipboard.getPrimaryClip();
     if (data != null && data.getItemCount() > 0) {
-      resolveDownloadUrl(data.getItemAt(0).getText().toString());
+      resolveVideo(data.getItemAt(0).getText().toString());
       return;
     }
     Log.d(TAG, "fetchClipData() no data");
@@ -120,11 +105,9 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   private VideoItem mPendingItem;
 
   @Override public void onClickState(VideoItem item) {
-    Log.d(TAG, "onStateClick() item: " + item);
     switch (item.state) {
       case NONE:
         // 下载
-        Toast.makeText(this, "下载", Toast.LENGTH_SHORT).show();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
           if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
             requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
@@ -156,11 +139,19 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
 
   private void downloadVideo(final VideoItem item) {
     DyUtil.download(this, item, new DyUtil.DownloadCallback() {
+      @Override public void onError(VideoItem item) {
+        mAdapter.notifyItemChanged(item);
+      }
+
+      @Override public void onComplete(VideoItem item) {
+        mAdapter.notifyItemChanged(item);
+      }
     });
   }
 
   @Override protected void onDestroy() {
     super.onDestroy();
     mClipboard.removePrimaryClipChangedListener(this);
+    DownloadObserver.get().stop(this);
   }
 }

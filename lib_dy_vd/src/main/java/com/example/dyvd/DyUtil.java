@@ -1,28 +1,21 @@
 package com.example.dyvd;
 
 import android.app.DownloadManager;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.util.Log;
-
 import androidx.annotation.UiThread;
-import androidx.annotation.WorkerThread;
-import com.liulishuo.filedownloader.BaseDownloadTask;
-import com.liulishuo.filedownloader.FileDownloadListener;
-import com.liulishuo.filedownloader.FileDownloadSampleListener;
-import com.liulishuo.filedownloader.FileDownloader;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.function.Supplier;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -80,7 +73,7 @@ public final class DyUtil {
   public static void parseItem(String shareUrl, ParseCallback callback) {
     sWorker.post(() -> {
       try {
-        final VideoItem videoItem = VideoItem.parse(shareUrl, getVideoJson(shareUrl));
+        final VideoItem videoItem = VideoParser.fromJson(shareUrl, getVideoJson(shareUrl));
         sMain.post(() -> callback.onResult(videoItem));
       } catch (IOException | JSONException e) {
         e.printStackTrace();
@@ -124,10 +117,23 @@ public final class DyUtil {
     return baos.toString();
   }
 
-  public interface DownloadCallback {}
+  public interface DownloadCallback {
+
+    void onComplete(VideoItem item);
+
+    default void onError(VideoItem item) {}
+  }
 
   public static void download(Context context, final VideoItem item, DownloadCallback callback) {
+    // 先查询，如果不存在，则下载
+    Log.d(TAG, "download() " + item.title);
     sWorker.post(() -> {
+      if (isDownloaded(context, item)) {
+        item.state = DyState.DOWNLOADED;
+        sMain.post(() -> callback.onComplete(item));
+        return;
+      }
+
       try {
         final HttpURLConnection connection = (HttpURLConnection) new URL(item.url).openConnection();
         connection.setRequestMethod("GET");
@@ -139,36 +145,87 @@ public final class DyUtil {
                 + ", length: " + connection.getContentLength()
         );
 
-        if (code >= 400) return;
+        if (code >= 400) {
+          item.state = DyState.BROKEN;
+          item.reason = "http code: " + code + ", msg: " + connection.getResponseMessage();
+          sMain.post(() -> callback.onError(item));
+          return;
+        }
 
-        // 写入文件
-        // final InputStream stream = connection.getInputStream();
-        // 把文件插入到系统媒体库中
-
-        final File dir = context.getExternalFilesDir(null);
-        final File dest = File.createTempFile("dy-", ".mp4", dir);
-        final String name = dest.getName();
-        dest.delete();
+        final String name = item.title + ".mp4";
 
         // 使用系统下载库？
-        DownloadManager mgr = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
         final DownloadManager.Request request = new DownloadManager.Request(Uri.parse(item.url))
-                .setTitle("抖音视频下载器")
-                .setDescription("下载抖音无水印视频")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
+                .setTitle(context.getString(R.string.app_name))
+                .setDescription(item.title)
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
                 .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
                 .setMimeType("video/mp4")
                 .addRequestHeader("User-Agent", USER_AGENT);
+        final DownloadManager mgr = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
         final long id = mgr.enqueue(request);
         Log.d(TAG, "download() id: " + id);
         // 把 id 更新给 item
         item.id = id;
-
-        // 获取文件路径
-        // mgr.getUriForDownloadedFile(id);
+        item.state = DyState.DOWNLOADING;
+        DownloadObserver.get().addCallback(item, callback);
       } catch (IOException e) {
         e.printStackTrace();
       }
     });
+    DownloadObserver.get().start(context);
+  }
+
+  // _id: 45
+  // mediaprovider_uri: content://media/external/video/media/70
+  // description: 东土大唐来的喵星人
+  // uri: https://v5-g.douyinvod.com/...
+  // hint: file:///storage/emulated/0/Download/东土大唐来的喵星人.mp4
+  // media_type: video/mp4
+  // local_uri: file:///storage/emulated/0/Download/%E4%B8%9C%E5%9C%9F%E5%A4%A7%E5%94%90%E6%9D%A5%E7%9A%84%E5%96%B5%E6%98%9F%E4%BA%BA.mp4
+
+  private static final Uri DOWNLOAD_URI = Uri.parse("content://downloads/my_downloads");
+  private static final Uri ALL_DOWNLOAD_URI = Uri.parse("content://downloads/all_downloads");
+  private static final String[] COLUMNS = {
+    DownloadManager.COLUMN_ID,
+    DownloadManager.COLUMN_MEDIAPROVIDER_URI,
+    DownloadManager.COLUMN_DESCRIPTION,
+    DownloadManager.COLUMN_URI,
+    /*DownloadManager.COLUMN_FILE_NAME_HINT*/"hint",
+    DownloadManager.COLUMN_MEDIA_TYPE,
+    DownloadManager.COLUMN_LOCAL_URI,
+  };
+  private static final String SELECTION = DownloadManager.COLUMN_DESCRIPTION + " = ? OR "
+    + DownloadManager.COLUMN_URI + " = ?";
+
+  private static boolean isDownloaded(Context context, VideoItem item) {
+    final ContentResolver resolver = context.getContentResolver();
+    final String[] args = { "" + item.url, "" + item.title };
+    try (Cursor cursor = resolver.query(DOWNLOAD_URI, COLUMNS, SELECTION, args, null)) {
+      final int cursorCount = cursor.getCount();
+      dumpCursor(cursor);
+      return cursorCount > 0;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return false;
+    }
+  }
+
+  private static void dumpCursor(Cursor cursor) {
+    Log.d(TAG, "dumpCursor() >>>>>>>>> " + cursor);
+    int raw = 0;
+    while (cursor.moveToNext()) {
+      raw++;
+      for (String column : COLUMNS) {
+        String value;
+        try {
+          value = cursor.getString(cursor.getColumnIndexOrThrow(column));
+        } catch (Throwable tr) {
+          value = tr.getMessage();
+        }
+        Log.d(TAG, "dumpCursor() row: " + raw + " -> " + column + ": " + value);
+      }
+    }
+    Log.d(TAG, "dumpCursor() <<<<<<<<< " + cursor);
   }
 }

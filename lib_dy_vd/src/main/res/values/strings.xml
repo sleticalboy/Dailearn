@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">抖音视频下载器</string>
+  <string name="app_name">DY 视频下载器</string>
   <string name="past_share_url">请粘贴分享链接到这里</string>
   <string name="btn_resolve">解析</string>
   <string name="state_none">未下载</string>
@@ -7,4 +7,5 @@
   <string name="state_downloaded">已下载</string>
   <string name="state_broken">无法下载</string>
   <string name="source_from">来源: %1$s</string>
+  <string name="video_tags">标签: %1$s</string>
 </resources>
