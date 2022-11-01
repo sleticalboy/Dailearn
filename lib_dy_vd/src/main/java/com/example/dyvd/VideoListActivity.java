@@ -1,39 +1,40 @@
 package com.example.dyvd;
 
 import android.Manifest;
-import android.content.ClipData;
-import android.content.ClipboardManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.dyvd.databinding.ActivityVideoListBinding;
-import com.example.dyvd.db.FakeVideoDb;
+import com.example.dyvd.service.DyService;
 
-public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback,
-        ClipboardManager.OnPrimaryClipChangedListener {
+public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback, Handler.Callback {
 
   private static final String TAG = "MainActivity";
 
   private ActivityVideoListBinding mBinding;
   private VideoAdapter mAdapter;
-  private ClipboardManager mClipboard;
 
-  private FakeVideoDb mDb;
+  private Messenger mServer;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     mBinding = ActivityVideoListBinding.inflate(getLayoutInflater());
     setContentView(mBinding.getRoot());
-
-    mClipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-    mClipboard.addPrimaryClipChangedListener(this);
 
     // 读取剪切板数据，判断是否是抖音分享链接
     // 如果是则发送网络请求，获取响应数据
@@ -48,26 +49,40 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
     });
     mBinding.rvVideos.setLayoutManager(new LinearLayoutManager(this));
 
-    mDb = new FakeVideoDb(getApplicationContext());
-    mAdapter = new VideoAdapter(this, mDb.getAllVideos());
+    mAdapter = new VideoAdapter(this);
     mAdapter.setCallback(this);
     mBinding.rvVideos.setAdapter(mAdapter);
+
+    final Intent intent = new Intent(this, DyService.class);
+    intent.putExtra("client_messenger", new Messenger(new Handler(this)));
+    bindService(intent, new ServiceConnection() {
+      @Override public void onServiceConnected(ComponentName name, IBinder service) {
+        mServer = new Messenger(service);
+        loadAllVideos();
+      }
+
+      @Override public void onServiceDisconnected(ComponentName name) {
+        //
+      }
+    }, Context.BIND_AUTO_CREATE);
+  }
+
+  private void loadAllVideos() {
+    // 显示 dialog，正在加载
+    try {
+      // 请求加载数据
+      mServer.send(Message.obtain(null, 1));
+    } catch (RemoteException e) {
+      e.printStackTrace();
+    }
   }
 
   private void resolveVideo(String text) {
-    // 目前仅支持抖音分享链接，后续会考虑支持快手等
-    final String shareUrl = DyUtil.getOriginalShareUrl(text);
-    if (TextUtils.isEmpty(shareUrl)) {
-      Toast.makeText(this, "链接错误: " + text, Toast.LENGTH_SHORT).show();
-      return;
+    try {
+      mServer.send(Message.obtain(null, 2, text));
+    } catch (RemoteException e) {
+      e.printStackTrace();
     }
-
-    if (mDb.hasVideo(shareUrl)) {
-      Log.d(TAG, "resolveVideo() aborted as existed");
-      return;
-    }
-
-    DyUtil.parseItem(shareUrl, this::postResult);
   }
 
   private void postResult(VideoItem item) {
@@ -76,26 +91,29 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
 
     mAdapter.insertVideo(item);
     mBinding.rvVideos.scrollToPosition(0);
-    mDb.insert(item);
   }
 
-  @Override public void onWindowFocusChanged(boolean hasFocus) {
-    if (hasFocus) {
-      fetchClipData();
+  @Override public boolean handleMessage(@NonNull Message msg) {
+    switch (msg.what) {
+      case 1:
+        mAdapter.replace(msg.getData().getParcelableArrayList("video_items"));
+        return true;
+      case 2:
+        postResult(((VideoItem) msg.obj));
+        return true;
+      case 3:
+        mAdapter.append(msg.getData().getParcelableArrayList("video_items"));
+        return true;
+      case 4:
+      case 5:
+      case 6:
+        // 开始下载
+        // 正在下载
+        // 下载完成
+        mAdapter.notifyItemChanged((VideoItem) msg.obj);
+        return true;
     }
-  }
-
-  @Override public void onPrimaryClipChanged() {
-    fetchClipData();
-  }
-
-  private void fetchClipData() {
-    final ClipData data = mClipboard.getPrimaryClip();
-    if (data != null && data.getItemCount() > 0) {
-      resolveVideo(data.getItemAt(0).getText().toString());
-      return;
-    }
-    Log.d(TAG, "fetchClipData() no data");
+    return false;
   }
 
   @Override public void onClickCover(VideoItem item) {
@@ -138,20 +156,10 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   }
 
   private void downloadVideo(final VideoItem item) {
-    DyUtil.download(this, item, new DyUtil.DownloadCallback() {
-      @Override public void onError(VideoItem item) {
-        mAdapter.notifyItemChanged(item);
-      }
-
-      @Override public void onComplete(VideoItem item) {
-        mAdapter.notifyItemChanged(item);
-      }
-    });
-  }
-
-  @Override protected void onDestroy() {
-    super.onDestroy();
-    mClipboard.removePrimaryClipChangedListener(this);
-    DownloadObserver.get().stop(this);
+    try {
+      mServer.send(Message.obtain(null, 3, item));
+    } catch (RemoteException e) {
+      e.printStackTrace();
+    }
   }
 }

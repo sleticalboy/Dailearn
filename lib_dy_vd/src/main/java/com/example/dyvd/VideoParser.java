@@ -1,6 +1,7 @@
 package com.example.dyvd;
 
 import android.database.Cursor;
+import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -10,6 +11,8 @@ import org.json.JSONObject;
  * @author binlee
  */
 public final class VideoParser {
+
+  private static final String TAG = "VideoParser";
 
   private VideoParser() {
     //no instance
@@ -38,7 +41,7 @@ public final class VideoParser {
       item.bgmUrl = json.getString("musicUrl");
       return item;
     } catch (JSONException e) {
-      e.printStackTrace();
+      Log.w(TAG, "fromJson() invalid json: " + text);
       return null;
     }
   }

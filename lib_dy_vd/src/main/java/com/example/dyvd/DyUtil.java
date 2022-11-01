@@ -6,11 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Looper;
 import android.util.Log;
-import androidx.annotation.UiThread;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,17 +29,8 @@ public final class DyUtil {
   private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 12; M2012K11AG Build/SKQ1.211006.001; wv)"
     + " AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.126 Mobile Safari/537.36";
 
-  private static final Handler sMain = new Handler(Looper.getMainLooper());
-  private static final Handler sWorker = createWorker();
-
   private DyUtil() {
     //no instance
-  }
-
-  private static Handler createWorker() {
-    HandlerThread worker = new HandlerThread("DyWorker");
-    worker.start();
-    return new Handler(worker.getLooper());
   }
 
   // 1.20 VLj:/ “别让这个城市留下了你的青春，却留不下你”# 离开 # 城市 # 回乡 # 逃离北上广 # 服务员 # 生活 https://v.douyin.com/MxFGWAS/ 复制此链接，打开Dou音搜索，直接观看视频！
@@ -53,7 +40,7 @@ public final class DyUtil {
   // author: 返乡军哥的作品
   // url: https://v.douyin.com/M9VCxkn/
   public static String getOriginalShareUrl(String text) {
-    // 是否是抖音分享链接
+    // 目前仅支持抖音分享链接，后续会考虑支持快手等
     if (text == null || !text.contains(DY_DOMAIN)) return null;
 
     // 解析 url
@@ -63,23 +50,35 @@ public final class DyUtil {
     return end < 0 ? text.substring(start) : text.substring(start, end + 1);
   }
 
-  public interface ParseCallback {
-    @UiThread void onResult(VideoItem item);
+  public static final class Result {
 
-    @UiThread default void onError(Throwable thr) {
+    public final VideoItem result;
+    public final Throwable error;
+
+    public Result(VideoItem result, Throwable error) {
+      this.result = result;
+      this.error = error;
+    }
+
+    public static Result of(VideoItem item) {
+      return new Result(item, null);
+    }
+
+    public static Result error(Throwable error) {
+      return new Result(null, error);
+    }
+
+    public boolean success() {
+      return error == null;
     }
   }
 
-  public static void parseItem(String shareUrl, ParseCallback callback) {
-    sWorker.post(() -> {
-      try {
-        final VideoItem videoItem = VideoParser.fromJson(shareUrl, getVideoJson(shareUrl));
-        sMain.post(() -> callback.onResult(videoItem));
-      } catch (IOException | JSONException e) {
-        e.printStackTrace();
-        sMain.post(() -> callback.onError(e));
-      }
-    });
+  public static Result parseItem(String shareUrl) {
+    try {
+      return Result.of(VideoParser.fromJson(shareUrl, getVideoJson(shareUrl)));
+    } catch (IOException | JSONException e) {
+      return Result.error(e);
+    }
   }
 
   private static String getVideoJson(String shareText) throws IOException, JSONException {
@@ -119,6 +118,8 @@ public final class DyUtil {
 
   public interface DownloadCallback {
 
+    default void onStart(VideoItem item) {}
+
     void onComplete(VideoItem item);
 
     default void onError(VideoItem item) {}
@@ -127,53 +128,52 @@ public final class DyUtil {
   public static void download(Context context, final VideoItem item, DownloadCallback callback) {
     // 先查询，如果不存在，则下载
     Log.d(TAG, "download() " + item.title);
-    sWorker.post(() -> {
-      if (isDownloaded(context, item)) {
-        item.state = DyState.DOWNLOADED;
-        sMain.post(() -> callback.onComplete(item));
+    if (isDownloaded(context, item)) {
+      item.state = DyState.DOWNLOADED;
+      callback.onComplete(item);
+      return;
+    }
+
+    try {
+      final HttpURLConnection connection = (HttpURLConnection) new URL(item.url).openConnection();
+      connection.setRequestMethod("GET");
+      connection.addRequestProperty("User-Agent", USER_AGENT);
+      final int code = connection.getResponseCode();
+      Log.d(TAG, "download() http code: " + code
+              + ", msg: [" + connection.getResponseMessage() + "]"
+              + ", mime: " + connection.getContentType()
+              + ", length: " + connection.getContentLength()
+      );
+
+      if (code >= 400) {
+        item.state = DyState.BROKEN;
+        item.reason = "http code: " + code + ", msg: " + connection.getResponseMessage();
+        callback.onError(item);
         return;
       }
 
-      try {
-        final HttpURLConnection connection = (HttpURLConnection) new URL(item.url).openConnection();
-        connection.setRequestMethod("GET");
-        connection.addRequestProperty("User-Agent", USER_AGENT);
-        final int code = connection.getResponseCode();
-        Log.d(TAG, "download() http code: " + code
-                + ", msg: [" + connection.getResponseMessage() + "]"
-                + ", mime: " + connection.getContentType()
-                + ", length: " + connection.getContentLength()
-        );
+      // 使用系统下载器
+      final long id = ((DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE))
+        .enqueue(generateRequest(context, item));
+      Log.d(TAG, "download() id: " + id);
+      // 把 id 更新给 item
+      item.id = id;
+      item.state = DyState.DOWNLOADING;
+      DownloadObserver.get().addCallback(item, callback);
+      callback.onStart(item);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 
-        if (code >= 400) {
-          item.state = DyState.BROKEN;
-          item.reason = "http code: " + code + ", msg: " + connection.getResponseMessage();
-          sMain.post(() -> callback.onError(item));
-          return;
-        }
-
-        final String name = item.title + ".mp4";
-
-        // 使用系统下载库？
-        final DownloadManager.Request request = new DownloadManager.Request(Uri.parse(item.url))
-                .setTitle(context.getString(R.string.app_name))
-                .setDescription(item.title)
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
-                .setMimeType("video/mp4")
-                .addRequestHeader("User-Agent", USER_AGENT);
-        final DownloadManager mgr = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-        final long id = mgr.enqueue(request);
-        Log.d(TAG, "download() id: " + id);
-        // 把 id 更新给 item
-        item.id = id;
-        item.state = DyState.DOWNLOADING;
-        DownloadObserver.get().addCallback(item, callback);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    });
-    DownloadObserver.get().start(context);
+  private static DownloadManager.Request generateRequest(Context context, VideoItem item) {
+    return new DownloadManager.Request(Uri.parse(item.url))
+      .setTitle(context.getString(R.string.app_name))
+      .setDescription(item.title)
+      .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+      .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, item.title + ".mp4")
+      .setMimeType("video/mp4")
+      .addRequestHeader("User-Agent", USER_AGENT);
   }
 
   // _id: 45

@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.dyvd.databinding.LayoutVideoItemBinding;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,9 +22,9 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
 
   private Callback mCallback;
 
-  public VideoAdapter(Context context, List<VideoItem> items) {
+  public VideoAdapter(Context context) {
     mContext = context;
-    mItems = items;
+    mItems = new ArrayList<>();
   }
 
   public void setCallback(Callback callback) {
@@ -40,6 +41,22 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
 
   @Override public int getItemCount() {
     return mItems.size();
+  }
+
+  public void replace(List<VideoItem> items) {
+    if (items != null) {
+      mItems.clear();
+      mItems.addAll(items);
+      notifyDataSetChanged();
+    }
+  }
+
+  public void append(List<VideoItem> items) {
+    if (items != null) {
+      final int size = mItems.size();
+      mItems.addAll(items);
+      notifyItemRangeChanged(size, items.size());
+    }
   }
 
   public void insertVideo(VideoItem item) {

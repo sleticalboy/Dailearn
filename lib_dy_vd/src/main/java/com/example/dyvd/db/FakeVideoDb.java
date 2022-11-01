@@ -2,6 +2,7 @@ package com.example.dyvd.db;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 import com.example.dyvd.VideoItem;
 import com.example.dyvd.VideoParser;
 import java.io.Closeable;
@@ -39,6 +40,7 @@ public class FakeVideoDb implements Closeable {
     VideoItem item;
     for (String key : mSp.getAll().keySet()) {
       final String text = mSp.getString(key, null);
+      Log.d("FakeVideoDb", "getAllVideos() " + text);
       if (text != null && (item = VideoParser.fromJson(key, text)) != null) {
         items.add(item);
         mCache.put(item.shareUrl, item);

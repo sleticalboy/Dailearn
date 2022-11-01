@@ -1,5 +1,7 @@
 package com.example.dyvd;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import com.example.dyvd.db.Db;
 
@@ -9,7 +11,7 @@ import com.example.dyvd.db.Db;
  * @author binlee
  */
 @Db.Table(name = "videos")
-public final class VideoItem {
+public final class VideoItem implements Parcelable {
 
   // 数据库字段：id、title、tags、cover、bgm、url、date、share_key、state、reason
 
@@ -44,6 +46,32 @@ public final class VideoItem {
   @Db.Column(name = "_reason", type = String.class)
   public String reason;
 
+  public VideoItem() {}
+
+  private VideoItem(Parcel in) {
+    title = in.readString();
+    tags = in.readString();
+    coverUrl = in.readString();
+    url = in.readString();
+    bgmUrl = in.readString();
+    shareUrl = in.readString();
+    id = in.readLong();
+    date = in.readLong();
+    reason = in.readString();
+  }
+
+  public static final Creator<VideoItem> CREATOR = new Creator<VideoItem>() {
+    @Override
+    public VideoItem createFromParcel(Parcel in) {
+      return new VideoItem(in);
+    }
+
+    @Override
+    public VideoItem[] newArray(int size) {
+      return new VideoItem[size];
+    }
+  };
+
   @NonNull @Override public String toString() {
     return "VideoItem{" +
       "title='" + title + '\'' +
@@ -52,5 +80,21 @@ public final class VideoItem {
       ", shareUrl='" + shareUrl + '\'' +
       ", state='" + state + '\'' +
       '}';
+  }
+
+  @Override public int describeContents() {
+    return 0;
+  }
+
+  @Override public void writeToParcel(Parcel dest, int flags) {
+    dest.writeString(title);
+    dest.writeString(tags);
+    dest.writeString(coverUrl);
+    dest.writeString(url);
+    dest.writeString(bgmUrl);
+    dest.writeString(shareUrl);
+    dest.writeLong(id);
+    dest.writeLong(date);
+    dest.writeString(reason);
   }
 }
