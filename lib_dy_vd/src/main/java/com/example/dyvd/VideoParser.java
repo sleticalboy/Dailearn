@@ -2,6 +2,8 @@ package com.example.dyvd;
 
 import android.database.Cursor;
 import android.util.Log;
+import com.example.dyvd.db.Db;
+import java.lang.reflect.Field;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,7 +21,29 @@ public final class VideoParser {
   }
 
   public static VideoItem fromCursor(Cursor cursor) {
-    return null;
+    final VideoItem item = new VideoItem();
+    for (Field field : VideoItem.class.getDeclaredFields()) {
+      try {
+        final Db.Column column = field.getAnnotation(Db.Column.class);
+        if (column == null) continue;
+        final int index = cursor.getColumnIndex(column.name());
+        final Class<?> type = column.type();
+        if (type == String.class) {
+          field.set(item, cursor.getString(index));
+        } else if (type == int.class) {
+          if (field.getType() == DyState.class) {
+            field.set(item, DyState.values()[cursor.getInt(index)]);
+          } else {
+            field.set(item, cursor.getInt(index));
+          }
+        } else if (type == long.class) {
+          field.set(item, cursor.getLong(index));
+        }
+      } catch (IllegalAccessException e) {
+        e.printStackTrace();
+      }
+    }
+    return item;
   }
 
   public static VideoItem fromJson(String shareUrl, String text) {

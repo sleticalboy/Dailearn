@@ -20,7 +20,7 @@ import androidx.annotation.Nullable;
 import com.example.dyvd.DownloadObserver;
 import com.example.dyvd.DyUtil;
 import com.example.dyvd.VideoItem;
-import com.example.dyvd.db.FakeVideoDb;
+import com.example.dyvd.db.VideosDb;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +35,7 @@ public class DyService extends Service implements ClipboardManager.OnPrimaryClip
   private static final String TAG = "ClipboardObserver";
 
   private ClipboardManager mClipboard;
-  private FakeVideoDb mDb;
+  private VideosDb mDb;
 
   // 与 activity 通信，主动 push 事件到 activity
   private Messenger mServer;
@@ -53,7 +53,7 @@ public class DyService extends Service implements ClipboardManager.OnPrimaryClip
     mClipboard.addPrimaryClipChangedListener(this);
     DownloadObserver.get().start(this);
 
-    mDb = new FakeVideoDb(getApplicationContext());
+    mDb = new VideosDb(getApplicationContext());
 
     // 启动一个线程
     HandlerThread worker = new HandlerThread("DyWorker");
@@ -90,7 +90,7 @@ public class DyService extends Service implements ClipboardManager.OnPrimaryClip
     switch (msg.what) {
       case 1:
         // load all videos
-        final List<VideoItem> list = mDb.getAllVideos();
+        final List<VideoItem> list = mDb.getAll();
         // 如果数据量过大，要分批次投递，防止 binder 挂掉
         final int size = list.size();
         if (size > 10) {

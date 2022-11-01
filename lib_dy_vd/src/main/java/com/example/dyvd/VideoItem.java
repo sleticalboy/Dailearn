@@ -48,6 +48,14 @@ public final class VideoItem implements Parcelable {
 
   public VideoItem() {}
 
+  @NonNull @Override public String toString() {
+    return "VideoItem{" +
+      "title='" + title + '\'' +
+      ", tags='" + tags + '\'' +
+      ", state='" + state + '\'' +
+      '}';
+  }
+
   private VideoItem(Parcel in) {
     title = in.readString();
     tags = in.readString();
@@ -71,16 +79,6 @@ public final class VideoItem implements Parcelable {
       return new VideoItem[size];
     }
   };
-
-  @NonNull @Override public String toString() {
-    return "VideoItem{" +
-      "title='" + title + '\'' +
-      ", tags='" + tags + '\'' +
-      ", url='" + url + '\'' +
-      ", shareUrl='" + shareUrl + '\'' +
-      ", state='" + state + '\'' +
-      '}';
-  }
 
   @Override public int describeContents() {
     return 0;
