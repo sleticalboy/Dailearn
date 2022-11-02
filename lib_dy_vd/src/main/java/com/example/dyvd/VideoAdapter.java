@@ -2,6 +2,7 @@ package com.example.dyvd;
 
 import android.content.Context;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -64,6 +65,14 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
     notifyItemInserted(0);
   }
 
+  public void remove(VideoItem item) {
+    final int index = mItems.indexOf(item);
+    if (index >= 0) {
+      mItems.remove(index);
+      notifyItemRemoved(index);
+    }
+  }
+
   public void notifyItemChanged(VideoItem item) {
     final int index = mItems.indexOf(item);
     if (index >= 0) notifyItemChanged(index);
@@ -76,6 +85,9 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
 
     /** 点击状态 */
     void onClickState(VideoItem item);
+
+    /** 长按回调 */
+    boolean onLongClick(VideoItem item);
   }
 
   static class VideoHolder extends RecyclerView.ViewHolder {
@@ -100,6 +112,10 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
         if (callback != null) callback.onClickState(item);
       });
       mBinding.tvSource.setText(itemView.getContext().getString(R.string.source_from, "抖音"));
+
+      itemView.setOnLongClickListener(v -> {
+        return callback != null && callback.onLongClick(item);
+      });
     }
 
     private int translateState(DyState state) {

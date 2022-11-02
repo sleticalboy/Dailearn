@@ -17,13 +17,15 @@ import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.dyvd.databinding.ActivityVideoListBinding;
 import com.example.dyvd.service.DyService;
+import com.google.android.material.snackbar.Snackbar;
 
 public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback, Handler.Callback {
 
-  private static final String TAG = "MainActivity";
+  private static final String TAG = "VideoListActivity";
 
   private ActivityVideoListBinding mBinding;
   private VideoAdapter mAdapter;
@@ -48,6 +50,7 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
       mBinding.tvShareText.setText(null);
     });
     mBinding.rvVideos.setLayoutManager(new LinearLayoutManager(this));
+    mBinding.rvVideos.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
 
     mAdapter = new VideoAdapter(this);
     mAdapter.setCallback(this);
@@ -62,7 +65,6 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
       }
 
       @Override public void onServiceDisconnected(ComponentName name) {
-        //
       }
     }, Context.BIND_AUTO_CREATE);
   }
@@ -144,6 +146,20 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
         Toast.makeText(this, "删除", Toast.LENGTH_SHORT).show();
         break;
     }
+  }
+
+  @Override public boolean onLongClick(VideoItem item) {
+    Snackbar.make(mBinding.getRoot(), "确认删除?", Snackbar.LENGTH_SHORT)
+      .setAction("确定", v -> {
+        mAdapter.remove(item);
+        try {
+          mServer.send(Message.obtain(null, 4, item));
+        } catch (RemoteException e) {
+          e.printStackTrace();
+        }
+      })
+      .show();
+    return true;
   }
 
   @Override

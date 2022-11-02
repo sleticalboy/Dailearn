@@ -4,6 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import com.example.dyvd.db.Db;
+import com.example.dyvd.db.converter.StateConverter;
 
 /**
  * Created on 2022/10/25
@@ -31,10 +32,10 @@ public final class VideoItem implements Parcelable {
   @Db.Column(name = "_bgm", type = String.class)
   public String bgmUrl;
   /** 分享链接，作为 key */
-  @Db.Column(name = "_share_key", type = String.class)
+  @Db.Column(name = "_share_key", type = String.class, unique = true)
   public String shareUrl;
   /** 下载状态状态 */
-  @Db.Column(name = "_state", type = int.class)
+  @Db.Column(name = "_state", type = int.class, converter = StateConverter.class)
   public DyState state = DyState.NONE;
   /** 系统下载器生成的唯一标识 */
   @Db.Column(name = "_id", type = long.class)

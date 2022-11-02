@@ -32,7 +32,7 @@ import java.util.List;
 public class DyService extends Service implements ClipboardManager.OnPrimaryClipChangedListener,
   Handler.Callback {
 
-  private static final String TAG = "ClipboardObserver";
+  private static final String TAG = "DyService";
 
   private ClipboardManager mClipboard;
   private VideosDb mDb;
@@ -113,6 +113,10 @@ public class DyService extends Service implements ClipboardManager.OnPrimaryClip
         // 下载请求
         requestDownload((VideoItem) msg.obj);
         return true;
+      case 4:
+        // 删除
+        mDb.remove((VideoItem) msg.obj);
+        return true;
     }
     return false;
   }
@@ -168,7 +172,7 @@ public class DyService extends Service implements ClipboardManager.OnPrimaryClip
   private void postBatchResult(List<VideoItem> items) {
     if (items == null) return;
 
-    Log.d(TAG, "postBatchResult() size: " + items.size());
+    Log.d(TAG, "postBatchResult() size: " + items.size() + ", " + items);
 
     // 通知 UI 刷新
     final Message msg = Message.obtain();
@@ -200,5 +204,7 @@ public class DyService extends Service implements ClipboardManager.OnPrimaryClip
     } catch (RemoteException e) {
       e.printStackTrace();
     }
+    // 更新数据库
+    mDb.insert(item);
   }
 }

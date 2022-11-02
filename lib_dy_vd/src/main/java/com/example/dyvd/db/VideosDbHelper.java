@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import androidx.annotation.Nullable;
+import com.example.dyvd.VideoItem;
 
 /**
  * Created on 2022/11/1
@@ -15,11 +16,16 @@ final class VideosDbHelper extends SQLiteOpenHelper {
   private static final String DB_NAME = "dy_videos";
   private static final int DB_VERSION = 1;
 
+  private static final Class<?>[] TABLES = {
+    VideoItem.class
+  };
+
   public VideosDbHelper(@Nullable Context context) {
     super(context, DB_NAME, null, DB_VERSION);
   }
 
   @Override public void onCreate(SQLiteDatabase db) {
+    DbUtil.createTables(db, TABLES);
   }
 
   @Override public void onConfigure(SQLiteDatabase db) {

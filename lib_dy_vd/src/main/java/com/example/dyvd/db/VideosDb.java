@@ -14,8 +14,8 @@ import java.util.Map;
  */
 public final class VideosDb {
 
-  private VideosDbHelper mHelper;
-  private Map<String, VideoItem> mCache;
+  private final VideosDbHelper mHelper;
+  private final Map<String, VideoItem> mCache;
 
   public VideosDb(Context context) {
     mHelper = new VideosDbHelper(context);
@@ -28,10 +28,21 @@ public final class VideosDb {
 
   public void insert(VideoItem item) {
     DbUtil.insertOrReplace(mHelper.getWritableDatabase(), item);
+    mCache.put(item.shareUrl, item);
+  }
+
+  public void remove(VideoItem item) {
+    DbUtil.remove(mHelper.getWritableDatabase(), item);
+    mCache.remove(item.shareUrl);
   }
 
   public List<VideoItem> getAll() {
-    return DbUtil.queryAll(mHelper.getReadableDatabase(), VideoItem.class);
+    mCache.clear();
+    final List<VideoItem> items = DbUtil.queryAll(mHelper.getReadableDatabase(), VideoItem.class);
+    for (VideoItem item : items) {
+      mCache.put(item.shareUrl, item);
+    }
+    return items;
   }
 
   public boolean hasVideo(String key) {
