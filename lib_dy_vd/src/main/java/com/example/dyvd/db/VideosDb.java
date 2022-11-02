@@ -48,4 +48,8 @@ public final class VideosDb {
   public boolean hasVideo(String key) {
     return mCache.containsKey(key);
   }
+
+  public void close() {
+    mHelper.close();
+  }
 }

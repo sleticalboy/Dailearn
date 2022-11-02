@@ -1,8 +1,6 @@
 package com.example.dyvd;
 
-import android.content.Context;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,22 +16,16 @@ import java.util.List;
  */
 public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoHolder> {
 
-  private final Context mContext;
   private final List<VideoItem> mItems;
+  private final Callback mCallback;
 
-  private Callback mCallback;
-
-  public VideoAdapter(Context context) {
-    mContext = context;
+  public VideoAdapter(Callback callback) {
     mItems = new ArrayList<>();
-  }
-
-  public void setCallback(Callback callback) {
     mCallback = callback;
   }
 
   @NonNull @Override public VideoHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-    return new VideoHolder(LayoutVideoItemBinding.inflate(LayoutInflater.from(mContext), parent, false));
+    return new VideoHolder(LayoutVideoItemBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false));
   }
 
   @Override public void onBindViewHolder(@NonNull VideoHolder holder, int position) {
@@ -45,10 +37,10 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
   }
 
   public void replace(List<VideoItem> items) {
+    mItems.clear();
     if (items != null) {
-      mItems.clear();
       mItems.addAll(items);
-      notifyDataSetChanged();
+      notifyItemRangeChanged(0, items.size());
     }
   }
 
@@ -92,10 +84,9 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
 
   static class VideoHolder extends RecyclerView.ViewHolder {
 
-    @NonNull
-    private final LayoutVideoItemBinding mBinding;
+    @NonNull private final LayoutVideoItemBinding mBinding;
 
-    public VideoHolder(@NonNull LayoutVideoItemBinding binding) {
+    private VideoHolder(@NonNull LayoutVideoItemBinding binding) {
       super(binding.getRoot());
       mBinding = binding;
     }

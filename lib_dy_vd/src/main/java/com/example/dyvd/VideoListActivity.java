@@ -10,9 +10,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -20,17 +19,20 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.dyvd.databinding.ActivityVideoListBinding;
+import com.example.dyvd.service.DyBinder;
 import com.example.dyvd.service.DyService;
 import com.google.android.material.snackbar.Snackbar;
+import java.util.List;
 
-public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback, Handler.Callback {
+public class VideoListActivity extends AppCompatActivity implements VideoAdapter.Callback,
+  ServiceConnection, Handler.Callback {
 
   private static final String TAG = "VideoListActivity";
 
   private ActivityVideoListBinding mBinding;
   private VideoAdapter mAdapter;
 
-  private Messenger mServer;
+  private Handler mWorker;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -53,58 +55,49 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
     mBinding.rvVideos.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
 
     mAdapter = new VideoAdapter(this);
-    mAdapter.setCallback(this);
     mBinding.rvVideos.setAdapter(mAdapter);
 
-    final Intent intent = new Intent(this, DyService.class);
-    intent.putExtra("client_messenger", new Messenger(new Handler(this)));
-    bindService(intent, new ServiceConnection() {
-      @Override public void onServiceConnected(ComponentName name, IBinder service) {
-        mServer = new Messenger(service);
-        loadAllVideos();
-      }
-
-      @Override public void onServiceDisconnected(ComponentName name) {
-      }
-    }, Context.BIND_AUTO_CREATE);
+    bindService(new Intent(this, DyService.class), this, Context.BIND_AUTO_CREATE);
   }
 
-  private void loadAllVideos() {
-    // 显示 dialog，正在加载
-    try {
-      // 请求加载数据
-      mServer.send(Message.obtain(null, 1));
-    } catch (RemoteException e) {
-      e.printStackTrace();
-    }
+  @Override protected void onDestroy() {
+    super.onDestroy();
+    unbindService(this);
+  }
+
+  @Override public void onServiceConnected(ComponentName name, IBinder service) {
+    final DyBinder binder = (DyBinder) service;
+    binder.attach(new Handler(Looper.getMainLooper(), this));
+    mWorker = binder.getWorker();
+    requestLoadAll();
+  }
+
+  @Override public void onServiceDisconnected(ComponentName name) {
+    Log.d(TAG, "onServiceDisconnected()  name: " + name);
+  }
+
+  private void requestLoadAll() {
+    Log.d(TAG, "requestLoadAll() worker: " + mWorker);
+    // 请求加载数据
+    Message.obtain(mWorker, 1).sendToTarget();
   }
 
   private void resolveVideo(String text) {
-    try {
-      mServer.send(Message.obtain(null, 2, text));
-    } catch (RemoteException e) {
-      e.printStackTrace();
-    }
+    Message.obtain(mWorker, 2, text).sendToTarget();
   }
 
-  private void postResult(VideoItem item) {
-    Log.d(TAG, "postResult() " + item);
-    if (item == null) return;
-
-    mAdapter.insertVideo(item);
-    mBinding.rvVideos.scrollToPosition(0);
-  }
-
+  @SuppressWarnings("unchecked")
   @Override public boolean handleMessage(@NonNull Message msg) {
     switch (msg.what) {
       case 1:
-        mAdapter.replace(msg.getData().getParcelableArrayList("video_items"));
+        mAdapter.replace((List<VideoItem>) msg.obj);
         return true;
       case 2:
-        postResult(((VideoItem) msg.obj));
+        mAdapter.insertVideo((VideoItem) msg.obj);
+        mBinding.rvVideos.scrollToPosition(0);
         return true;
       case 3:
-        mAdapter.append(msg.getData().getParcelableArrayList("video_items"));
+        mAdapter.append((List<VideoItem>) msg.obj);
         return true;
       case 4:
       case 5:
@@ -114,8 +107,9 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
         // 下载完成
         mAdapter.notifyItemChanged((VideoItem) msg.obj);
         return true;
+      default:
+        return false;
     }
-    return false;
   }
 
   @Override public void onClickCover(VideoItem item) {
@@ -130,7 +124,7 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
         // 下载
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
           if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
-            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
+            requestPermissions(new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE }, 100);
             mPendingItem = item;
             return;
           }
@@ -152,18 +146,15 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
     Snackbar.make(mBinding.getRoot(), "确认删除?", Snackbar.LENGTH_SHORT)
       .setAction("确定", v -> {
         mAdapter.remove(item);
-        try {
-          mServer.send(Message.obtain(null, 4, item));
-        } catch (RemoteException e) {
-          e.printStackTrace();
-        }
+        Message.obtain(mWorker, 4, item).sendToTarget();
       })
       .show();
     return true;
   }
 
   @Override
-  public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions, @NonNull final int[] grantResults) {
+  public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions,
+    @NonNull final int[] grantResults) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == 100 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
       downloadVideo(mPendingItem);
@@ -172,10 +163,6 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   }
 
   private void downloadVideo(final VideoItem item) {
-    try {
-      mServer.send(Message.obtain(null, 3, item));
-    } catch (RemoteException e) {
-      e.printStackTrace();
-    }
+    Message.obtain(mWorker, 3, item).sendToTarget();
   }
 }
