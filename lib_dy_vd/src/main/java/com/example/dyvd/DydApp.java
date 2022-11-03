@@ -9,7 +9,7 @@ import com.example.dyvd.service.DyService;
  *
  * @author binlee
  */
-public class DownloadApp extends Application {
+public class DydApp extends Application {
 
   @Override public void onCreate() {
     super.onCreate();

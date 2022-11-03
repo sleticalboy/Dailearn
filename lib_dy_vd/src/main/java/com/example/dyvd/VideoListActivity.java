@@ -32,7 +32,7 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   private ActivityVideoListBinding mBinding;
   private VideoAdapter mAdapter;
 
-  private Handler mWorker;
+  private DyBinder mService;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +46,7 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
     // 下载视频并存入数据库
 
     mBinding.btnResolveUrl.setOnClickListener(v -> {
-      resolveVideo(mBinding.tvShareText.getText().toString());
+      mService.requestResolveVideo(mBinding.tvShareText.getText().toString());
     });
     mBinding.ivClearUrl.setOnClickListener(v -> {
       mBinding.tvShareText.setText(null);
@@ -66,24 +66,13 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   }
 
   @Override public void onServiceConnected(ComponentName name, IBinder service) {
-    final DyBinder binder = (DyBinder) service;
-    binder.attach(new Handler(Looper.getMainLooper(), this));
-    mWorker = binder.getWorker();
-    requestLoadAll();
+    mService = (DyBinder) service;
+    mService.attach(new Handler(Looper.getMainLooper(), this));
+    mService.requestLoadAll();
   }
 
   @Override public void onServiceDisconnected(ComponentName name) {
     Log.d(TAG, "onServiceDisconnected()  name: " + name);
-  }
-
-  private void requestLoadAll() {
-    Log.d(TAG, "requestLoadAll() worker: " + mWorker);
-    // 请求加载数据
-    Message.obtain(mWorker, 1).sendToTarget();
-  }
-
-  private void resolveVideo(String text) {
-    Message.obtain(mWorker, 2, text).sendToTarget();
   }
 
   @SuppressWarnings("unchecked")
@@ -95,9 +84,6 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
       case 2:
         mAdapter.insertVideo((VideoItem) msg.obj);
         mBinding.rvVideos.scrollToPosition(0);
-        return true;
-      case 3:
-        mAdapter.append((List<VideoItem>) msg.obj);
         return true;
       case 4:
       case 5:
@@ -129,7 +115,7 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
             return;
           }
         }
-        downloadVideo(item);
+        mService.requestDownloadVideo(item);
         break;
       case DOWNLOADING:
         // 暂停
@@ -143,10 +129,10 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
   }
 
   @Override public boolean onLongClick(VideoItem item) {
-    Snackbar.make(mBinding.getRoot(), "确认删除?", Snackbar.LENGTH_SHORT)
-      .setAction("确定", v -> {
+    Snackbar.make(mBinding.getRoot(), R.string.confirm_delete, Snackbar.LENGTH_SHORT)
+      .setAction(R.string.ok, v -> {
         mAdapter.remove(item);
-        Message.obtain(mWorker, 4, item).sendToTarget();
+        mService.requestRemoveVideo(item);
       })
       .show();
     return true;
@@ -157,12 +143,8 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
     @NonNull final int[] grantResults) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == 100 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-      downloadVideo(mPendingItem);
+      mService.requestDownloadVideo(mPendingItem);
       mPendingItem = null;
     }
-  }
-
-  private void downloadVideo(final VideoItem item) {
-    Message.obtain(mWorker, 3, item).sendToTarget();
   }
 }

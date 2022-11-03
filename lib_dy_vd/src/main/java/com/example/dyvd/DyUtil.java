@@ -7,13 +7,12 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
+import com.example.dyvd.engine.Engine;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * Created on 2022/10/25
@@ -24,87 +23,11 @@ public final class DyUtil {
 
   private static final String TAG = "DyUtil";
 
-  private static final String DY_DOMAIN = "v.douyin.com";
-  private static final String TOOL_URL = "https://www.ilovetools.cn/douyin/search-video-info";
-  private static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 12; M2012K11AG Build/SKQ1.211006.001; wv)"
-    + " AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.126 Mobile Safari/537.36";
-
   private DyUtil() {
     //no instance
   }
 
-  // 1.20 VLj:/ “别让这个城市留下了你的青春，却留不下你”# 离开 # 城市 # 回乡 # 逃离北上广 # 服务员 # 生活 https://v.douyin.com/MxFGWAS/ 复制此链接，打开Dou音搜索，直接观看视频！
-  // 2.56 usR:/ 北漂13年，失败告终，带着一身疲惫光荣返乡！踏踏实实做个农民吧！老房改造第一季~# 旧房改造 # 老房改造# 农村生活# 返乡创业青年 https://v.douyin.com/MxFHfSB/ 复制此链接，打开Dou音搜索，直接观看视频！
-  // 2.58 lcn:/ 复制打开抖音，看看【返乡军哥的作品】北漂13年，失败告终，带着一身疲惫光荣返乡！踏踏实... https://v.douyin.com/M9VCxkn/
-  // title: 北漂13年，失败告终，带着一身疲惫光荣返乡！踏踏实...
-  // author: 返乡军哥的作品
-  // url: https://v.douyin.com/M9VCxkn/
-  public static String getOriginalShareUrl(String text) {
-    // 目前仅支持抖音分享链接，后续会考虑支持快手等
-    if (text == null || !text.contains(DY_DOMAIN)) return null;
-
-    // 解析 url
-    int start = text.indexOf("http");
-    if (start < 0) return null;
-    final int end = text.lastIndexOf('/');
-    return end < 0 ? text.substring(start) : text.substring(start, end + 1);
-  }
-
-  public static final class Result {
-
-    public final VideoItem result;
-    public final Throwable error;
-
-    public Result(VideoItem result, Throwable error) {
-      this.result = result;
-      this.error = error;
-    }
-
-    public static Result of(VideoItem item) {
-      return new Result(item, null);
-    }
-
-    public static Result error(Throwable error) {
-      return new Result(null, error);
-    }
-
-    public boolean success() {
-      return error == null;
-    }
-  }
-
-  public static Result parseItem(String shareUrl) {
-    try {
-      return Result.of(VideoParser.fromJson(shareUrl, getVideoJson(shareUrl)));
-    } catch (IOException | JSONException e) {
-      return Result.error(e);
-    }
-  }
-
-  private static String getVideoJson(String shareText) throws IOException, JSONException {
-    final HttpURLConnection connection = (HttpURLConnection) new URL(TOOL_URL).openConnection();
-    connection.setRequestMethod("POST");
-    connection.addRequestProperty("Accept", "*/*");
-    connection.addRequestProperty("Host", "www.ilovetools.cn");
-    connection.addRequestProperty("Origin", "https://www.ilovetools.cn");
-    connection.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-    connection.addRequestProperty("User-Agent", USER_AGENT);
-    connection.setDoOutput(true);
-    connection.getOutputStream().write(("shareUrl=" + shareText).getBytes());
-    final int code = connection.getResponseCode();
-    Log.d(TAG, "getClearJson() http code: " + code + ", msg: [" + connection.getResponseMessage()
-      + "], mime: " + connection.getContentType());
-    // stream to string
-    String result;
-    if (code >= 200 && code < 400) {
-      result = streamAsString(connection.getInputStream());
-    } else {
-      result = streamAsString(connection.getErrorStream());
-    }
-    return new JSONObject(result).getString("data");
-  }
-
-  private static String streamAsString(InputStream in) throws IOException {
+  public static String streamAsString(InputStream in) throws IOException {
     if (in == null) return "[stream|is|null]";
 
     final ByteArrayOutputStream baos = new ByteArrayOutputStream(in.available());
@@ -137,7 +60,7 @@ public final class DyUtil {
     try {
       final HttpURLConnection connection = (HttpURLConnection) new URL(item.url).openConnection();
       connection.setRequestMethod("GET");
-      connection.addRequestProperty("User-Agent", USER_AGENT);
+      connection.addRequestProperty("User-Agent", Engine.USER_AGENT);
       final int code = connection.getResponseCode();
       Log.d(TAG, "download() http code: " + code
               + ", msg: [" + connection.getResponseMessage() + "]"
@@ -173,7 +96,7 @@ public final class DyUtil {
       .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
       .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, item.title + ".mp4")
       .setMimeType("video/mp4")
-      .addRequestHeader("User-Agent", USER_AGENT);
+      .addRequestHeader("User-Agent", Engine.USER_AGENT);
   }
 
   // _id: 45

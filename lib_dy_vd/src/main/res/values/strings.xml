@@ -8,4 +8,6 @@
   <string name="state_broken">无法下载</string>
   <string name="source_from">来源: %1$s</string>
   <string name="video_tags">标签: %1$s</string>
+  <string name="confirm_delete">确认删除?</string>
+  <string name="ok">确定</string>
 </resources>

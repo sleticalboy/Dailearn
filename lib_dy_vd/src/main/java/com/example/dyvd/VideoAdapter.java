@@ -44,14 +44,6 @@ public final class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.VideoH
     }
   }
 
-  public void append(List<VideoItem> items) {
-    if (items != null) {
-      final int size = mItems.size();
-      mItems.addAll(items);
-      notifyItemRangeChanged(size, items.size());
-    }
-  }
-
   public void insertVideo(VideoItem item) {
     mItems.add(0, item);
     notifyItemInserted(0);
