@@ -1,5 +1,7 @@
 package com.example.dyvd.engine;
 
+import androidx.annotation.NonNull;
+
 import com.example.dyvd.VideoItem;
 import java.io.IOException;
 import org.json.JSONException;
@@ -58,6 +60,7 @@ public abstract class Engine {
       return result != null && error == null;
     }
 
+    @NonNull
     @Override public String toString() {
       return "Result{" +
         "result=" + result +

@@ -19,6 +19,11 @@ public final class DyEngine extends Engine {
   public static final String DOMAIN = "v.douyin.com";
   public static final String TOOL_URL = "https://www.ilovetools.cn/douyin/search-video-info";
 
+  // 去水印原理：
+  // https://blog.csdn.net/a554829401/article/details/123639230
+  // https://zhuanlan.zhihu.com/p/144733172
+  // https://blog.csdn.net/qq_35098526/article/details/108142040
+
   public DyEngine(String text) {
     super(text);
   }

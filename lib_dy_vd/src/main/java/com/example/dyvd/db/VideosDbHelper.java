@@ -13,7 +13,7 @@ import com.example.dyvd.VideoItem;
  */
 final class VideosDbHelper extends SQLiteOpenHelper {
 
-  private static final String DB_NAME = "dy_videos";
+  private static final String DB_NAME = "dy_videos.db";
   private static final int DB_VERSION = 1;
 
   private static final Class<?>[] TABLES = {

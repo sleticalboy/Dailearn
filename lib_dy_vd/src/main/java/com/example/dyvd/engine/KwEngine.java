@@ -1,11 +1,15 @@
 package com.example.dyvd.engine;
 
+import android.net.Uri;
 import android.util.Log;
 import com.example.dyvd.DyUtil;
 import com.example.dyvd.VideoItem;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,6 +23,8 @@ public class KwEngine extends Engine {
   public static final String DOMAIN = "v.kuaishou.com";
   public static final String TOOL_URL = "https://3g.gljlw.com/diy/ttxs_ks_2021.php";
 
+  // 去水印原理：
+  // https://www.likecs.com/show-204863386.html
   public KwEngine(String shareUrl) {
     super(shareUrl);
   }
@@ -42,19 +48,55 @@ public class KwEngine extends Engine {
   }
 
   @Override protected String getVideoInfo() throws IOException, JSONException {
-    // https://3g.gljlw.com/diy/ttxs_ks_2021.php?url=https://v.kuaishou.com/BgUhrh
-    final HttpURLConnection conn = (HttpURLConnection) new URL(TOOL_URL + "?url=" + shareUrl).openConnection();
+    HttpURLConnection conn = (HttpURLConnection) new URL(shareUrl).openConnection();
     conn.setRequestMethod("GET");
-    conn.addRequestProperty("Accept", "*/*");
-    conn.addRequestProperty("Host", "www.ilovetools.cn");
-    conn.addRequestProperty("Origin", "https://www.ilovetools.cn");
-    conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+    // conn.addRequestProperty("Accept", "*/*");
+    conn.addRequestProperty("Host", "v.kuaishou.com");
+    // conn.addRequestProperty("Origin", "https://www.ilovetools.cn");
+    // conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     conn.addRequestProperty("User-Agent", USER_AGENT);
-    conn.setDoOutput(true);
-    conn.getOutputStream().write(("shareUrl=" + shareUrl).getBytes());
+    // conn.setDoOutput(true);
+    // conn.getOutputStream().write(("shareUrl=" + shareUrl).getBytes());
     final int code = conn.getResponseCode();
     Log.d(TAG, "getVideoInfo() http code: " + code + ", msg: [" + conn.getResponseMessage()
       + "], mime: " + conn.getContentType());
+
+    final String location = conn.getHeaderField("Location");
+    Log.d(TAG, "getVideoInfo() location: " + location);
+
+    int start = location.indexOf("userId=") + 7;
+    int end = location.indexOf('&', start);
+    final String userId = location.substring(start, end);
+    Log.d(TAG, "getVideoInfo() userId: " + userId);
+
+    start = location.indexOf("redirectPath=") + 13;
+    end = location.indexOf('&', start);
+    final String temp = location.substring(start, end);
+    Log.d(TAG, "getVideoInfo() redirectPath: " + temp);
+    final String segment = temp.substring(temp.lastIndexOf("%2F") + 3);
+    Log.d(TAG, "getVideoInfo() last segment: " + segment);
+
+    tryNext("https://live.kuaishou.com/u/" + userId + "/" + segment);
+    return null;
+  }
+
+  private void tryNext(String url) throws IOException {
+
+    Log.d(TAG, "tryNext() called with: url = [" + url + "]");
+
+    HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+    conn.setRequestMethod("GET");
+    // conn.addRequestProperty("Accept", "*/*");
+    conn.addRequestProperty("Host", "v.kuaishou.com");
+    // conn.addRequestProperty("Origin", "https://www.ilovetools.cn");
+    // conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+    conn.addRequestProperty("User-Agent", USER_AGENT);
+    // conn.setDoOutput(true);
+    // conn.getOutputStream().write(("shareUrl=" + shareUrl).getBytes());
+    final int code = conn.getResponseCode();
+    Log.d(TAG, "tryNext() http code: " + code + ", msg: [" + conn.getResponseMessage()
+            + "], mime: " + conn.getContentType());
+
     // stream to string
     String result;
     if (code >= 200 && code < 400) {
@@ -62,6 +104,18 @@ public class KwEngine extends Engine {
     } else {
       result = DyUtil.streamAsString(conn.getErrorStream());
     }
-    return new JSONObject(result).getString("data");
+    Log.d(TAG, "tryNext() " + result);
+    // Split by line, then ensure each line can fit into Log's maximum length.
+    for (int i = 0, length = result.length(); i < length; i++) {
+      int newline = result.indexOf('\n', i);
+      newline = newline != -1 ? newline : length;
+      do {
+        int limit = Math.min(newline, i + MAX_LOG_LENGTH);
+        Log.d(TAG, "tryNext() " + result.substring(i, limit));
+        i = limit;
+      } while (i < newline);
+    }
   }
+
+  private static final int MAX_LOG_LENGTH = 4000;
 }
