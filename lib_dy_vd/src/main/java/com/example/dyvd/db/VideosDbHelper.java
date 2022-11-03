@@ -20,6 +20,10 @@ final class VideosDbHelper extends SQLiteOpenHelper {
     VideoItem.class
   };
 
+  static {
+    DbUtil.preload(TABLES);
+  }
+
   public VideosDbHelper(@Nullable Context context) {
     super(context, DB_NAME, null, DB_VERSION);
   }

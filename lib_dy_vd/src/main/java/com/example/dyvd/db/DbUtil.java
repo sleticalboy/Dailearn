@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+import androidx.annotation.NonNull;
 import com.example.dyvd.VideoItem;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -20,31 +21,38 @@ final class DbUtil {
 
   private static final String TAG = "DbUtil";
 
+  private static final Map<Class<?>, Table> sTables = new HashMap<>();
+
   private DbUtil() {
     //no instance
   }
 
+  public static void preload(Class<?>[] classes) {
+    for (Class<?> clazz : classes) {
+      sTables.put(clazz, parseTable(clazz));
+    }
+  }
+
   public static void createTables(SQLiteDatabase db, Class<?>[] classes) {
     for (Class<?> clazz : classes) {
-      final String table = getTable(clazz);
-      StringBuilder sql = new StringBuilder("create table if not exists " + table + "(");
-      for (Field field : clazz.getDeclaredFields()) {
-        final Db.Column column = field.getAnnotation(Db.Column.class);
-        if (column == null) continue;
-        sql.append(column.name());
-        final Class<?> type = column.type();
-        if (type == int.class) {
+      final Table table = sTables.get(clazz);
+      if (table == null) continue;
+
+      StringBuilder sql = new StringBuilder("create table if not exists " + table.mName + "(");
+
+      for (Column column : table.mColumns) {
+        sql.append(column.mName);
+        if (column.mType == int.class) {
           sql.append(" integer");
-        } else if (type == long.class) {
+        } else if (column.mType == long.class) {
           sql.append(" long");
-        } else if (type == String.class) {
+        } else if (column.mType == String.class) {
           sql.append(" varchar");
         }
         // 主键
-        if (column.unique()) {
+        if (column.mUnique) {
           sql.append(" primary key");
         }
-
         sql.append(", ");
       }
       sql.delete(sql.length() - 2, sql.length()).append(")");
@@ -53,27 +61,32 @@ final class DbUtil {
     }
   }
 
-  public static void remove(SQLiteDatabase db, VideoItem item) {
-    db.delete(getTable(item.getClass()), "_share_key = ?", new String[] { item.shareUrl });
+  public static void remove(SQLiteDatabase db, VideoItem bean) {
+    final Table table = getTableOrThrow(bean.getClass());
+    try {
+      final String[] whereArgs = { "" + table.mPrimary.getField(bean) };
+      db.delete(table.mName, table.mPrimary.mName + " = ?", whereArgs);
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    }
   }
 
   public static <T> void insertOrReplace(SQLiteDatabase db, T item) {
-    final ContentValues values;
+    final Table table = getTableOrThrow(item.getClass());
     try {
-      values = toValues(item);
+      db.replace(table.mName, null, toValues(item, table));
     } catch (IllegalAccessException e) {
       throw new RuntimeException(e);
     }
-    db.replace(getTable(item.getClass()), null, values);
   }
 
   public static <T> List<T> queryAll(SQLiteDatabase db, Class<T> clazz) {
-    final String sql = "select * from " + getTable(clazz);
+    final Table table = getTableOrThrow(clazz);
     final List<T> list = new ArrayList<>();
-    try (Cursor cursor = db.rawQuery(sql, null)) {
+    try (Cursor cursor = db.rawQuery("select * from " + table.mName, null)) {
       while (cursor.moveToNext()) {
         try {
-          list.add(toBean(cursor, clazz));
+          list.add(toBean(cursor, clazz, table));
         } catch (IllegalAccessException | InstantiationException e) {
           e.printStackTrace();
         }
@@ -82,57 +95,116 @@ final class DbUtil {
     return list;
   }
 
-  private static String getTable(Class<?> clazz) {
-    final Db.Table table = clazz.getAnnotation(Db.Table.class);
-    if (table == null) {
+  private static Table parseTable(Class<?> clazz) {
+    final Db.Table tableAnnotation = clazz.getAnnotation(Db.Table.class);
+    if (tableAnnotation == null) {
       throw new IllegalArgumentException(clazz + " must be annotated by Db.Table!");
     }
-    return table.name();
+    final Table table = new Table(tableAnnotation.name());
+
+    for (Field field : clazz.getDeclaredFields()) {
+      final Db.Column columnAnnotation = field.getAnnotation(Db.Column.class);
+      if (columnAnnotation == null) continue;
+
+      final Column column = new Column(field, columnAnnotation);
+      if (column.mUnique) {
+        table.mPrimary = column;
+      }
+      table.mColumns.add(column);
+    }
+
+    if (table.mPrimary == null) throw new IllegalArgumentException("No primary key in table: " + table.mName);
+
+    Log.d(TAG, "parseTable() " + clazz + ", " + table);
+    return table;
   }
 
-  private static <T> ContentValues toValues(T bean) throws IllegalAccessException {
-    final ContentValues values = new ContentValues();
-    for (Field field : bean.getClass().getDeclaredFields()) {
-      final Db.Column column = field.getAnnotation(Db.Column.class);
-      if (column == null) continue;
-
-      final Class<?> type = column.type();
-      final Object value = ConverterWrapper.wrap(column.converter()).encode(field.get(bean));
-
-      if (type == String.class) {
-        values.put(column.name(), (String) value);
-      } else if (type == int.class) {
-        values.put(column.name(), (Integer) value);
-      } else if (type == long.class) {
-        values.put(column.name(), (Long) value);
+  private static <T> ContentValues toValues(T bean, Table table) throws IllegalAccessException {
+    final ContentValues values = new ContentValues(table.mColumns.size());
+    for (Column column : table.mColumns) {
+      final Object value = column.getField(bean);
+      if (column.mType == String.class) {
+        values.put(column.mName, (String) value);
+      } else if (column.mType == int.class) {
+        values.put(column.mName, (Integer) value);
+      } else if (column.mType == long.class) {
+        values.put(column.mName, (Long) value);
       }
     }
     return values;
   }
 
-  private static <T> T toBean(Cursor cursor, Class<T> clazz) throws IllegalAccessException, InstantiationException {
+  private static <T> T toBean(Cursor cursor, Class<T> clazz, Table table) throws IllegalAccessException, InstantiationException {
     final T bean = clazz.newInstance();
-
-    for (Field field : clazz.getDeclaredFields()) {
-      final Db.Column column = field.getAnnotation(Db.Column.class);
-      if (column == null) continue;
-
-      final int index = cursor.getColumnIndex(column.name());
-      final Class<?> type = column.type();
-
+    for (Column column : table.mColumns) {
       Object obj;
-      if (type == String.class) {
+      final int index = cursor.getColumnIndex(column.mName);
+      if (column.mType == String.class) {
         obj = cursor.getString(index);
-      } else if (type == int.class) {
+      } else if (column.mType == int.class) {
         obj = cursor.getInt(index);
-      } else if (type == long.class) {
+      } else if (column.mType == long.class) {
         obj = cursor.getLong(index);
       } else {
         continue;
       }
-      field.set(bean, ConverterWrapper.wrap(column.converter()).decode(obj));
+      column.setField(bean, obj);
     }
     return bean;
+  }
+
+  private static Table getTableOrThrow(Class<?> clazz) {
+    final Table table = sTables.get(clazz);
+    if (table == null) {
+      throw new IllegalArgumentException("Invalid java bean: " + clazz);
+    }
+    return table;
+  }
+
+  private static class Table {
+    // 表名、表列、主键
+    public final String mName;
+    public List<Column> mColumns = new ArrayList<>();
+    public Column mPrimary;
+
+    public Table(String name) {
+      mName = name;
+    }
+
+    @NonNull @Override public String toString() {
+      return "Table{" + mName + ": " + mColumns + ", primary key: " + mPrimary.mName + '}';
+    }
+  }
+
+  private static class Column {
+    // 列名、列类型、主键、转换器、对应的转换器
+
+    public final Field mField;
+    public final String mName;
+    public final Class<?> mType;
+    public final Class<?> mConverter;
+
+    public final boolean mUnique;
+
+    public Column(Field field, Db.Column column) {
+      mField = field;
+      mName = column.name();
+      mType = column.type();
+      mUnique = column.unique();
+      mConverter = column.converter();
+    }
+
+    public <T> Object getField(T bean) throws IllegalAccessException {
+      return ConverterWrapper.wrap(mConverter).encode(mField.get(bean));
+    }
+
+    public <T> void setField(T bean, Object obj) throws IllegalAccessException {
+      mField.set(bean, ConverterWrapper.wrap(mConverter).decode(obj));
+    }
+
+    @NonNull @Override public String toString() {
+      return "Column{" + mName + ": " + mType + ", converter: " + mConverter + ", unique: " + mUnique + '}';
+    }
   }
 
   private static class ConverterWrapper implements Converter<Object, Object> {
@@ -171,6 +243,4 @@ final class DbUtil {
       return mConverter.decode(input);
     }
   }
-
-  private static class TableInfo {}
 }
