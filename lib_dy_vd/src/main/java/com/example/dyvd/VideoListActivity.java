@@ -125,6 +125,14 @@ public class VideoListActivity extends AppCompatActivity implements VideoAdapter
         // 删除或打开
         Toast.makeText(this, "删除", Toast.LENGTH_SHORT).show();
         break;
+      case BROKEN:
+        // 重试或删除
+        Snackbar.make(mBinding.getRoot(), "重试?", Snackbar.LENGTH_SHORT)
+          .setAction(R.string.ok, v -> {
+            mService.requestDownloadVideo(item);
+          })
+          .show();
+        break;
     }
   }
 
