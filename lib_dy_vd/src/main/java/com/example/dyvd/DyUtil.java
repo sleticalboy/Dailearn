@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Created on 2022/10/25
@@ -27,8 +29,12 @@ public final class DyUtil {
     //no instance
   }
 
-  public static String streamAsString(InputStream in) throws IOException {
+  public static String streamAsString(InputStream in, String encoding) throws IOException {
     if (in == null) return "[stream|is|null]";
+
+    if ("gzip".equalsIgnoreCase(encoding)) {
+      in = new GZIPInputStream(in);
+    }
 
     final ByteArrayOutputStream baos = new ByteArrayOutputStream(in.available());
     int len;
@@ -58,19 +64,19 @@ public final class DyUtil {
     }
 
     try {
-      final HttpURLConnection connection = (HttpURLConnection) new URL(item.url).openConnection();
-      connection.setRequestMethod("GET");
-      connection.addRequestProperty("User-Agent", Engine.USER_AGENT);
-      final int code = connection.getResponseCode();
+      final HttpURLConnection conn = (HttpURLConnection) new URL(item.url).openConnection();
+      conn.setRequestMethod("GET");
+      conn.addRequestProperty("User-Agent", Engine.USER_AGENT);
+      final int code = conn.getResponseCode();
       Log.d(TAG, "download() http code: " + code
-              + ", msg: [" + connection.getResponseMessage() + "]"
-              + ", mime: " + connection.getContentType()
-              + ", length: " + connection.getContentLength()
+              + ", msg: [" + conn.getResponseMessage() + "]"
+              + ", mime: " + conn.getContentType()
+              + ", length: " + conn.getContentLength()
       );
 
       if (code >= 400) {
         item.state = DyState.BROKEN;
-        item.reason = "http code: " + code + ", msg: " + connection.getResponseMessage();
+        item.reason = conn.getHeaderField(null);
         callback.onError(item);
         return;
       }

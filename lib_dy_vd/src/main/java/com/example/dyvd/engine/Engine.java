@@ -18,17 +18,17 @@ public abstract class Engine {
   public static final String USER_AGENT = "Mozilla/5.0 (Linux; Android 12; M2012K11AG Build/SKQ1.211006.001; wv)"
     + " AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.126 Mobile Safari/537.36";
 
-  public String shareUrl;
+  public String shortUrl;
 
   public Engine(String text) {
-    this.shareUrl = parseShareUrl(text);
+    this.shortUrl = parseShareUrl(text);
   }
 
   protected abstract String parseShareUrl(String text);
 
   public final Result parseItem() {
     try {
-      return Result.of(fromJson(shareUrl, getVideoInfo()));
+      return Result.of(fromJson(shortUrl, getVideoInfo()));
     } catch (IOException | JSONException e) {
       return Result.error(e);
     }

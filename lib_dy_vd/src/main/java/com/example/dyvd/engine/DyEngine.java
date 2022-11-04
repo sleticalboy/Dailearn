@@ -24,6 +24,15 @@ public final class DyEngine extends Engine {
   // https://zhuanlan.zhihu.com/p/144733172
   // https://blog.csdn.net/qq_35098526/article/details/108142040
 
+  // 1、请求短链，从响应头拿到重定向地址解析出 items_id;
+  // 2、访问 https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids={items_id} 获取 json 响应;
+  // 3、解析 json 拿到标题、标签、封面、视频地址：
+  //  item_list [0]
+  //    desc: 标题和标签
+  //    video:
+  //      play_addr -> url_list[0] 播放地址 playwm -> play
+  //      origin_cover -> url_list[0] 原始封面
+
   public DyEngine(String text) {
     super(text);
   }
@@ -46,24 +55,24 @@ public final class DyEngine extends Engine {
   }
 
   @Override protected String getVideoInfo() throws IOException, JSONException {
-    final HttpURLConnection connection = (HttpURLConnection) new URL(TOOL_URL).openConnection();
-    connection.setRequestMethod("POST");
-    connection.addRequestProperty("Accept", "*/*");
-    connection.addRequestProperty("Host", "www.ilovetools.cn");
-    connection.addRequestProperty("Origin", "https://www.ilovetools.cn");
-    connection.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-    connection.addRequestProperty("User-Agent", USER_AGENT);
-    connection.setDoOutput(true);
-    connection.getOutputStream().write(("shareUrl=" + shareUrl).getBytes());
-    final int code = connection.getResponseCode();
-    Log.d(TAG, "getVideoInfo() http code: " + code + ", msg: [" + connection.getResponseMessage()
-      + "], mime: " + connection.getContentType());
+    final HttpURLConnection conn = (HttpURLConnection) new URL(TOOL_URL).openConnection();
+    conn.setRequestMethod("POST");
+    conn.addRequestProperty("Accept", "*/*");
+    conn.addRequestProperty("Host", "www.ilovetools.cn");
+    conn.addRequestProperty("Origin", "https://www.ilovetools.cn");
+    conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+    conn.addRequestProperty("User-Agent", USER_AGENT);
+    conn.setDoOutput(true);
+    conn.getOutputStream().write(("shareUrl=" + shortUrl).getBytes());
+    final int code = conn.getResponseCode();
+    Log.d(TAG, "getVideoInfo() http code: " + code + ", msg: [" + conn.getResponseMessage()
+      + "], mime: " + conn.getContentType());
     // stream to string
     String result;
     if (code >= 200 && code < 400) {
-      result = DyUtil.streamAsString(connection.getInputStream());
+      result = DyUtil.streamAsString(conn.getInputStream(), conn.getContentEncoding());
     } else {
-      result = DyUtil.streamAsString(connection.getErrorStream());
+      result = DyUtil.streamAsString(conn.getErrorStream(), conn.getContentEncoding());
     }
     return new JSONObject(result).getString("data");
   }

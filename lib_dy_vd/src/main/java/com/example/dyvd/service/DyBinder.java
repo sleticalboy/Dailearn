@@ -7,7 +7,6 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -138,13 +137,13 @@ public class DyBinder extends Binder implements ClipboardManager.OnPrimaryClipCh
   private void resolveText(String text) {
 
     final Engine engine = EngineFactory.create(text);
-    if (engine == null || engine.shareUrl == null) {
+    if (engine == null || engine.shortUrl == null) {
       // Log.w(TAG, "resolveText() unsupported: " + text);
       Toast.makeText(mContext, "invalid: " + text, Toast.LENGTH_SHORT).show();
       return;
     }
 
-    if (mDb.hasVideo(engine.shareUrl)) {
+    if (mDb.hasVideo(engine.shortUrl)) {
       Log.d(TAG, "resolveVideo() aborted as existed");
       return;
     }
