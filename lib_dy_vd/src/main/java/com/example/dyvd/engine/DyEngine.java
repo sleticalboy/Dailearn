@@ -54,7 +54,49 @@ public final class DyEngine extends Engine {
     return end < 0 ? text.substring(start) : text.substring(start, end + 1);
   }
 
-  @Override protected String getVideoInfo() throws IOException, JSONException {
+  protected String getVideoInfo_() throws IOException, JSONException {
+    HttpURLConnection conn = (HttpURLConnection) new URL(shortUrl).openConnection();
+    conn.setRequestMethod("GET");
+    conn.addRequestProperty("user-agent", USER_AGENT);
+    int code = conn.getResponseCode();
+    Log.d(TAG, "getVideoInfo() http code: " + code + ", msg: [" + conn.getResponseMessage()
+            + "], mime: " + conn.getContentType());
+
+    final String temp = conn.toString();
+    Log.d(TAG, "getVideoInfo() " + conn);
+
+    dumpHeaders(conn, "get items id");
+    final String setCookie = conn.getHeaderField("Set-Cookie");
+
+    int end = temp.indexOf('?');
+    if (temp.charAt(end - 1) == '/') end -= 1;
+    int start = temp.substring(0, end).lastIndexOf('/');
+    final String itemsId = temp.substring(start + 1, end -1);
+    Log.d(TAG, "getVideoInfo() itemsId: " + itemsId);
+
+    conn = (HttpURLConnection) new URL("https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/?item_ids=" + itemsId).openConnection();
+
+    conn.setRequestMethod("GET");
+    conn.addRequestProperty("user-agent", USER_AGENT);
+    conn.addRequestProperty("set-cookie", setCookie);
+    code = conn.getResponseCode();
+    Log.d(TAG, "getVideoInfo() http code: " + code + ", msg: [" + conn.getResponseMessage()
+            + "], mime: " + conn.getContentType());
+
+    dumpHeaders(conn, "get video detail");
+
+    // stream to string
+    String result;
+    if (code >= 200 && code < 400) {
+      result = DyUtil.streamAsString(conn.getInputStream(), conn.getContentEncoding());
+    } else {
+      result = DyUtil.streamAsString(conn.getErrorStream(), conn.getContentEncoding());
+    }
+    Log.d(TAG, "getVideoInfo() result: " + result);
+    return null;
+  }
+
+  protected String getVideoInfo() throws IOException, JSONException {
     final HttpURLConnection conn = (HttpURLConnection) new URL(TOOL_URL).openConnection();
     conn.setRequestMethod("POST");
     conn.addRequestProperty("Accept", "*/*");

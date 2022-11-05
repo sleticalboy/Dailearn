@@ -1,9 +1,13 @@
 package com.example.dyvd.engine;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.example.dyvd.VideoItem;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+
 import org.json.JSONException;
 
 /**
@@ -27,6 +31,7 @@ public abstract class Engine {
   protected abstract String parseShareUrl(String text);
 
   public final Result parseItem() {
+    Log.d(TAG, "parseItem() start parse: " + shortUrl);
     try {
       return Result.of(fromJson(shortUrl, getVideoInfo()));
     } catch (IOException | JSONException e) {
@@ -37,6 +42,14 @@ public abstract class Engine {
   protected abstract VideoItem fromJson(String shareUrl, String text);
 
   protected abstract String getVideoInfo() throws IOException, JSONException;
+
+  protected void dumpHeaders(HttpURLConnection conn, String step) {
+    if (conn == null) return;
+    Log.d(TAG, "dumpHeaders() " + step + " >>>>>>>>>>>>>>>>>>>>>>>>>>");
+    for (String key : conn.getHeaderFields().keySet()) {
+      Log.d(TAG, "dumpHeaders() " + key + ": " + conn.getHeaderField(key));
+    }
+  }
 
   public static final class Result {
 

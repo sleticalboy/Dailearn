@@ -4,6 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import com.example.dyvd.db.Db;
+import com.example.dyvd.db.converter.SourceConverter;
 import com.example.dyvd.db.converter.StateConverter;
 
 /**
@@ -46,6 +47,8 @@ public final class VideoItem implements Parcelable {
   /** 失败原因 */
   @Db.Column(name = "_reason", type = String.class)
   public String reason;
+  // @Db.Column(name = "_source", type = int.class, converter = SourceConverter.class)
+  public int source;
 
   public VideoItem() {}
 
