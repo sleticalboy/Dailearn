@@ -13,4 +13,5 @@ include ':lib_dl:host'
 // 插件 apk
 include ':lib_plugin'
 include ':lib_dl:aosp-stub'
-include ':lib_dy_vd'
+include ':lib_free_videos'
+include ':lib_orm_sqlite'

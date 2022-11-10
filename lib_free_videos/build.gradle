@@ -1,0 +1,56 @@
+plugins {
+  id 'com.android.application'
+}
+
+android {
+  // namespace 'com.example.dyvd'
+  compileSdkVersion rootProject.ext.compile_version
+  buildToolsVersion rootProject.ext.build_version
+
+  defaultConfig {
+    applicationId "com.example.dyvd"
+    minSdkVersion rootProject.ext.min_version
+    targetSdkVersion rootProject.ext.target_version
+    versionCode 1
+    versionName "1.0"
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+  buildFeatures {
+    viewBinding true
+  }
+}
+
+dependencies {
+  implementation 'androidx.appcompat:appcompat:1.5.1'
+  implementation 'com.google.android.material:material:1.6.1'
+  implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+  implementation project(path: ':lib_orm_sqlite')
+
+  // jsoup 用于解析网页内容
+  implementation 'org.jsoup:jsoup:1.15.3'
+  implementation("com.github.bumptech.glide:glide:$glide_version")
+  // 检测内存泄露
+  // debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
+
+  // litepal
+  // implementation 'org.litepal.guolindev:core:3.2.3'
+
+  // 流利说下载器
+  // implementation 'com.liulishuo.filedownloader:library:1.7.7'
+  // // v2 版本
+  // // core
+  // implementation "com.liulishuo.okdownload:okdownload:1.0.7"
+  // // provide sqlite to store breakpoints"
+  // implementation "com.liulishuo.okdownload:sqlite:1.0.7"
+}
