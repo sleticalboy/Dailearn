@@ -20,4 +20,4 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep @com.binlee.sqlite.orm.Db class * {*;}
+-keep @com.binlee.sqlite.orm.core.Db class * {*;}

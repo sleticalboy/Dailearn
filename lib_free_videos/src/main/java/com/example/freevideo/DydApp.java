@@ -3,7 +3,9 @@ package com.example.freevideo;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
-import com.binlee.sqlite.orm.VideosDb;
+import com.binlee.sqlite.orm.OrmConfig;
+import com.binlee.sqlite.orm.OrmCore;
+import com.binlee.sqlite.orm.core.OrmDb;
 import com.example.freevideo.service.DyService;
 
 /**
@@ -15,7 +17,10 @@ public class DydApp extends Application {
 
   @Override protected void attachBaseContext(Context base) {
     super.attachBaseContext(base);
-    VideosDb.registerTables(VideoItem.class);
+
+    final OrmConfig config = new OrmConfig();
+    config.tables(VideoItem.class);
+    OrmCore.init(config);
   }
 
   @Override public void onCreate() {

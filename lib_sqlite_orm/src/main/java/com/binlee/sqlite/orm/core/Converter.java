@@ -1,4 +1,4 @@
-package com.binlee.sqlite.orm;
+package com.binlee.sqlite.orm.core;
 
 /**
  * Created on 2022/11/2

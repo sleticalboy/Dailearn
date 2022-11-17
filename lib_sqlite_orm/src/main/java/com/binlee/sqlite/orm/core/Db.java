@@ -1,4 +1,4 @@
-package com.binlee.sqlite.orm;
+package com.binlee.sqlite.orm.core;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

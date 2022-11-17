@@ -1,10 +1,14 @@
 package com.example.freevideo;
 
 import android.app.DownloadManager;
+import android.app.Service;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Environment;
 import android.util.Log;
 import com.example.freevideo.engine.Engine;
@@ -12,7 +16,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URL;
+import java.util.Enumeration;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -26,6 +35,43 @@ public final class DyUtil {
 
   private DyUtil() {
     //no instance
+  }
+
+
+  public static String lookupIpAddress(Context context) {
+    ConnectivityManager mgr = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+    final NetworkInfo info = mgr.getActiveNetworkInfo();
+    if (info != null && info.isConnected()) {
+      if (info.getType() == ConnectivityManager.TYPE_MOBILE) {
+        Enumeration<NetworkInterface> interfaces;
+        try {
+          interfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+          return null;
+        }
+        while (interfaces.hasMoreElements()) {
+          NetworkInterface element = interfaces.nextElement();
+          Enumeration<InetAddress> addrs = element.getInetAddresses();
+          while (addrs.hasMoreElements()) {
+            InetAddress addr = addrs.nextElement();
+            if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+              return addr.getHostAddress();
+            }
+          }
+        }
+      } else if (info.getType() == ConnectivityManager.TYPE_WIFI) {
+        WifiManager wifiMgr = (WifiManager) context.getApplicationContext().getSystemService(Service.WIFI_SERVICE);
+        return intIP2StringIP(wifiMgr.getConnectionInfo().getIpAddress());
+      }
+    }
+    return null;
+  }
+
+  private static String intIP2StringIP(int ip) {
+    return (ip & 0xFF) + "." +
+      ((ip >> 8) & 0xFF) + "." +
+      ((ip >> 16) & 0xFF) + "." +
+      (ip >> 24 & 0xFF);
   }
 
   public static String streamAsString(InputStream in, String encoding) throws IOException {

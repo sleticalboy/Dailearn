@@ -3,7 +3,7 @@ package com.example.freevideo;
 import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
-import com.binlee.sqlite.orm.Db;
+import com.binlee.sqlite.orm.core.Db;
 import com.example.freevideo.db.SourceConverter;
 import com.example.freevideo.db.StateConverter;
 

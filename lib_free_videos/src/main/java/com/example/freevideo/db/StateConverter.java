@@ -1,7 +1,7 @@
 package com.example.freevideo.db;
 
 import com.example.freevideo.DyState;
-import com.binlee.sqlite.orm.Converter;
+import com.binlee.sqlite.orm.core.Converter;
 
 /**
  * Created on 2022/11/2

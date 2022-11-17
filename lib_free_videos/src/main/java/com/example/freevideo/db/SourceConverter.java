@@ -1,6 +1,6 @@
 package com.example.freevideo.db;
 
-import com.binlee.sqlite.orm.Converter;
+import com.binlee.sqlite.orm.core.Converter;
 import com.example.freevideo.DySource;
 
 /**

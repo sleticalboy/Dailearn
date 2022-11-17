@@ -1,10 +1,10 @@
-package com.binlee.sqlite.orm;
+package com.binlee.sqlite.orm.core;
 
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
-import androidx.annotation.NonNull;
+import com.binlee.sqlite.orm.OrmCore;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +16,7 @@ import java.util.Map;
  *
  * @author binlee
  */
-final class DbUtil {
+public final class DbUtil {
 
   private static final String TAG = "DbUtil";
 
@@ -26,7 +26,9 @@ final class DbUtil {
     //no instance
   }
 
-  public static void preload(Class<?>[] classes) {
+  public static void preloadTables(Class<?>[] classes) {
+    if (classes == null || classes.length == 0) return;
+
     for (Class<?> clazz : classes) {
       sTables.put(clazz, parseTable(clazz));
     }
@@ -34,12 +36,11 @@ final class DbUtil {
 
   public static void createTables(SQLiteDatabase db, Class<?>[] classes) {
     for (Class<?> clazz : classes) {
-      final Table table = sTables.get(clazz);
-      if (table == null) continue;
+      final Table table = getTableOrThrow(clazz);
 
       StringBuilder sql = new StringBuilder("create table if not exists " + table.mName + "(");
 
-      for (Column column : table.mColumns) {
+      for (Table.Column column : table.mColumns) {
         sql.append(column.mName);
         if (column.mType == int.class) {
           sql.append(" integer");
@@ -99,15 +100,6 @@ final class DbUtil {
     return list;
   }
 
-  static <T> Object getPrimaryKey(T bean) {
-    final Table table = getTableOrThrow(bean.getClass());
-    try {
-      return table.mPrimary.getField(bean);
-    } catch (IllegalAccessException e) {
-      return null;
-    }
-  }
-
   private static Table parseTable(Class<?> clazz) {
     final Db.Table tableAnnotation = clazz.getAnnotation(Db.Table.class);
     if (tableAnnotation == null) {
@@ -119,7 +111,7 @@ final class DbUtil {
       final Db.Column columnAnnotation = field.getAnnotation(Db.Column.class);
       if (columnAnnotation == null) continue;
 
-      final Column column = new Column(field, columnAnnotation);
+      final Table.Column column = new Table.Column(field, columnAnnotation);
       if (column.mUnique) {
         table.mPrimary = column;
       }
@@ -134,7 +126,7 @@ final class DbUtil {
 
   private static <T> ContentValues toValues(T bean, Table table) throws IllegalAccessException {
     final ContentValues values = new ContentValues(table.mColumns.size());
-    for (Column column : table.mColumns) {
+    for (Table.Column column : table.mColumns) {
       final Object value = column.getField(bean);
       if (column.mType == String.class) {
         values.put(column.mName, (String) value);
@@ -151,7 +143,7 @@ final class DbUtil {
 
   private static <T> T toBean(Cursor cursor, Class<T> clazz, Table table) throws IllegalAccessException, InstantiationException {
     final T bean = clazz.newInstance();
-    for (Column column : table.mColumns) {
+    for (Table.Column column : table.mColumns) {
       Object obj;
       final int index = cursor.getColumnIndex(column.mName);
       if (column.mType == String.class) {
@@ -170,94 +162,12 @@ final class DbUtil {
     return bean;
   }
 
-  private static Table getTableOrThrow(Class<?> clazz) {
-    final Table table = sTables.get(clazz);
+  static Table getTableOrThrow(Class<?> clazz) {
+    Table table = sTables.get(clazz);
     if (table == null) {
-      throw new IllegalArgumentException("Invalid java bean: " + clazz);
+      table = parseTable(clazz);
+      sTables.put(clazz, table);
     }
     return table;
-  }
-
-  private static class Table {
-    // 表名、表列、主键
-    public final String mName;
-    public List<Column> mColumns = new ArrayList<>();
-    public Column mPrimary;
-
-    public Table(String name) {
-      mName = name;
-    }
-
-    @NonNull @Override public String toString() {
-      return "Table{" + mName + ": " + mColumns + ", primary key: " + mPrimary.mName + '}';
-    }
-  }
-
-  private static class Column {
-    // 列名、列类型、主键、转换器、对应的转换器
-
-    public final Field mField;
-    public final String mName;
-    public final Class<?> mType;
-    public final Class<?> mConverter;
-
-    public final boolean mUnique;
-
-    public Column(Field field, Db.Column column) {
-      mField = field;
-      mName = column.value().equals("") ? mField.getName() : column.value();
-      mType = column.type() == Void.class ? mField.getType() : column.type();
-      mUnique = column.unique();
-      mConverter = column.converter();
-    }
-
-    public <T> Object getField(T bean) throws IllegalAccessException {
-      return ConverterWrapper.wrap(mConverter).encode(mField.get(bean));
-    }
-
-    public <T> void setField(T bean, Object obj) throws IllegalAccessException {
-      mField.set(bean, ConverterWrapper.wrap(mConverter).decode(obj));
-    }
-
-    @NonNull @Override public String toString() {
-      return "Column{" + mName + ": " + mType + ", converter: " + mConverter + ", unique: " + mUnique + '}';
-    }
-  }
-
-  private static class ConverterWrapper extends Converter<Object, Object> {
-
-    private static final Map<Class<?>, Converter<?, ?>> sConverters = new HashMap<>();
-
-    private final Converter<Object, Object> mConverter;
-
-    static {
-      sConverters.put(Converter.class, DO_NOT_CONVERT);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static Converter<Object, Object> wrap(Class<?> clazz) {
-      Converter<Object, Object> converter = (Converter<Object, Object>) sConverters.get(clazz);
-      if (converter == null) {
-        sConverters.put(clazz, converter = new ConverterWrapper(clazz));
-      }
-      return converter;
-    }
-
-    @SuppressWarnings("unchecked")
-    private ConverterWrapper(Class<?> clazz) {
-      try {
-        mConverter = (Converter<Object, Object>) clazz.newInstance();
-      } catch (IllegalAccessException | InstantiationException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    @Override public Object encode(Object input) {
-      return mConverter.encode(input);
-    }
-
-    @Override public Object decode(Object input) {
-      return mConverter.decode(input);
-    }
   }
 }

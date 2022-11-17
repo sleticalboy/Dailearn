@@ -10,10 +10,10 @@ import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import com.binlee.sqlite.orm.core.OrmDb;
 import com.example.freevideo.DownloadObserver;
 import com.example.freevideo.DyUtil;
 import com.example.freevideo.VideoItem;
-import com.binlee.sqlite.orm.VideosDb;
 import com.example.freevideo.engine.Engine;
 import com.example.freevideo.engine.EngineFactory;
 import java.util.List;
@@ -30,7 +30,7 @@ public class DyBinder extends Binder implements ClipboardManager.OnPrimaryClipCh
   private Context mContext;
 
   private ClipboardManager mClipboard;
-  private VideosDb mDb;
+  private OrmDb mDb;
 
   private Handler mWorker;
   private Handler mClient;
@@ -46,7 +46,7 @@ public class DyBinder extends Binder implements ClipboardManager.OnPrimaryClipCh
     mClipboard.addPrimaryClipChangedListener(this);
     DownloadObserver.get().start(mContext);
 
-    mDb = new VideosDb(mContext);
+    mDb = new OrmDb(mContext);
 
     // 启动一个线程
     HandlerThread thread = new HandlerThread("DyWorker");
