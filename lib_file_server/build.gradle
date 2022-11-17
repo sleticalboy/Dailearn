@@ -1,0 +1,41 @@
+plugins {
+  id 'com.android.application'
+  id 'com.yanzhenjie.andserver'
+}
+
+android {
+  compileSdkVersion rootProject.ext.compile_version
+  buildToolsVersion rootProject.ext.build_version
+
+  defaultConfig {
+    applicationId "com.example.fileserver"
+    minSdkVersion rootProject.ext.min_version
+    targetSdkVersion rootProject.ext.target_version
+    versionCode 1
+    versionName "1.0"
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+  buildFeatures {
+    viewBinding true
+  }
+}
+
+dependencies {
+  implementation 'androidx.appcompat:appcompat:1.5.1'
+  implementation 'com.google.android.material:material:1.6.1'
+  implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+  implementation('com.yanzhenjie.andserver:api:2.1.10')
+  compileOnly("com.yanzhenjie.apache:httpcore:4.4.14.1")
+  annotationProcessor('com.yanzhenjie.andserver:processor:2.1.10')
+}

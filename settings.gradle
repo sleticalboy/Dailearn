@@ -15,3 +15,6 @@ include ':lib_plugin'
 include ':lib_dl:aosp-stub'
 include ':lib_free_videos'
 include ':lib_sqlite_orm'
+
+// 手机端文件服务器
+include ':lib_file_server'
