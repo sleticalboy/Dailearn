@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         mBinding.tvCurrentUrl.setText(text);
       } else {
         mBinding.tvCurrentUrl.setText("当前服务器链接: 无");
+        mBinding.tvRecord.setText("");
       }
 
       mBinding.btnStartServer.setEnabled(url == null);
@@ -82,6 +83,11 @@ public class MainActivity extends AppCompatActivity {
         }, 0x01);
       })
       .show();
+  }
+
+  @Override protected void onDestroy() {
+    super.onDestroy();
+    FileServer.getUrl().removeObservers(this);
   }
 
   private void openInBrowser() {

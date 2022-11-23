@@ -1,7 +1,19 @@
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.yanzhenjie.andserver:plugin:2.1.10')
+  }
+}
+
 plugins {
   id 'com.android.application'
-  id 'com.yanzhenjie.andserver'
 }
+
+apply plugin: 'com.yanzhenjie.andserver'
 
 android {
   compileSdkVersion rootProject.ext.compile_version

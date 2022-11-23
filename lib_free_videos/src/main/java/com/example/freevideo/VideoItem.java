@@ -48,7 +48,7 @@ public final class VideoItem implements Parcelable {
   @Db.Column(value = "_reason")
   public String reason;
   @Db.Column(value = "_source", type = int.class, converter = SourceConverter.class)
-  public DySource source;
+  public DySource source = DySource.Dy;
 
   public VideoItem() {
   }

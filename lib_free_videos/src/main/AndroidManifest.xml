@@ -10,7 +10,7 @@
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
   <application
-    android:name="com.example.freevideo.FileApp"
+    android:name="com.example.freevideo.DydApp"
     android:allowBackup="true"
     android:icon="@mipmap/ic_launcher"
     android:label="@string/app_name"
@@ -18,7 +18,7 @@
     android:supportsRtl="true"
     android:theme="@style/Theme.Dailearn">
     <activity
-      android:name="com.example.freevideo.MainActivity"
+      android:name="com.example.freevideo.VideoListActivity"
       android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
@@ -27,7 +27,7 @@
     </activity>
     <activity android:name="com.example.freevideo.FullCoverActivity" />
 
-    <service android:name="com.example.fileserver.FileService" />
+    <service android:name="com.example.freevideo.service.DyService" />
   </application>
 
 </manifest>

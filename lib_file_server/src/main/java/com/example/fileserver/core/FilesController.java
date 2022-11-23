@@ -10,6 +10,7 @@ import com.yanzhenjie.andserver.annotation.RestController;
 import com.yanzhenjie.andserver.framework.body.FileBody;
 import com.yanzhenjie.andserver.framework.body.JsonBody;
 import com.yanzhenjie.andserver.http.HttpResponse;
+import com.yanzhenjie.andserver.http.RequestBody;
 import com.yanzhenjie.andserver.http.ResponseBody;
 import java.io.File;
 import java.text.DecimalFormat;
@@ -91,6 +92,11 @@ public class FilesController {
       return new JsonBody(FileUtil.error(tr.getClass() + ":" + tr.getMessage()));
     }
   }
+
+  // @PostMapping(path = "file/upload")
+  // public JsonBody upload(RequestBody request) throws JSONException {
+  //   return new JsonBody(FileUtil.error("unsupported"));
+  // }
 
   private static String formattedDate(long timeInMillis) {
     Calendar calendar = Calendar.getInstance();
