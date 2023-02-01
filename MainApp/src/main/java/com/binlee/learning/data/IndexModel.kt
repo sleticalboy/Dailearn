@@ -18,6 +18,7 @@ import com.binlee.learning.dev.DebugUI
 import com.binlee.learning.devices.DeviceAdminUI
 import com.binlee.learning.dialogs.DialogsUI
 import com.binlee.learning.ffmpeg.FfmpegPractise
+import com.binlee.learning.luban.LubanActivity
 import com.binlee.learning.others.AlarmActivity
 import com.binlee.learning.others.ImageConvertUI
 import com.binlee.learning.others.NotificationsUI
@@ -43,6 +44,8 @@ class IndexModel internal constructor() {
 
   private fun getTasks(): Result<List<ModuleItem>> {
     val array = arrayOf(
+      // 鲁班图片压缩
+      ModuleItem("鲁班图片压缩", LubanActivity::class.java),
       // 插件管理
       ModuleItem("插件管理", PluginManageActivity::class.java),
       // ffmpeg 实战

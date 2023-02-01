@@ -20,7 +20,7 @@ class MainApp : Application() {
 
   override fun onCreate() {
     super.onCreate()
-    DlManager.get().init(this)
+    // DlManager.get().init(this)
     mApp = this
     registerNotificationChannels()
   }

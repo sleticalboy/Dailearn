@@ -26,6 +26,7 @@ class AlphaActivity : BaseActivity() {
   }
 
   override fun initView() {
+    mBind!!.seekBar.progress = 50
     mBind!!.seekBar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
       override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
         Log.d(

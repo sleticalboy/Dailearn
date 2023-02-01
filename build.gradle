@@ -2,13 +2,13 @@
 
 buildscript {
   ext {
-    kotlin_version = '1.6.21'
-    compile_version = 31
-    build_version = '30.0.3'
+    kotlin_version = '1.7.10'
+    compile_version = 32
+    build_version = '32.0.0'
     min_version = 21
     target_version = 31
-    gradle_version = '4.0.0'
-    appcompat_version = '1.5.1'
+    gradle_version = '4.2.1'
+    appcompat_version = '1.5.0'
     ktx_version = '1.8.0'
     constraint_version = '2.1.4'
     material_version = '1.6.1'
@@ -46,6 +46,20 @@ allprojects {
   repositories {
     google()
     mavenCentral()
+  }
+
+  configurations.all {
+    resolutionStrategy.force 'androidx.annotation:annotation:1.5.0'
+    resolutionStrategy.force 'androidx.arch.core:core-runtime:2.1.0'
+    resolutionStrategy.force 'androidx.core:core-ktx:1.8.0'
+    resolutionStrategy.force 'androidx.customview:customview:1.1.0'
+    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib:1.7.10'
+    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib-common:1.7.10'
+    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.10'
+    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.10'
+    resolutionStrategy.force 'org.jetbrains.kotlin:kotlin-android-extensions-runtime:1.5.10'
+    resolutionStrategy.force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
+    resolutionStrategy.force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4'
   }
 }
 

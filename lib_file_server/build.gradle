@@ -43,9 +43,9 @@ android {
 }
 
 dependencies {
-  implementation 'androidx.appcompat:appcompat:1.5.1'
-  implementation 'com.google.android.material:material:1.6.1'
-  implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+  implementation "androidx.appcompat:appcompat:$appcompat_version"
+  implementation "com.google.android.material:material:$material_version"
+  implementation "androidx.constraintlayout:constraintlayout:$constraint_version"
 
   implementation('com.yanzhenjie.andserver:api:2.1.10')
   compileOnly("com.yanzhenjie.apache:httpcore:4.4.14.1")
