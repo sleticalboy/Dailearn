@@ -49,7 +49,7 @@ class IndexModel internal constructor() {
       // 插件管理
       ModuleItem("插件管理", PluginManageActivity::class.java),
       // ffmpeg 实战
-      ModuleItem("ffmpeg 实战", FfmpegPractise::class.java),
+      ModuleItem("音视频实战", FfmpegPractise::class.java),
       // 突破系统 hidden API
       ModuleItem("突破 hidden API", "crack_hidden_api"),
       // debug tools

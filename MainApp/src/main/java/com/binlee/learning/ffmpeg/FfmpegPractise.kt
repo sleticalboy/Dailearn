@@ -1,7 +1,14 @@
 package com.binlee.learning.ffmpeg
 
+import android.Manifest.permission
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder.AudioSource
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.provider.MediaStore.Video.Media
 import android.util.Log
 import android.view.Gravity
@@ -9,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
@@ -33,6 +41,7 @@ class FfmpegPractise : BaseActivity() {
   private val dataSet = arrayListOf(
     ModuleItem("打印媒体 meta 信息", "dump_meta"),
     ModuleItem("音频提取", "extract_audio"),
+    ModuleItem("音频录制", "record_audio"),
   )
 
   private var flag: String? = null
@@ -45,6 +54,45 @@ class FfmpegPractise : BaseActivity() {
   override fun initView() {
     mBind?.recyclerView?.adapter = DataAdapter(dataSet)
     Toast.makeText(this, ffmpegVersions, Toast.LENGTH_LONG).show()
+  }
+
+  private fun onClickItem(item: ModuleItem) {
+    Log.d(TAG, "item click with: ${item.title}")
+    if (item.cls == "record_audio") {
+      startRecordAudio()
+    } else {
+      flag = item.cls
+      // 打开相册选视频
+      val intent = Intent(Intent.ACTION_PICK).setType("video/*")
+      startActivityForResult(intent, PICK_VIDEO)
+    }
+  }
+
+  private fun startRecordAudio() {
+    Log.d(TAG, "startRecordAudio()")
+    Toast.makeText(this, "\"startRecordAudio()\"", Toast.LENGTH_SHORT).show()
+    return
+    if (ActivityCompat.checkSelfPermission(this, permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+      // TODO: Consider calling
+      //    ActivityCompat#requestPermissions
+      // here to request the missing permissions, and then overriding
+      //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+      //                                          int[] grantResults)
+      // to handle the case where the user grants the permission. See the documentation
+      // for ActivityCompat#requestPermissions for more details.
+      ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), 0x44100)
+      return
+    }
+    val record = AudioRecord(AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT,
+        AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT))
+    record.startRecording()
+  }
+
+  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    if (requestCode == 0x44100 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      startRecordAudio()
+    }
   }
 
   @Deprecated("Deprecated in Java")
@@ -99,11 +147,7 @@ class FfmpegPractise : BaseActivity() {
       val item = dataSet[position]
       holder.textView.text = item.title
       holder.textView.setOnClickListener {
-        Log.d(TAG, "item click with: ${item.title}")
-        flag = item.cls
-        // 打开相册选视频
-        val intent = Intent(Intent.ACTION_PICK).setType("video/*")
-        startActivityForResult(intent, PICK_VIDEO)
+        onClickItem(item)
       }
     }
   }
@@ -128,11 +172,7 @@ class FfmpegPractise : BaseActivity() {
     private const val TAG = "FfmpegPractise"
     private const val PICK_VIDEO = 0x1001
 
-    private val ffmpegVersions: String
+    private val ffmpegVersions: String = FfmpegHelper.getVersions()
 
-    // java 中的静态代码块
-    init {
-      ffmpegVersions = FfmpegHelper.getVersions()
-    }
   }
 }
