@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  xmlns:tools="http://schemas.android.com/tools"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:padding="16dp"
+  >
+
+  <androidx.recyclerview.widget.RecyclerView
+    android:id="@+id/recyclerView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+    app:layout_constraintBottom_toTopOf="@+id/btn_start_record"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    />
+
+  <TextView
+    android:id="@+id/inner_tv_duration"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="录制时长（秒）："
+    android:textColor="@android:color/black"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintTop_toTopOf="@+id/et_duration"
+    />
+
+  <EditText
+    android:id="@+id/et_duration"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:hint="10"
+    android:inputType="number"
+    android:paddingEnd="8dp"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintLeft_toRightOf="@+id/inner_tv_duration"
+    />
+
+  <Button
+    android:id="@+id/btn_start_record"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="开始录制"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintLeft_toRightOf="@+id/et_duration"
+    />
+
+  <TextView
+    android:id="@+id/tv_recorded_duration"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingStart="8dp"
+    android:textColor="@android:color/holo_red_light"
+    android:textStyle="bold"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintLeft_toRightOf="@+id/btn_start_record"
+    app:layout_constraintTop_toTopOf="@+id/et_duration"
+    tools:text="@string/text_recorded_duration"
+    />
+
+  <Button
+    android:id="@+id/btn_start_play"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="播放"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    />
+</androidx.constraintlayout.widget.ConstraintLayout>

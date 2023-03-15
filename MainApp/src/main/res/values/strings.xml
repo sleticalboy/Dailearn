@@ -75,4 +75,5 @@
     <string name="notify_delay_with_light">Notify Delay With Light</string>
     <string name="show_dialog">show dialog</string>
     <string name="full_screen">full screen</string>
+  <string name="text_recorded_duration"> %d </string>
 </resources>

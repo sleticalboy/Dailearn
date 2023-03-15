@@ -6,9 +6,8 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioFormat
 import android.media.AudioRecord
+import android.media.AudioTrack
 import android.media.MediaRecorder.AudioSource
-import android.os.Build.VERSION
-import android.os.Build.VERSION_CODES
 import android.provider.MediaStore.Video.Media
 import android.util.Log
 import android.view.Gravity
@@ -21,11 +20,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
-import com.binlee.learning.databinding.ActivityListItemBinding
+import com.binlee.learning.databinding.ActivityAvPractiseBinding
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * Created on 2022/8/3
@@ -39,29 +40,31 @@ class FfmpegPractise : BaseActivity() {
     //
   }
 
-  private var mBind: ActivityListItemBinding? = null
+  private lateinit var mBind: ActivityAvPractiseBinding
   private val dataSet = arrayListOf(
     ModuleItem("打印媒体 meta 信息", "dump_meta"),
     ModuleItem("音频提取", "extract_audio"),
-    ModuleItem("音频录制", "record_audio"),
   )
 
   private var flag: String? = null
 
   override fun layout(): View {
-    mBind = ActivityListItemBinding.inflate(layoutInflater)
-    return mBind!!.root
+    mBind = ActivityAvPractiseBinding.inflate(layoutInflater)
+    return mBind.root
   }
 
   override fun initView() {
-    mBind?.recyclerView?.adapter = DataAdapter(dataSet)
-    Toast.makeText(this, ffmpegVersions, Toast.LENGTH_LONG).show()
+    mBind.recyclerView.adapter = DataAdapter(dataSet)
+    Toast.makeText(this, ffmpegVersions, Toast.LENGTH_SHORT).show()
+
+    mBind.btnStartRecord.setOnClickListener { startRecordAudio() }
+    mBind.btnStartPlay.setOnClickListener { startPlayAudio() }
   }
 
   private fun onClickItem(item: ModuleItem) {
     Log.d(TAG, "item click with: ${item.title}")
     if (item.cls == "record_audio") {
-      startRecordAudio()
+      // startRecordAudio()
     } else {
       flag = item.cls
       // 打开相册选视频
@@ -72,17 +75,25 @@ class FfmpegPractise : BaseActivity() {
 
   private var mRecordThread: Thread? = null
   private var mRecordFile: OutputStream? = null
+  private var mTimer: Int = 0
+  private val  mRecordTimer = object : Runnable {
+    override fun run() {
+      mBind.tvRecordedDuration.text = getString(R.string.text_recorded_duration, ++mTimer)
+      if (mRecordThread?.isAlive == true) {
+        mBind.root.postDelayed(this, 1000L)
+      }
+    }
+  }
 
   private fun startRecordAudio() {
     Log.d(TAG, "startRecordAudio()")
-    Toast.makeText(this, "\"startRecordAudio()\"", Toast.LENGTH_SHORT).show()
     if (ActivityCompat.checkSelfPermission(this, permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
       ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), 0x44100)
       return
     }
     // 构造 AudioRecord
-    val size = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT)
-    val record = AudioRecord(AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT, size)
+    val size = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+    val record = AudioRecord(AudioSource.DEFAULT, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, size)
     // 开始录音
     record.startRecording()
     // 开启子线程从 audio buffer 中读取数据
@@ -95,6 +106,10 @@ class FfmpegPractise : BaseActivity() {
           mRecordFile?.close()
           mRecordFile = null
           Log.d(TAG, "startRecordAudio() record over!")
+          runOnUiThread {
+            Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show()
+            mBind.tvRecordedDuration.text = ""
+          }
           break
         }
 
@@ -103,16 +118,22 @@ class FfmpegPractise : BaseActivity() {
       }
     }
     mRecordThread?.start()
-    // 什么时候结束？暂时这样吧
-    mBind?.root?.postDelayed({
+    Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show()
+
+    // 录音时长
+    var duration = mBind.etDuration.text.toString()
+    if (duration.isEmpty()) duration = "10"
+    mBind.root.postDelayed({
+      mBind.root.removeCallbacks(mRecordTimer)
       record.stop()
-    }, 3_000L)
+    }, duration.toLong() * 1000)
+    mBind.root.postDelayed(mRecordTimer, 1000L)
   }
 
   private fun writeBuffer(buffer: ByteArray, readBytes: Int) {
     if (mRecordFile == null) {
       // /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
-      val file = "${getExternalFilesDir("audio")}/${System.currentTimeMillis()}.pcm"
+      val file = "${getExternalFilesDir("audio")}/${fullTime()}.pcm"
       mRecordFile = FileOutputStream(file)
       Log.d(TAG, "writeBuffer() create file: $file")
     }
@@ -121,6 +142,12 @@ class FfmpegPractise : BaseActivity() {
       mRecordFile?.flush()
       Log.d(TAG, "writeBuffer() size: $readBytes")
     }
+  }
+
+  private fun startPlayAudio() {
+    // AudioTrack
+    // val attr = null
+    // val track = AudioTrack(attr, AudioFormat.ENCODING_PCM_16BIT, 0, 0, 0)
   }
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -206,8 +233,12 @@ class FfmpegPractise : BaseActivity() {
   companion object {
     private const val TAG = "FfmpegPractise"
     private const val PICK_VIDEO = 0x1001
+    private val DATE_FORMAT = SimpleDateFormat("yyyy-mm-dd_hh-mm-ss", Locale.US)
 
     private val ffmpegVersions: String = FfmpegHelper.getVersions()
 
+    private fun fullTime(): String {
+      return DATE_FORMAT.format(System.currentTimeMillis())
+    }
   }
 }
