@@ -24,6 +24,8 @@ import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.databinding.ActivityListItemBinding
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
 
 /**
  * Created on 2022/8/3
@@ -68,24 +70,57 @@ class FfmpegPractise : BaseActivity() {
     }
   }
 
+  private var mRecordThread: Thread? = null
+  private var mRecordFile: OutputStream? = null
+
   private fun startRecordAudio() {
     Log.d(TAG, "startRecordAudio()")
     Toast.makeText(this, "\"startRecordAudio()\"", Toast.LENGTH_SHORT).show()
-    return
     if (ActivityCompat.checkSelfPermission(this, permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-      // TODO: Consider calling
-      //    ActivityCompat#requestPermissions
-      // here to request the missing permissions, and then overriding
-      //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-      //                                          int[] grantResults)
-      // to handle the case where the user grants the permission. See the documentation
-      // for ActivityCompat#requestPermissions for more details.
       ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), 0x44100)
       return
     }
-    val record = AudioRecord(AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT,
-        AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT))
+    // 构造 AudioRecord
+    val size = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT)
+    val record = AudioRecord(AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_8BIT, size)
+    // 开始录音
     record.startRecording()
+    // 开启子线程从 audio buffer 中读取数据
+    mRecordThread = Thread {
+      val buffer = ByteArray(size)
+      while (true) {
+        val readBytes = record.read(buffer, 0, buffer.size)
+        if (readBytes <= 0) {
+          record.release()
+          mRecordFile?.close()
+          mRecordFile = null
+          Log.d(TAG, "startRecordAudio() record over!")
+          break
+        }
+
+        // 写入文件
+        writeBuffer(buffer, readBytes)
+      }
+    }
+    mRecordThread?.start()
+    // 什么时候结束？暂时这样吧
+    mBind?.root?.postDelayed({
+      record.stop()
+    }, 3_000L)
+  }
+
+  private fun writeBuffer(buffer: ByteArray, readBytes: Int) {
+    if (mRecordFile == null) {
+      // /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
+      val file = "${getExternalFilesDir("audio")}/${System.currentTimeMillis()}.pcm"
+      mRecordFile = FileOutputStream(file)
+      Log.d(TAG, "writeBuffer() create file: $file")
+    }
+    if (readBytes > 0) {
+      mRecordFile?.write(buffer, 0, readBytes)
+      mRecordFile?.flush()
+      Log.d(TAG, "writeBuffer() size: $readBytes")
+    }
   }
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
