@@ -127,9 +127,9 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     FlogD("%s GetEnv error: %d", __func__, res)
     return JNI_ERR;
   }
-  jclass cls_ffmpeg_helper = env->FindClass(kFfmpegHelperClass);
-  env->RegisterNatives(cls_ffmpeg_helper, gMethods, sizeof(gMethods) / sizeof(JNINativeMethod));
-  env->DeleteLocalRef(cls_ffmpeg_helper);
+  jclass clazz = env->FindClass(kFfmpegHelperClass);
+  env->RegisterNatives(clazz, gMethods, sizeof(gMethods) / sizeof(JNINativeMethod));
+  env->DeleteLocalRef(clazz);
   return JNI_VERSION_1_6;
 }
 
@@ -138,8 +138,8 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
   if (vm->GetEnv((void **) &env, JNI_VERSION_1_6) != JNI_OK || env == nullptr) {
     return;
   }
-  jclass cls_ffmpeg_helper = env->FindClass(kFfmpegHelperClass);
-  env->UnregisterNatives(cls_ffmpeg_helper);
-  env->DeleteLocalRef(cls_ffmpeg_helper);
+  jclass clazz = env->FindClass(kFfmpegHelperClass);
+  env->UnregisterNatives(clazz);
+  env->DeleteLocalRef(clazz);
 }
 

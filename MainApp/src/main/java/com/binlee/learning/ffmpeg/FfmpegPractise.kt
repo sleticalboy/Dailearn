@@ -4,18 +4,23 @@ import android.Manifest.permission
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder.AudioSource
+import android.os.SystemClock
 import android.provider.MediaStore.Video.Media
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.RecyclerView
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
@@ -23,7 +28,9 @@ import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.databinding.ActivityAvPractiseBinding
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -58,7 +65,30 @@ class FfmpegPractise : BaseActivity() {
     Toast.makeText(this, ffmpegVersions, Toast.LENGTH_SHORT).show()
 
     mBind.btnStartRecord.setOnClickListener { startRecordAudio() }
-    mBind.btnStartPlay.setOnClickListener { startPlayAudio() }
+    mBind.btnStartPlay.setOnClickListener { playOrPause() }
+    mBind.btnScanAudio.setOnClickListener { scanAudioFiles() }
+    val adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked)
+    mBind.lvMediaList.adapter = adapter
+    mBind.lvMediaList.setOnItemClickListener { parent, view, position, id ->
+      mRecordPath = "${getExternalFilesDir("audio")}/${adapter.getItem(position)}"
+      mBind.lvMediaList.setItemChecked(position, true)
+    }
+    scanAudioFiles()
+  }
+
+  @Suppress("UNCHECKED_CAST")
+  private fun scanAudioFiles() {
+    val files = getExternalFilesDir("audio")?.list()?.asList()
+    files?.let {
+      (mBind.lvMediaList.adapter as ArrayAdapter<String>).clear()
+      (mBind.lvMediaList.adapter as ArrayAdapter<String>).addAll(it)
+    }
+  }
+
+  override fun initData() {
+    mPlaying.observe(this) { playing ->
+      mBind.btnStartPlay.text = if (playing) "暂停" else "播放"
+    }
   }
 
   private fun onClickItem(item: ModuleItem) {
@@ -74,7 +104,8 @@ class FfmpegPractise : BaseActivity() {
   }
 
   private var mRecordThread: Thread? = null
-  private var mRecordFile: OutputStream? = null
+  private var mRecordPath: String? = null
+  private var mOutput: OutputStream? = null
   private var mTimer: Int = 0
   private val  mRecordTimer = object : Runnable {
     override fun run() {
@@ -86,14 +117,14 @@ class FfmpegPractise : BaseActivity() {
   }
 
   private fun startRecordAudio() {
-    Log.d(TAG, "startRecordAudio()")
     if (ActivityCompat.checkSelfPermission(this, permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
       ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), 0x44100)
       return
     }
     // 构造 AudioRecord
     val size = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-    val record = AudioRecord(AudioSource.DEFAULT, 44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, size)
+    val record = AudioRecord(AudioSource.DEFAULT, 44100, AudioFormat.CHANNEL_IN_MONO,
+      AudioFormat.ENCODING_PCM_16BIT, size)
     // 开始录音
     record.startRecording()
     // 开启子线程从 audio buffer 中读取数据
@@ -103,8 +134,8 @@ class FfmpegPractise : BaseActivity() {
         val readBytes = record.read(buffer, 0, buffer.size)
         if (readBytes <= 0) {
           record.release()
-          mRecordFile?.close()
-          mRecordFile = null
+          mOutput?.close()
+          mOutput = null
           Log.d(TAG, "startRecordAudio() record over!")
           runOnUiThread {
             Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show()
@@ -131,23 +162,91 @@ class FfmpegPractise : BaseActivity() {
   }
 
   private fun writeBuffer(buffer: ByteArray, readBytes: Int) {
-    if (mRecordFile == null) {
+    if (mOutput == null) {
       // /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
-      val file = "${getExternalFilesDir("audio")}/${fullTime()}.pcm"
-      mRecordFile = FileOutputStream(file)
-      Log.d(TAG, "writeBuffer() create file: $file")
+      mRecordPath = "${getExternalFilesDir("audio")}/${fullTime()}.pcm"
+      mOutput = FileOutputStream(mRecordPath)
+      Log.d(TAG, "writeBuffer() create file: $mRecordPath")
     }
     if (readBytes > 0) {
-      mRecordFile?.write(buffer, 0, readBytes)
-      mRecordFile?.flush()
+      mOutput?.write(buffer, 0, readBytes)
+      mOutput?.flush()
       Log.d(TAG, "writeBuffer() size: $readBytes")
     }
   }
 
-  private fun startPlayAudio() {
-    // AudioTrack
-    // val attr = null
-    // val track = AudioTrack(attr, AudioFormat.ENCODING_PCM_16BIT, 0, 0, 0)
+  private var mPlayThread: Thread? = null
+  private var mInput: InputStream? = null
+  private var mPlaying = MutableLiveData(false)
+  private var mTrack: AudioTrack? = null
+
+  private fun playOrPause() {
+    if (mRecordPath == null) {
+      Toast.makeText(this, "请先录制或扫描音频文件", Toast.LENGTH_SHORT).show()
+      return
+    }
+
+    if (mTrack != null) {
+      if (mTrack!!.playState == AudioTrack.PLAYSTATE_PLAYING) {
+        // 不会立即暂停，会在写入数据全部播放完成之后暂停
+        // mTrack!!.stop()
+        // 立即暂停，不会丢弃已写入数据，下次继续播放
+        mTrack!!.pause()
+        // 丢弃已写入但未播放的数据
+        // mTrack!!.flush()
+        mPlaying.value = false
+        return
+      } else if (mTrack!!.playState == AudioTrack.PLAYSTATE_PAUSED) {
+        mTrack!!.play()
+        mPlaying.value = true
+        return
+      }
+    }
+
+    mTrack?.release()
+
+    val size = AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
+    mTrack = AudioTrack(
+      AudioAttributes.Builder()
+        .setLegacyStreamType(AudioManager.STREAM_MUSIC)
+        .build(),
+      AudioFormat.Builder()
+        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+        .setSampleRate(44100)
+        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+        .build(),
+      size, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE
+    )
+    mTrack!!.play()
+    mPlayThread = Thread {
+      mInput = FileInputStream(mRecordPath)
+      val buffer = ByteArray(size)
+      while (true) {
+        if (mPlaying.value != true) {
+          SystemClock.sleep(100L)
+          continue
+        }
+        val read = mInput!!.read(buffer)
+        if (read < 0) {
+          Log.e(TAG, "startPlayAudio() play over!")
+          break
+        }
+
+        val written = mTrack!!.write(buffer, 0, read)
+        if (written < 0) {
+          Log.e(TAG, "startPlayAudio() write audio data failed: $written")
+          break
+        }
+      }
+      mTrack!!.stop()
+      mTrack!!.release()
+      mInput!!.close()
+      mInput = null
+      // 子线程更新数据时，需要 post 到主线程
+      mPlaying.postValue(false)
+    }
+    mPlayThread?.start()
+    mPlaying.value = true
   }
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -164,10 +263,10 @@ class FfmpegPractise : BaseActivity() {
       Log.d(TAG, "onActivityResult() video url: ${data?.data}")
       if (data?.data == null) return
 
-      val columns = listOf(Media.DATA, Media.WIDTH, Media.HEIGHT)
+      val columns = arrayOf(Media.DATA, Media.WIDTH, Media.HEIGHT)
       //从系统表中查询指定Uri对应的照片
       try {
-        contentResolver.query(data.data!!, columns.toTypedArray(), null, null, null).use { cursor ->
+        contentResolver.query(data.data!!, columns, null, null, null).use { cursor ->
           cursor!!.moveToFirst()
           // 获取媒体绝对路径
           val filepath = cursor.getString(0)
@@ -175,8 +274,8 @@ class FfmpegPractise : BaseActivity() {
           if ("dump_meta" == flag) {
             FfmpegHelper.dumpMetaInfo(filepath)
           } else if ("extract_audio" == flag) {
-            // 输出文件路径
-            val output = File(getExternalFilesDir(null), "${System.currentTimeMillis()}.aac")
+            // 输出文件路径 /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
+            val output = File(getExternalFilesDir("audio"), "${fullTime()}.aac")
             if (output.exists()) output.delete()
             output.createNewFile()
 
