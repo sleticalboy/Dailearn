@@ -1,6 +1,8 @@
 package com.binlee.learning.ffmpeg
 
 import android.Manifest.permission
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -14,7 +16,9 @@ import android.os.SystemClock
 import android.provider.MediaStore.Video.Media
 import android.util.Log
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.TextView
@@ -28,10 +32,7 @@ import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.databinding.ActivityAvPractiseBinding
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.OutputStream
+import java.io.RandomAccessFile
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -52,6 +53,18 @@ class FfmpegPractise : BaseActivity() {
     ModuleItem("打印媒体 meta 信息", "dump_meta"),
     ModuleItem("音频提取", "extract_audio"),
   )
+  private var mAVFormat = AVFormat.A_PCM
+  private var mCurrentPath: String? = null
+
+  private var mRecordThread: Thread? = null
+  private var mOutput: RandomAccessFile? = null
+  private val mRecording = MutableLiveData(false)
+  private var mStopRunnable: Runnable? = null
+
+  private var mPlayThread: Thread? = null
+  private var mInput: RandomAccessFile? = null
+  private var mPlaying = MutableLiveData(false)
+  private var mTrack: AudioTrack? = null
 
   private var flag: String? = null
 
@@ -60,20 +73,42 @@ class FfmpegPractise : BaseActivity() {
     return mBind.root
   }
 
+  @Suppress("ClickableViewAccessibility")
   override fun initView() {
     mBind.recyclerView.adapter = DataAdapter(dataSet)
     Toast.makeText(this, ffmpegVersions, Toast.LENGTH_SHORT).show()
 
-    mBind.btnStartRecord.setOnClickListener { startRecordAudio() }
+    val timeout = ViewConfiguration.getLongPressTimeout().toLong()
+    mBind.btnStartRecord.setOnTouchListener { v, event ->
+      if (event.action == MotionEvent.ACTION_DOWN) {
+        v.postDelayed({ startRecordAudio() }, timeout)
+      } else if (event.action == MotionEvent.ACTION_UP) {
+        mRecording.value = false
+      }
+      true
+    }
     mBind.btnStartPlay.setOnClickListener { playOrPause() }
     mBind.btnScanAudio.setOnClickListener { scanAudioFiles() }
     val adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked)
     mBind.lvMediaList.adapter = adapter
-    mBind.lvMediaList.setOnItemClickListener { parent, view, position, id ->
-      mRecordPath = "${getExternalFilesDir("audio")}/${adapter.getItem(position)}"
+    mBind.lvMediaList.setOnItemClickListener { _, _, position, _ ->
+      mCurrentPath = "${getExternalFilesDir("audio")}/${adapter.getItem(position)}"
       mBind.lvMediaList.setItemChecked(position, true)
     }
-    scanAudioFiles()
+    mBind.lvMediaList.setOnItemLongClickListener { _, _, position, _ ->
+      if (File("${getExternalFilesDir("audio")}/${adapter.getItem(position)}").delete()) {
+        Toast.makeText(application, "${adapter.getItem(position)} 删除成功!", Toast.LENGTH_SHORT).show()
+        adapter.remove(adapter.getItem(position))
+      }
+      true
+    }
+    mBind.rgAudioFormat.setOnCheckedChangeListener { _, checkedId ->
+      mAVFormat = when (checkedId) {
+        R.id.rb_wav -> AVFormat.A_WAV
+        R.id.rb_aac -> AVFormat.A_AAC
+        else -> AVFormat.A_PCM
+      }
+    }
   }
 
   @Suppress("UNCHECKED_CAST")
@@ -86,9 +121,14 @@ class FfmpegPractise : BaseActivity() {
   }
 
   override fun initData() {
+    mRecording.observe(this) { recording ->
+      mBind.btnStartRecord.text = if (recording) "正在录制" else "长按录制"
+      if (!recording) onRecordOver()
+    }
     mPlaying.observe(this) { playing ->
       mBind.btnStartPlay.text = if (playing) "暂停" else "播放"
     }
+    scanAudioFiles()
   }
 
   private fun onClickItem(item: ModuleItem) {
@@ -103,14 +143,11 @@ class FfmpegPractise : BaseActivity() {
     }
   }
 
-  private var mRecordThread: Thread? = null
-  private var mRecordPath: String? = null
-  private var mOutput: OutputStream? = null
   private var mTimer: Int = 0
   private val  mRecordTimer = object : Runnable {
     override fun run() {
       mBind.tvRecordedDuration.text = getString(R.string.text_recorded_duration, ++mTimer)
-      if (mRecordThread?.isAlive == true) {
+      if (mRecording.value == true) {
         mBind.root.postDelayed(this, 1000L)
       }
     }
@@ -133,68 +170,93 @@ class FfmpegPractise : BaseActivity() {
       while (true) {
         val readBytes = record.read(buffer, 0, buffer.size)
         if (readBytes <= 0) {
-          record.release()
-          mOutput?.close()
-          mOutput = null
-          convertToWav()
+          updateHeader(mOutput!!)
           Log.d(TAG, "startRecordAudio() record over!")
-          runOnUiThread {
-            Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show()
-            mBind.tvRecordedDuration.text = ""
-          }
           break
         }
-
         // 写入文件
         writeBuffer(buffer, readBytes)
       }
+
+      record.release()
+      mOutput?.close()
+      mOutput = null
     }
     mRecordThread?.start()
-    Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show()
-
-    // 录音时长
-    var duration = mBind.etDuration.text.toString()
-    if (duration.isEmpty()) duration = "10"
-    mBind.root.postDelayed({
-      mBind.root.removeCallbacks(mRecordTimer)
-      record.stop()
-    }, duration.toLong() * 1000)
     mBind.root.postDelayed(mRecordTimer, 1000L)
+    Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show()
+    mStopRunnable = Runnable {
+      record.stop()
+    }
+
+    mRecording.value = true
   }
 
-  private fun convertToWav() {
-    val source = FileInputStream(mRecordPath)
-    val wavFile = mRecordPath!!.replace("pcm", "wav")
-    val sink = FileOutputStream(wavFile)
-    val header = WavHeader(AudioFormat.CHANNEL_IN_MONO, 44100, AudioFormat.ENCODING_PCM_16BIT, source.available())
-    sink.write(header.array())
-    source.copyTo(sink)
-    sink.close()
-    Log.d(TAG, "convertToWav() file: $wavFile")
+  @Suppress("UNCHECKED_CAST")
+  private fun onRecordOver() {
+    mBind.root.removeCallbacks(mRecordTimer)
+    mCurrentPath?.let {
+      (mBind.lvMediaList.adapter as ArrayAdapter<String>).add(it.substring(it.lastIndexOf('/') + 1))
+    }
+    mStopRunnable?.run()
+    mBind.tvRecordedDuration.animate()
+      .alpha(0f)
+      .setDuration(1000L)
+      .setListener(object : AnimatorListenerAdapter() {
+        override fun onAnimationEnd(animation: Animator?) {
+          mBind.tvRecordedDuration.text = ""
+          mBind.tvRecordedDuration.alpha = 1f
+        }
+      })
+    Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show()
+  }
+
+  private fun updateHeader(output: RandomAccessFile) {
+    val pcmSize = output.length() - WavHeader.SIZE
+    val header = WavHeader(AudioFormat.CHANNEL_IN_MONO, 44100, AudioFormat.ENCODING_PCM_16BIT, pcmSize)
+    val pointer = output.filePointer
+    output.seek(0)
+    output.write(header.array())
+    Log.d(TAG, "updateHeader() $header, last: $pointer, pos: ${output.filePointer}")
+
+    output.seek(0)
+    val temp = ByteArray(48)
+    output.read(temp)
+    Log.d(TAG, "updateHeader() ${temp.contentToString()}, pos: ${output.filePointer}")
+
+    output.seek(pointer)
+  }
+
+  private fun addHeader(output: RandomAccessFile, format: AVFormat) {
+    // 裸数据，不需要处理
+    if (format == AVFormat.A_PCM) return
+    // 添加 pcm 文件头
+    if (format == AVFormat.A_WAV) {
+      // 先跳过 44 字节，后面再把真正的文件头写入
+      output.seek(WavHeader.SIZE.toLong())
+    }
+    // aac 数据，暂时没有实现
+    if (format == AVFormat.A_AAC) {
+      Log.d(TAG, "addHeader() unsupported now! $format")
+    }
   }
 
   private fun writeBuffer(buffer: ByteArray, readBytes: Int) {
     if (mOutput == null) {
       // /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
-      mRecordPath = "${getExternalFilesDir("audio")}/${fullTime()}.pcm"
-      mOutput = FileOutputStream(mRecordPath)
-      Log.d(TAG, "writeBuffer() create file: $mRecordPath")
+      mCurrentPath = "${getExternalFilesDir("audio")}/${generateName(mAVFormat)}"
+      mOutput = RandomAccessFile(mCurrentPath, "rw")
+      addHeader(mOutput!!, mAVFormat)
+      Log.d(TAG, "writeBuffer() create file: $mCurrentPath, pos: ${mOutput!!.filePointer}")
     }
     if (readBytes > 0) {
       mOutput?.write(buffer, 0, readBytes)
-      mOutput?.flush()
-      Log.d(TAG, "writeBuffer() size: $readBytes")
     }
   }
 
-  private var mPlayThread: Thread? = null
-  private var mInput: InputStream? = null
-  private var mPlaying = MutableLiveData(false)
-  private var mTrack: AudioTrack? = null
-
   private fun playOrPause() {
-    if (mRecordPath == null) {
-      Toast.makeText(this, "请先录制或扫描音频文件", Toast.LENGTH_SHORT).show()
+    if (mCurrentPath == null) {
+      Toast.makeText(this, "请录制或选择音频文件", Toast.LENGTH_SHORT).show()
       return
     }
 
@@ -231,7 +293,7 @@ class FfmpegPractise : BaseActivity() {
     )
     mTrack!!.play()
     mPlayThread = Thread {
-      mInput = FileInputStream(mRecordPath)
+      mInput = RandomAccessFile(mCurrentPath, "r")
       val buffer = ByteArray(size)
       var first = true
       while (true) {
@@ -239,11 +301,9 @@ class FfmpegPractise : BaseActivity() {
           SystemClock.sleep(100L)
           continue
         }
-        if (first && mRecordPath!!.endsWith("wav")) {
-          val header = ByteArray(WavHeader.SIZE)
-          mInput!!.read(header)
+        if (first && mCurrentPath!!.endsWith("wav")) {
+          mInput!!.seek(WavHeader.SIZE.toLong())
           first = false
-          Log.d(TAG, "playOrPause() header: ${header.contentToString()}")
         }
         val read = mInput!!.read(buffer)
         Log.d(TAG, "playOrPause() read: $read")
@@ -295,7 +355,7 @@ class FfmpegPractise : BaseActivity() {
             FfmpegHelper.dumpMetaInfo(filepath)
           } else if ("extract_audio" == flag) {
             // 输出文件路径 /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
-            val output = File(getExternalFilesDir("audio"), "${fullTime()}.aac")
+            val output = File(getExternalFilesDir("audio"), generateName(AVFormat.A_AAC))
             if (output.exists()) output.delete()
             output.createNewFile()
 
@@ -356,8 +416,8 @@ class FfmpegPractise : BaseActivity() {
 
     private val ffmpegVersions: String = FfmpegHelper.getVersions()
 
-    private fun fullTime(): String {
-      return DATE_FORMAT.format(System.currentTimeMillis())
+    private fun generateName(format: AVFormat): String {
+      return "${DATE_FORMAT.format(System.currentTimeMillis())}${format.suffix}"
     }
   }
 }

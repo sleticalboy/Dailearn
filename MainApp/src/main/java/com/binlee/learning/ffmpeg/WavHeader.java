@@ -14,15 +14,17 @@ import java.util.Arrays;
 public final class WavHeader {
 
   public static final int SIZE = 44;
+  public static final byte[] PLACEHOLDER = new byte[SIZE];
+
   private final ByteBuffer header;
 
-  public WavHeader(int channel, int sampleRate, int fmt, int pcmLen) {
+  public WavHeader(int channel, int sampleRate, int fmt, long pcmLen) {
     header = ByteBuffer.allocate(SIZE);
 
     // 'RIFF'： 4 字节（0-3）
     header.put("RIFF".getBytes(StandardCharsets.UTF_8));
     // 文件总大小（pcm 长度 + 文件头）：4 字节（4-7）
-    putIntBits(pcmLen + SIZE);
+    putIntBits((int) (pcmLen + SIZE));
 
     // 'WAVE' 4 字节（8-11）
     header.put("WAVE".getBytes(StandardCharsets.UTF_8));
@@ -53,7 +55,7 @@ public final class WavHeader {
     header.put("data".getBytes(StandardCharsets.UTF_8));
 
     // pcm 字节数： 4 字节（40-43）
-    putIntBits(pcmLen);
+    putIntBits((int) pcmLen);
   }
 
   public byte[] array() {
