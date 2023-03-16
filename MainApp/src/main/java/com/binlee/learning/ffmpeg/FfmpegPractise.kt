@@ -136,6 +136,7 @@ class FfmpegPractise : BaseActivity() {
           record.release()
           mOutput?.close()
           mOutput = null
+          convertToWav()
           Log.d(TAG, "startRecordAudio() record over!")
           runOnUiThread {
             Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show()
@@ -159,6 +160,17 @@ class FfmpegPractise : BaseActivity() {
       record.stop()
     }, duration.toLong() * 1000)
     mBind.root.postDelayed(mRecordTimer, 1000L)
+  }
+
+  private fun convertToWav() {
+    val source = FileInputStream(mRecordPath)
+    val wavFile = mRecordPath!!.replace("pcm", "wav")
+    val sink = FileOutputStream(wavFile)
+    val header = WavHeader(AudioFormat.CHANNEL_IN_MONO, 44100, AudioFormat.ENCODING_PCM_16BIT, source.available())
+    sink.write(header.array())
+    source.copyTo(sink)
+    sink.close()
+    Log.d(TAG, "convertToWav() file: $wavFile")
   }
 
   private fun writeBuffer(buffer: ByteArray, readBytes: Int) {
@@ -221,20 +233,28 @@ class FfmpegPractise : BaseActivity() {
     mPlayThread = Thread {
       mInput = FileInputStream(mRecordPath)
       val buffer = ByteArray(size)
+      var first = true
       while (true) {
         if (mPlaying.value != true) {
           SystemClock.sleep(100L)
           continue
         }
+        if (first && mRecordPath!!.endsWith("wav")) {
+          val header = ByteArray(WavHeader.SIZE)
+          mInput!!.read(header)
+          first = false
+          Log.d(TAG, "playOrPause() header: ${header.contentToString()}")
+        }
         val read = mInput!!.read(buffer)
+        Log.d(TAG, "playOrPause() read: $read")
         if (read < 0) {
-          Log.e(TAG, "startPlayAudio() play over!")
+          Log.e(TAG, "playOrPause() play over! read: $read")
           break
         }
 
         val written = mTrack!!.write(buffer, 0, read)
         if (written < 0) {
-          Log.e(TAG, "startPlayAudio() write audio data failed: $written")
+          Log.e(TAG, "playOrPause() write audio data failed: $written")
           break
         }
       }
