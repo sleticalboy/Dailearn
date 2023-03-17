@@ -22,10 +22,7 @@ import kotlin.math.sqrt
  */
 object TimeUtils {
 
-  private val DEFAULT_FORMAT = SimpleDateFormat(
-    "yyyy-MM-dd'T'HH:mm:ss+08:00",
-    Locale.SIMPLIFIED_CHINESE
-  )
+  private val DEFAULT_FORMAT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss+08:00", Locale.SIMPLIFIED_CHINESE)
 
   fun getDistance(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Float {
     var lat1 = lat1

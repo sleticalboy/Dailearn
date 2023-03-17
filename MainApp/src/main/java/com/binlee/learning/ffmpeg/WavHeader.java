@@ -14,7 +14,6 @@ import java.util.Arrays;
 public final class WavHeader {
 
   public static final int SIZE = 44;
-  public static final byte[] PLACEHOLDER = new byte[SIZE];
 
   private final ByteBuffer header;
 
