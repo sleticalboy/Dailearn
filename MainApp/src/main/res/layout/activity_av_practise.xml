@@ -70,7 +70,6 @@
       android:layout_height="wrap_content"
       android:layout_weight="1"
       android:text="PCM"
-      android:checked="true"
       />
 
     <RadioButton
@@ -86,19 +85,10 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:layout_weight="1"
+      android:checked="true"
       android:text="AAC"
       />
   </RadioGroup>
-
-  <Button
-    android:id="@+id/btn_start_record"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="长按录制"
-    app:layout_constraintLeft_toLeftOf="parent"
-    app:layout_constraintRight_toRightOf="parent"
-    app:layout_constraintBottom_toBottomOf="parent"
-    />
 
   <TextView
     android:id="@+id/tv_recorded_duration"
@@ -111,6 +101,28 @@
     app:layout_constraintTop_toTopOf="@+id/btn_start_play"
     app:layout_constraintBottom_toBottomOf="parent"
     tools:text="@string/text_recorded_duration"
+    />
+
+  <CheckBox
+    android:id="@+id/cb_async_mode"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="异步编码"
+    android:checked="true"
+    app:layout_constraintLeft_toRightOf="@+id/tv_recorded_duration"
+    app:layout_constraintTop_toTopOf="@+id/btn_start_play"
+    app:layout_constraintRight_toLeftOf="@+id/btn_start_record"
+    app:layout_constraintBottom_toBottomOf="parent"
+    />
+
+  <Button
+    android:id="@+id/btn_start_record"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="长按录制"
+    app:layout_constraintLeft_toRightOf="@+id/cb_async_mode"
+    app:layout_constraintRight_toLeftOf="@+id/btn_start_play"
+    app:layout_constraintBottom_toBottomOf="parent"
     />
 
   <Button

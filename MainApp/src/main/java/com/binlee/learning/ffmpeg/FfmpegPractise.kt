@@ -14,6 +14,8 @@ import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaCodec
 import android.media.MediaCodec.BufferInfo
+import android.media.MediaCodec.Callback
+import android.media.MediaCodec.CodecException
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaRecorder.AudioSource
@@ -40,9 +42,10 @@ import com.binlee.learning.databinding.ActivityAvPractiseBinding
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
 import java.io.RandomAccessFile
+import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
-import java.util.LinkedList
 import java.util.Locale
+import kotlin.concurrent.thread
 
 /**
  * Created on 2022/8/3
@@ -61,10 +64,9 @@ class FfmpegPractise : BaseActivity() {
     ModuleItem("打印媒体 meta 信息", "dump_meta"),
     ModuleItem("音频提取", "extract_audio"),
   )
-  private var mAVFormat = AVFormat.A_PCM
+  private var mAVFormat = AVFormat.A_AAC
   private var mCurrentPath: String? = null
 
-  private var mRecordThread: Thread? = null
   private var mOutput: RandomAccessFile? = null
   private val mRecording = MutableLiveData(false)
   private val mLongPressAction = Runnable {
@@ -73,7 +75,6 @@ class FfmpegPractise : BaseActivity() {
   }
   private var mStopAction: (() -> Unit)? = null
 
-  private var mPlayThread: Thread? = null
   private var mPlaying = MutableLiveData(false)
   private var mTrack: AudioTrack? = null
 
@@ -193,36 +194,48 @@ class FfmpegPractise : BaseActivity() {
       ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), 0x44100)
       return
     }
+    // 震动一下
     val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     vibrator.vibrate(50L)
+
     // 构造 AudioRecord
     val size = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT) * 2
     val record = AudioRecord(AudioSource.DEFAULT, 44100, AudioFormat.CHANNEL_IN_MONO,
       AudioFormat.ENCODING_PCM_16BIT, size)
     // 开始录音
     record.startRecording()
+    // 结束录音
+    mStopAction = {
+      try {
+        record.stop()
+      } catch (_: IllegalStateException) {
+      }
+      mTimer.cancel()
+    }
+    mRecording.value = true
+
     // 开启子线程从 audio buffer 中读取数据
-    mRecordThread = Thread {
+    thread(start = true, name = "PCM-Recorder") {
       val buffer = ByteArray(size)
       while (true) {
         val readBytes = record.read(buffer, 0, buffer.size)
         if (readBytes <= 0) {
           updateWavHeader(mOutput!!, mAVFormat)
           mRecording.postValue(false)
-          Log.d(TAG, "startRecordAudio() record over!")
+          Log.w(TAG, "record thread: record over!")
           if (mAVFormat != AVFormat.A_AAC) {
             runOnUiThread { onRecordOver() }
           }
           break
         }
         if (mAVFormat == AVFormat.A_AAC) {
+          if (mPcmPackets == null) mPcmPackets = CodecQueue(mBind.cbAsyncMode.isChecked)
           // 如果是 aac 格式，则要通过编码器将 pcm 数据编码成 aac 数据并添加 adts 头后写入文件
           // 把数据封装起来加入队列，另起一个线程从队列取数据送入编码器，等待编码器处理完数据之后再写入文件中
-          synchronized(mPcmPackets) {
-            mPcmPackets.addFirst(Pair(buffer, readBytes))
-            Log.d(TAG, "startRecordAudio() queue size: ${mPcmPackets.size}")
-          }
-          ensureEncoderThread()
+          mPcmPackets!!.enqueue(Pair(buffer, readBytes))
+          Log.d(TAG, "record thread: queue(${mPcmPackets!!.size()})")
+
+          startEncoder(mBind.cbAsyncMode.isChecked)
         } else if (mAVFormat == AVFormat.A_PCM || mAVFormat == AVFormat.A_WAV) {
           // 如果是 pcm 或者 wav 格式，可以直接写入文件
           writeBuffer(buffer, readBytes)
@@ -230,26 +243,17 @@ class FfmpegPractise : BaseActivity() {
       }
 
       record.release()
-      mOutput?.close()
-      mOutput = null
-    }
-    mRecordThread?.start()
-    mTimer.start()
-    Toast.makeText(this, "开始录制", Toast.LENGTH_SHORT).show()
-    mStopAction = {
-      Log.d(TAG, "startRecordAudio() stop record")
-      try {
-        record.stop()
-      } catch (_: IllegalStateException) {
-      }
-      mTimer.cancel()
+      Log.e(TAG, "recorder thread exit!!")
     }
 
-    mRecording.value = true
+    // 计时器开始计时
+    mTimer.start()
   }
 
   @Suppress("UNCHECKED_CAST")
   private fun onRecordOver() {
+    mOutput?.close()
+    mOutput = null
     mBind.tvRecordedDuration.animate()
       .alpha(0f)
       .setDuration(1000L)
@@ -298,28 +302,107 @@ class FfmpegPractise : BaseActivity() {
       }
       Log.d(TAG, "writeBuffer() create file: $mCurrentPath, pos: ${mOutput!!.filePointer}")
     }
-    if (readBytes <= 0) return
-    mOutput?.write(buffer, 0, readBytes)
+    if (readBytes > 0) mOutput?.write(buffer, 0, readBytes)
   }
 
   private var mAacEncoder: MediaCodec? = null
-  private val mPcmPackets = LinkedList<Pair<ByteArray, Int>>()
-  private var mEncoderThread: Thread? = null
+  private var mPcmPackets: CodecQueue<Pair<ByteArray, Int>>? = null
+  private var mEncoding = false
 
-  private fun ensureEncoderThread() {
-    if (mEncoderThread != null) return
-
-    mEncoderThread = Thread {
-      // 初始化编码器
-      initializeEncoder()
-      // 开启循环处理
-      processPcmPackets()
+  private fun startEncoder(async: Boolean) {
+    if (async) {
+      startAsyncEncoder()
+    } else {
+      startSyncEncoder()
     }
-    // 启动编码线程，开始给编码器送数据
-    mEncoderThread?.start()
   }
 
-  private fun initializeEncoder() {
+  private fun startAsyncEncoder() {
+    if (mEncoding) return
+
+    Log.w(TAG, "startAsyncEncoder() ---->")
+
+    initializeEncoder(start = false)
+    mAacEncoder!!.setCallback(object : Callback() {
+      override fun onInputBufferAvailable(codec: MediaCodec, index: Int) {
+        // 拿到可用的 buffer
+        val buffer = codec.getInputBuffer(index)
+
+        // 正在录制中但队列为空，等待从 AudioRecord 读取数据放入队列，暂时先送一个空 buffer 过去
+        if (mRecording.value == true && mPcmPackets?.size() == 0) {
+          Log.w(TAG, "onInputBufferAvailable() wait pcm packet queue!")
+          codec.queueInputBuffer(index, 0, 0, 0, 0)
+          return
+        }
+
+        // 停止录制，告诉解码器没有数据了
+        if (mRecording.value == false && mPcmPackets?.size() == 0) {
+          Log.e(TAG, "onInputBufferAvailable() pcm packet queue empty!")
+          codec.queueInputBuffer(index, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+          return
+        }
+
+        val pair = mPcmPackets!!.dequeue()
+        buffer?.put(pair.first, 0, pair.second)
+        codec.queueInputBuffer(index, 0, pair.second, 0, 0)
+        Log.d(TAG, "onInputBufferAvailable() buffer($index) -> $buffer, pcm packet size: ${pair.second}")
+      }
+
+      override fun onOutputBufferAvailable(codec: MediaCodec, index: Int, info: BufferInfo) {
+        if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
+          Log.i(TAG, "onOutputBufferAvailable() codec config")
+          codec.releaseOutputBuffer(index, false)
+          return
+        }
+        if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
+          Log.w(TAG, "onOutputBufferAvailable() encoder finish!")
+          onRecordOver()
+          releaseEncoder()
+          return
+        }
+        val buffer = codec.getOutputBuffer(index)
+        Log.d(TAG, "onOutputBufferAvailable() buffer($index) -> $buffer")
+        writeAacFrame(buffer, info.size)
+        codec.releaseOutputBuffer(index, false)
+      }
+
+      override fun onError(codec: MediaCodec, e: CodecException) {
+        Log.d(TAG, "onError() e = $e")
+        releaseEncoder()
+      }
+
+      override fun onOutputFormatChanged(codec: MediaCodec, format: MediaFormat) {
+      }
+    })
+    startCodec()
+  }
+
+  private fun startSyncEncoder() {
+    if (mEncoding) return
+
+    Log.w(TAG, "startSyncEncoder() ---->")
+
+    // 启动编码线程，开始给编码器送数据
+    thread(start = true, name = "AAC-Encoder") {
+      // 初始化编码器
+      initializeEncoder(start = true)
+      // 循环处理
+      while (true) {
+        // 从队列中取数据并填充到 buffer 中后送入编码器
+        enqueueInputBuffer()
+        // 从编码器取出 aac 数据，封装成 aac 帧写入文件
+        if (dequeueOutputBuffer()) break
+      }
+      Log.e(TAG, "encoder thread exit!!")
+      runOnUiThread { onRecordOver() }
+
+      // 释放解码器
+      releaseEncoder()
+    }
+    mEncoding = true
+  }
+
+  private fun initializeEncoder(start: Boolean = false) {
     // 创建 aac 编码器
     mAacEncoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
     // 配置编码器
@@ -328,110 +411,120 @@ class FfmpegPractise : BaseActivity() {
     format.setInteger(MediaFormat.KEY_BIT_RATE, 44100 * 1 * AudioFormat.ENCODING_PCM_16BIT)
     format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 16 * 1024)
     mAacEncoder?.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+    if (start) startCodec()
+  }
+
+  private fun releaseEncoder() {
+    mAacEncoder!!.stop()
+    mAacEncoder!!.release()
+    mAacEncoder = null
+    mEncoding = false
+  }
+
+  private fun startCodec() {
     // 启动编码器
     mAacEncoder?.start()
+    mEncoding = true
   }
 
-  private fun processPcmPackets() {
-    while (true) {
-      // 从队列中取数据并填充到 buffer 中后送入编码器
-      readInputBuffer()
-
-      // 从编码器取出 aac 数据，封装成 aac 帧写入文件
-      if (writeOutputBuffer()) break
-
-      Log.w(TAG, "processPcmPackets() next loop!!!!!!")
+  private fun enqueueInputBuffer() {
+    // 队列没有数据，等待
+    if (mRecording.value == true && mPcmPackets?.size() == 0) {
+      Log.w(TAG, "queueInputBuffer() wait pcm packet queue")
+      SystemClock.sleep(250L)
+      return
     }
-    Log.e(TAG, "processPcmPackets() exit!!")
-    runOnUiThread { onRecordOver() }
-  }
-
-  private fun readInputBuffer() {
     // 找到可用的输入 buffer 索引
     val index = mAacEncoder!!.dequeueInputBuffer(ENCODER_TIMEOUT)
     if (index < 0) {
-      Log.w(TAG, "readInputBuffer() no input buffer($index), queue(${mPcmPackets.size})")
+      Log.w(TAG, "queueInputBuffer() no available buffer($index), queue(${mPcmPackets?.size()})")
       return
     }
 
     val buffer = mAacEncoder!!.getInputBuffer(index)
-    Log.i(TAG, "readInputBuffer() $index -> $buffer, recording: ${mRecording.value}")
+    Log.i(TAG, "queueInputBuffer() $index -> $buffer, recording: ${mRecording.value}")
 
     // 从队列中取出数据并填充到 buffer 中
-    val pair: Pair<ByteArray, Int>?
-    synchronized(mPcmPackets) {
-      if (mPcmPackets.size == 0 && mRecording.value == true) {
-        mAacEncoder!!.queueInputBuffer(index, 0, 0, 0, 0)
-        return
-      }
-      pair = if (mPcmPackets.size == 0 && mRecording.value == false) {
-        null
-      } else {
-        Log.d(TAG, "readInputBuffer() take pcm packet >>>>>>>>>>")
-        mPcmPackets.removeLast()
-      }
+    val pair = if (mRecording.value == false && mPcmPackets?.size() == 0) {
+      null
+    } else {
+      Log.d(TAG, "queueInputBuffer() take pcm packet >>>>>>>>>>")
+      val element = mPcmPackets!!.dequeue()
+      Log.d(TAG, "queueInputBuffer() <<<<<<<<<< take pcm packet")
+      element
     }
-    Log.d(TAG, "readInputBuffer() <<<<<<<<<< take pcm packet")
     if (pair == null) {
-      Log.e(TAG, "readInputBuffer() pcm packet queue is empty!")
+      Log.e(TAG, "queueInputBuffer() pcm packet queue is empty!")
       // 数据送完了
       mAacEncoder!!.queueInputBuffer(index, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
     } else {
       // TODO: pcm 数据长度会不会超出 buffer 限制？
-      Log.d(TAG, "readInputBuffer() buffer size: ${buffer?.capacity()}, pcm size: ${pair.second}")
-      buffer?.clear()
+      Log.d(TAG, "queueInputBuffer() buffer size: ${buffer?.capacity()}, pcm size: ${pair.second}")
       buffer?.put(pair.first, 0, pair.second)
       // 将 buffer 送入解码器
       mAacEncoder!!.queueInputBuffer(index, 0, pair.second, 0, 0)
     }
   }
 
-  private fun writeOutputBuffer() : Boolean {
-    // 从解码器取编码好的数据，添加 adts 头组成 aac 帧，写入文件
-    val bufferInfo = BufferInfo()
-    // 找到可用的输出 buffer
-    val index = mAacEncoder!!.dequeueOutputBuffer(bufferInfo, ENCODER_TIMEOUT)
-
-    AVUtil.dumpBufferFlags(bufferInfo.flags)
-    // 检测 buffer 信息
-    if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
-      return true
-    }
-    if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
-      Log.i(TAG, "writeOutputBuffer() codec config")
-      return false
-    }
-
-    when (index) {
-      MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-        Log.i(TAG, "writeOutputBuffer() output format changed to ${mAacEncoder?.outputFormat}")
-      }
-      MediaCodec.INFO_TRY_AGAIN_LATER -> {
-        Log.e(TAG, "writeOutputBuffer() try again later, sleep 50ms")
-        SystemClock.sleep(50L)
-      }
-      MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED -> {
-        Log.i(TAG, "writeOutputBuffer() output buffers changed")
-      }
-      else -> {
-        val buffer = mAacEncoder!!.getOutputBuffer(index)
-        Log.i(TAG, "writeOutputBuffer() output buffer $index -> $buffer")
-
-        // 一个 aac 帧由 adts 头（7 字节）和 aac 数据包组成
-        val aacFrame = ByteArray(7 + bufferInfo.size)
-        // 从输出 buffer 中取出 aac 数据
-        buffer?.get(aacFrame, 7, bufferInfo.size)
-        buffer?.clear()
-        // 添加 adts 头
-        addAdtsHeader(aacFrame)
-        // 写入文件
-        writeBuffer(aacFrame, aacFrame.size)
-        Log.i(TAG, "writeOutputBuffer() written size: ${aacFrame.size} , raw size: ${bufferInfo.size}")
-        // 释放输出 buffer
-        mAacEncoder!!.releaseOutputBuffer(index, false)
-      }
+  private fun dequeueOutputBuffer(): Boolean {
+    var res: Int
+    while (true) {
+      res = dequeueOutputBuffer0()
+      if (res == MediaCodec.BUFFER_FLAG_END_OF_STREAM) return true
+      if (res == MediaCodec.INFO_TRY_AGAIN_LATER) break
     }
     return false
+  }
+
+  private fun dequeueOutputBuffer0(): Int {
+    // 从解码器取编码好的数据，添加 adts 头组成 aac 帧，写入文件
+    val info = BufferInfo()
+    // 找到可用的输出 buffer
+    val index = mAacEncoder!!.dequeueOutputBuffer(info, ENCODER_TIMEOUT)
+
+    // 检测 buffer 信息
+    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
+      return MediaCodec.BUFFER_FLAG_END_OF_STREAM
+    }
+    if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
+      Log.i(TAG, "dequeueOutputBuffer() codec config")
+      return MediaCodec.BUFFER_FLAG_CODEC_CONFIG
+    }
+    if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+      Log.i(TAG, "dequeueOutputBuffer() output format changed to ${mAacEncoder?.outputFormat}")
+      return MediaCodec.INFO_OUTPUT_FORMAT_CHANGED
+    }
+    if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {
+      Log.e(TAG, "dequeueOutputBuffer() try again later")
+      return MediaCodec.INFO_TRY_AGAIN_LATER
+    }
+    if (index == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+      Log.i(TAG, "dequeueOutputBuffer() output buffers changed")
+      return MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED
+    }
+
+    val buffer = mAacEncoder!!.getOutputBuffer(index)
+    Log.i(TAG, "dequeueOutputBuffer() output buffer $index -> $buffer")
+
+    writeAacFrame(buffer, info.size)
+
+    // 释放输出 buffer
+    mAacEncoder!!.releaseOutputBuffer(index, false)
+    return index
+  }
+
+  private fun writeAacFrame(buffer: ByteBuffer?, size: Int) {
+    if (size == 0) return
+
+    // 一个 aac 帧由 adts 头（7 字节）和 aac 数据包组成
+    val aacFrame = ByteArray(7 + size)
+    // 从输出 buffer 中取出 aac 数据
+    buffer?.get(aacFrame, 7, size)
+    // 添加 adts 头
+    addAdtsHeader(aacFrame)
+    // 写入文件
+    writeBuffer(aacFrame, aacFrame.size)
+    Log.i(TAG, "writeAacFrame() written size: ${aacFrame.size} , raw size: $size")
   }
 
   private fun addAdtsHeader(packet: ByteArray) {
@@ -497,13 +590,13 @@ class FfmpegPractise : BaseActivity() {
       size, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE
     )
     mTrack!!.play()
-    mPlayThread = Thread {
+    thread(start = true, name = "PCM-Player") {
       val input = RandomAccessFile(mCurrentPath, "r")
       val buffer = ByteArray(size)
       var first = true
       while (true) {
         if (mPlaying.value != true) {
-          SystemClock.sleep(100L)
+          SystemClock.sleep(250L)
           continue
         }
         if (first && mCurrentPath!!.endsWith("wav")) {
@@ -528,7 +621,6 @@ class FfmpegPractise : BaseActivity() {
       // 子线程更新数据时，需要 post 到主线程
       mPlaying.postValue(false)
     }
-    mPlayThread?.start()
     mPlaying.value = true
   }
 
