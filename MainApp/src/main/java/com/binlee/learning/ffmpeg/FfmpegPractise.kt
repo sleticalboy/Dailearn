@@ -157,7 +157,7 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    recorder = RecorderFactory.create(mAVFormat)
+    recorder = RecorderFactory.create(mAVFormat, mBind.cbAsyncMode.isChecked)
     recorder.setOutputFile(generateName(this, mAVFormat))
     recorder.start(object : IRecorder.Callback {
       override fun onStarted() {

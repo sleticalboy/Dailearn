@@ -41,6 +41,7 @@ class AsyncRecorder : AacRecorder() {
       }
       if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
         Log.w(TAG, "onOutputBufferAvailable() encoder finish!")
+        eos = true
         releaseEncoder()
         beforeFinish(output!!)
         return
