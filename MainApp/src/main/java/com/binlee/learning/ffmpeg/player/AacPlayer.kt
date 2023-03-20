@@ -7,6 +7,7 @@ import android.media.MediaFormat
 import android.util.Log
 import com.binlee.learning.ffmpeg.AVFormat.A_AAC
 import com.binlee.learning.ffmpeg.Packet
+import com.bumptech.glide.load.data.ExifOrientationStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 
@@ -19,8 +20,6 @@ class AacPlayer(): BasePlayer(format = A_AAC) {
   
   private var extractor: MediaExtractor? = null
   private var decoder: MediaCodec? = null
-  // 文件是否结束
-  private var eof = false
   private var temp: ByteBuffer = ByteBuffer.allocate(1024)
   
   override fun onReaderStarted(input: RandomAccessFile) {
@@ -63,20 +62,19 @@ class AacPlayer(): BasePlayer(format = A_AAC) {
       queueInputBuffer(decoder!!, Packet(buffer, readBytes))
       // 判断文件是否读完
       eof = readBytes < 0 || !extractor!!.advance()
-      if (eof) {
-        Log.w(TAG, "readFile() eof -> readBytes($readBytes)")
-        queueInputBuffer(decoder!!, Packet(buffer, -1/*eos*/))
-      }
+      if (eof) Log.w(TAG, "readFile() eof -> readBytes($readBytes)")
     }
     // 从解码器接收 pcm 数据
-    val pair: Pair<Packet?/*pcm packet*/, Boolean/*eos*/> = dequeueOutputBuffer(decoder!!)
+    while (true) {
+      val pair: Pair<Packet?/*pcm packet*/, Boolean/*eos*/> = dequeueOutputBuffer(decoder!!)
 
-    // 判断是否解码结束(eos)
-    if (pair.second) return true
+      // 判断是否解码结束(eos)
+      if (pair.first == null || pair.second) break
 
-    // 解码后的数据送入播放队列等待写入 AudioTrack 进行播放
-    pair.first?.let { enqueuePacket(it) }
-    return false
+      // 解码后的数据送入播放队列等待写入 AudioTrack 进行播放
+      pair.first?.let { enqueuePacket(it) }
+    }
+    return eof
   }
 
   private fun queueInputBuffer(decoder: MediaCodec, packet: Packet) {
@@ -112,15 +110,15 @@ class AacPlayer(): BasePlayer(format = A_AAC) {
       return Pair(packet, false)
     }
     // 其他信息
-    if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
-      Log.w(TAG, "dequeueOutputBuffer() codec config: ${decoder.outputFormat}")
-    } else if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-      Log.w(TAG, "dequeueOutputBuffer() output format changed to ${decoder.outputFormat}")
-    } else if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {
-      Log.w(TAG, "dequeueOutputBuffer() try again later")
-    } else if (index == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-      Log.w(TAG, "dequeueOutputBuffer() output buffers changed")
-    }
+    // if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
+    //   Log.w(TAG, "dequeueOutputBuffer() codec config: ${decoder.outputFormat}")
+    // } else if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+    //   Log.w(TAG, "dequeueOutputBuffer() output format changed to ${decoder.outputFormat}")
+    // } else if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {
+    //   Log.w(TAG, "dequeueOutputBuffer() try again later")
+    // } else if (index == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+    //   Log.w(TAG, "dequeueOutputBuffer() output buffers changed")
+    // }
     return Pair(null, false)
   }
 }

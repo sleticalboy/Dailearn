@@ -31,6 +31,7 @@ import com.binlee.learning.ffmpeg.AVFormat.NONE
 import com.binlee.learning.ffmpeg.AVFormat.fromPath
 import com.binlee.learning.ffmpeg.IPlayer.State
 import com.binlee.learning.ffmpeg.IPlayer.State.PLAYING
+import com.binlee.learning.ffmpeg.IPlayer.State.STOPPED
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
 import java.text.SimpleDateFormat
@@ -220,7 +221,7 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    Log.d(TAG, "playOrPause() file -> $mCurrentPath")
+    Log.d(TAG, "playOrPause() $mPlayer -> $mCurrentPath")
 
     // pause -> play(resume)
     if (mPlayer?.isPlaying() == true) {
@@ -235,10 +236,13 @@ class FfmpegPractise : BaseActivity() {
     }
 
     mPlayer = PlayerFactory.create(mAVFormat)
+    Log.d(TAG, "playOrPause() new player: $mPlayer")
     mPlayer!!.setInputFile(mCurrentPath!!)
     mPlayer!!.start(object : IPlayer.Callback {
       override fun onState(state: State) {
+        Log.d(TAG, "onState() state = $state")
         mBind.btnStartPlay.text = if (state == PLAYING) "暂停" else "播放"
+        if (state == STOPPED) mPlayer = null
       }
     })
   }

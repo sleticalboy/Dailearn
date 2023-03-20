@@ -30,8 +30,12 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
   protected val TAG = javaClass.simpleName
   private lateinit var path: String
   private var track: AudioTrack? = null
+
+  // 文件是否结束
+  protected var eof = false
   private val queueLock = Object()
   private val queue = LinkedList<Packet>()
+
   private val innerCallback = object: Callback {
     private val handler = Handler(Looper.getMainLooper())
     override fun onState(state: State) {
@@ -83,12 +87,11 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
         }
 
         val packet = dequeuePacket()
-
+        // Log.i(TAG, "player thread: packet size: ${packet?.size}")
         if (packet == null || packet.size < 0) {
           Log.e(TAG, "player thread: EOF!")
           break
         }
-        // Log.i(TAG, "player thread: write pcm size: ${packet.size}")
         val written = track!!.write(packet.buffer, 0, packet.size)
         if (written < 0) {
           Log.e(TAG, "player thread: write audio data failed: $written")
@@ -110,7 +113,8 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
 
       val buffer = ByteArray(1024)
       while (true) {
-        if (readFile(input, buffer)/*eof*/) break
+        eof = readFile(input, buffer)
+        if (eof) break
       }
       input.close()
 
@@ -159,17 +163,15 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
   protected open fun readFile(input: RandomAccessFile, buffer: ByteArray): Boolean/*eof*/ {
     val readBytes = input.read(buffer)
     enqueuePacket(Packet(buffer, readBytes))
-    return readBytes < 0
+    eof = readBytes < 0
+    return eof
   }
 
   protected fun enqueuePacket(packet: Packet) {
     synchronized(queueLock) {
-      var timer = 0
       while (queue.size >= 4) {
-        queueLock.wait()
-        timer++
+        queueLock.wait(250L)
       }
-      Log.e(TAG, "enqueuePacket() wait queue $timer times")
       queue.addFirst(packet)
       queueLock.notifyAll()
     }
@@ -177,13 +179,10 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
 
   private fun dequeuePacket(): Packet? {
     synchronized(queueLock) {
-      var timer = 0
-      while (queue.size == 0) {
+      while (queue.size == 0 && !eof) {
         queueLock.wait(250L)
-        timer++
       }
-      Log.e(TAG, "dequeuePacket() wait queue $timer times")
-      val packet = queue.removeLast()
+      val packet = if (queue.size == 0) null else queue.removeLast()
       queueLock.notifyAll()
       return packet
     }
