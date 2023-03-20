@@ -10,7 +10,7 @@ import java.io.RandomAccessFile
  *
  * @author binlee
  */
-class WavRecorder : BaseRecorder(A_WAV) {
+class WavRecorder : BaseRecorder(format = A_WAV) {
 
   override fun beforeStart(output: RandomAccessFile) {
     // 先跳过 44 字节，后面再把真正的文件头写入

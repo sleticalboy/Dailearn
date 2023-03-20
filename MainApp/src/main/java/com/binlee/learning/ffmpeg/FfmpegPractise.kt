@@ -7,11 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
-import android.os.SystemClock
 import android.os.Vibrator
 import android.provider.MediaStore.Video.Media
 import android.util.Log
@@ -24,21 +19,22 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.RecyclerView
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.databinding.ActivityAvPractiseBinding
 import com.binlee.learning.ffmpeg.AVFormat.A_AAC
+import com.binlee.learning.ffmpeg.AVFormat.A_PCM
 import com.binlee.learning.ffmpeg.AVFormat.A_WAV
-import com.binlee.learning.ffmpeg.header.WavHeader
+import com.binlee.learning.ffmpeg.AVFormat.NONE
+import com.binlee.learning.ffmpeg.AVFormat.fromPath
+import com.binlee.learning.ffmpeg.IPlayer.State
+import com.binlee.learning.ffmpeg.IPlayer.State.PLAYING
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
-import java.io.RandomAccessFile
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.concurrent.thread
 
 /**
  * Created on 2022/8/3
@@ -61,13 +57,11 @@ class FfmpegPractise : BaseActivity() {
   private var mCurrentPath: String? = null
   private var mTimer: Int = 0
   private lateinit var recorder: IRecorder
+  private var mPlayer: IPlayer? = null
   private val mLongPressAction = Runnable {
     Log.d(TAG, "onTouch() action long press")
     startRecordAudio()
   }
-
-  private var mPlaying = MutableLiveData(false)
-  private var mTrack: AudioTrack? = null
 
   private var flag: String? = null
 
@@ -103,8 +97,21 @@ class FfmpegPractise : BaseActivity() {
     val adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked)
     mBind.lvMediaList.adapter = adapter
     mBind.lvMediaList.setOnItemClickListener { _, _, position, _ ->
-      mCurrentPath = "${getExternalFilesDir("audio")}/${adapter.getItem(position)}"
       mBind.lvMediaList.setItemChecked(position, true)
+      mCurrentPath = "${getExternalFilesDir("audio")}/${adapter.getItem(position)}"
+      mAVFormat = fromPath(mCurrentPath)
+      when (mAVFormat) {
+        A_WAV -> {
+          mBind.rbWav.isChecked = true
+        }
+        A_AAC -> {
+          mBind.rbAac.isChecked = true
+        }
+        A_PCM -> {
+          mBind.rbPcm.isChecked = true
+        }
+        else -> {}
+      }
     }
     mBind.lvMediaList.setOnItemLongClickListener { _, _, position, _ ->
       if (File("${getExternalFilesDir("audio")}/${adapter.getItem(position)}").delete()) {
@@ -118,7 +125,7 @@ class FfmpegPractise : BaseActivity() {
       mAVFormat = when (checkedId) {
         R.id.rb_wav -> A_WAV
         R.id.rb_aac -> A_AAC
-        else -> AVFormat.A_PCM
+        else -> A_PCM
       }
     }
   }
@@ -133,9 +140,6 @@ class FfmpegPractise : BaseActivity() {
   }
 
   override fun initData() {
-    mPlaying.observe(this) { playing ->
-      mBind.btnStartPlay.text = if (playing) "暂停" else "播放"
-    }
     scanAudioFiles()
   }
 
@@ -211,80 +215,32 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    if (mCurrentPath!!.endsWith(A_AAC.suffix)) {
-      Toast.makeText(this, "AAC 格式暂不支持！", Toast.LENGTH_SHORT).show()
+    if (mAVFormat == NONE) {
+      Toast.makeText(this, "Unsupported format: $mAVFormat", Toast.LENGTH_SHORT).show()
       return
     }
 
-    if (mTrack != null) {
-      if (mTrack!!.playState == AudioTrack.PLAYSTATE_PLAYING) {
-        // 不会立即暂停，会在写入数据全部播放完成之后暂停
-        // mTrack!!.stop()
+    Log.d(TAG, "playOrPause() file -> $mCurrentPath")
 
-        // 立即暂停，不会丢弃已写入数据，下次继续播放
-        mTrack!!.pause()
-        // 丢弃已写入但未播放的数据
-        // mTrack!!.flush()
-        mPlaying.value = false
-        return
-      } else if (mTrack!!.playState == AudioTrack.PLAYSTATE_PAUSED) {
-        mTrack!!.play()
-        mPlaying.value = true
-        return
-      }
+    // pause -> play(resume)
+    if (mPlayer?.isPlaying() == true) {
+      mPlayer?.pause()
+      return
     }
 
-    mTrack?.let {
-      if (it.state == AudioTrack.STATE_INITIALIZED) {
-        it.release()
-      }
+    // play(resume)
+    if (mPlayer?.isPaused() == true) {
+      mPlayer?.resume()
+      return
     }
 
-    val size = AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 2
-    mTrack = AudioTrack(
-      AudioAttributes.Builder()
-        .setLegacyStreamType(AudioManager.STREAM_MUSIC)
-        .build(),
-      AudioFormat.Builder()
-        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-        .setSampleRate(44100)
-        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-        .build(),
-      size, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE
-    )
-    mTrack!!.play()
-    thread(start = true, name = "PCM-Player") {
-      val input = RandomAccessFile(mCurrentPath, "r")
-      val buffer = ByteArray(size)
-      var first = true
-      while (true) {
-        if (mPlaying.value != true) {
-          SystemClock.sleep(250L)
-          continue
-        }
-        if (first && mCurrentPath!!.endsWith("wav")) {
-          input.seek(WavHeader.SIZE.toLong())
-          first = false
-        }
-        val read = input.read(buffer)
-        if (read < 0) {
-          Log.e(TAG, "playOrPause() play over! read: $read")
-          break
-        }
-
-        val written = mTrack!!.write(buffer, 0, read)
-        if (written < 0) {
-          Log.e(TAG, "playOrPause() write audio data failed: $written")
-          break
-        }
+    mPlayer = PlayerFactory.create(mAVFormat)
+    mPlayer!!.setInputFile(mCurrentPath!!)
+    mPlayer!!.start(object : IPlayer.Callback {
+      override fun onState(state: State) {
+        mBind.btnStartPlay.text = if (state == PLAYING) "暂停" else "播放"
       }
-      mTrack!!.stop()
-      mTrack!!.release()
-      input.close()
-      // 子线程更新数据时，需要 post 到主线程
-      mPlaying.postValue(false)
-    }
-    mPlaying.value = true
+    })
   }
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

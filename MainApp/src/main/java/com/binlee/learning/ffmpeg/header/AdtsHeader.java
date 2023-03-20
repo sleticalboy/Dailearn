@@ -14,26 +14,30 @@ public class AdtsHeader {
 
   public static final int SIZE = 7;
 
-  private final ByteBuffer buffer;
+  private final ByteBuffer header;
 
-  public static byte[] of(int channel, int sampleRate, int len) {
-    return new AdtsHeader(channel, sampleRate, len).buffer.array();
+  public static byte[] wrap(int channel, int sampleRate, int len) {
+    return new AdtsHeader(channel, sampleRate, len).header.array();
+  }
+
+  public static int parseBodyLength(@NonNull byte[] header) {
+    return header[4] << 3;
   }
 
   private AdtsHeader(int channel, int sampleRate, int len) {
-    buffer = ByteBuffer.allocate(SIZE);
+    header = ByteBuffer.allocate(SIZE);
 
     final int profile = 2; // AAC LC
     final int freqIdx = mapFreqIdx(sampleRate); // 44100
     final int chanCfg = mapChanCfg(channel); // CPE
 
-    buffer.put((byte) 0xFF);
-    buffer.put((byte) 0xF9);
-    buffer.put((byte) (((profile - 1) << 6) + (freqIdx << 2) + (chanCfg >> 2)));
-    buffer.put((byte) ((chanCfg & 3) << 6 + (len >> 11)));
-    buffer.put((byte) ((len & 0x7FF) >> 3));
-    buffer.put((byte) (((len & SIZE) << 5) + 0x1F));
-    buffer.put((byte) 0xFC);
+    header.put((byte) 0xFF);
+    header.put((byte) 0xF9);
+    header.put((byte) (((profile - 1) << 6) + (freqIdx << 2) + (chanCfg >> 2)));
+    header.put((byte) ((chanCfg & 3) << 6 + (len >> 11)));
+    header.put((byte) ((len & 0x7FF) >> 3));
+    header.put((byte) (((len & SIZE) << 5) + 0x1F));
+    header.put((byte) 0xFC);
   }
 
   // private void addADTStoPacket(byte[] packet, int packetLen) {
@@ -74,6 +78,6 @@ public class AdtsHeader {
   }
 
   @NonNull @Override public String toString() {
-    return Arrays.toString(buffer.array());
+    return Arrays.toString(header.array());
   }
 }

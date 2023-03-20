@@ -7,6 +7,7 @@ import android.media.MediaFormat
 import android.util.Log
 import com.binlee.learning.ffmpeg.AVFormat
 import com.binlee.learning.ffmpeg.AVFormat.A_AAC
+import com.binlee.learning.ffmpeg.Packet
 import com.binlee.learning.ffmpeg.header.AdtsHeader
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
@@ -17,11 +18,9 @@ import java.util.LinkedList
  *
  * @author binlee
  */
-open class AacRecorder : BaseRecorder(A_AAC) {
+open class AacRecorder : BaseRecorder(format = A_AAC) {
 
   protected var encoder: MediaCodec? = null
-
-  protected inner class Packet(val buffer: ByteArray, val size: Int)
 
   private val queueLock = Object()
   private val queue = LinkedList<Packet>()
@@ -62,7 +61,6 @@ open class AacRecorder : BaseRecorder(A_AAC) {
   }
 
   private fun startEncoder() {
-
     if (encoder != null) return
 
     // 创建 aac 编码器
@@ -96,7 +94,7 @@ open class AacRecorder : BaseRecorder(A_AAC) {
   inner class AacFrame(buffer: ByteBuffer?, len: Int) {
     // 一个 aac 帧由 adts 头（7 字节）和 aac 数据包组成
     val size = AdtsHeader.SIZE + len
-    private val header = AdtsHeader.of(AudioFormat.CHANNEL_IN_MONO, 44100, size)
+    private val header = AdtsHeader.wrap(AudioFormat.CHANNEL_IN_MONO, 44100, size)
     val data = ByteArray(size)
 
     init {
