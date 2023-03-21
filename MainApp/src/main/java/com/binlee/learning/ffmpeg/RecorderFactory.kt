@@ -14,11 +14,7 @@ import com.binlee.learning.ffmpeg.recorder.WavRecorder
  */
 object RecorderFactory {
 
-  @JvmStatic fun create(format: AVFormat): IRecorder {
-    return create(format, false)
-  }
-
-  @JvmStatic fun create(format: AVFormat, async: Boolean): IRecorder {
+  @JvmStatic fun create(format: AVFormat, async: Boolean = false): IRecorder {
     return when (format) {
       A_WAV -> WavRecorder()
       A_AAC -> if (async) AsyncRecorder() else SyncRecorder()

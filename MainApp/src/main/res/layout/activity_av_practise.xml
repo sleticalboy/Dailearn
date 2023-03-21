@@ -107,7 +107,7 @@
     android:id="@+id/cb_async_mode"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:text="异步编码"
+    android:text="异步编解码"
     android:checked="true"
     app:layout_constraintLeft_toRightOf="@+id/tv_recorded_duration"
     app:layout_constraintTop_toTopOf="@+id/btn_start_play"

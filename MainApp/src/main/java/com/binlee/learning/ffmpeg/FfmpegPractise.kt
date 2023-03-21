@@ -57,7 +57,7 @@ class FfmpegPractise : BaseActivity() {
   private var mAVFormat = A_AAC
   private var mCurrentPath: String? = null
   private var mTimer: Int = 0
-  private lateinit var recorder: IRecorder
+  private var mRecorder: IRecorder? = null
   private var mPlayer: IPlayer? = null
   private val mLongPressAction = Runnable {
     Log.d(TAG, "onTouch() action long press")
@@ -87,7 +87,7 @@ class FfmpegPractise : BaseActivity() {
         Log.d(TAG, "onTouch() action up")
         // 抬起结束录制
         v.removeCallbacks(mLongPressAction)
-        recorder.stop()
+        mRecorder?.stop()
       } else if (event.action == MotionEvent.ACTION_CANCEL) {
         Log.d(TAG, "onTouch() action cancel")
       }
@@ -162,9 +162,9 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    recorder = RecorderFactory.create(mAVFormat, mBind.cbAsyncMode.isChecked)
-    recorder.setOutputFile(generateName(this, mAVFormat))
-    recorder.start(object : IRecorder.Callback {
+    mRecorder = RecorderFactory.create(mAVFormat, mBind.cbAsyncMode.isChecked)
+    mRecorder!!.setOutputFile(generateName(this, mAVFormat))
+    mRecorder!!.start(object : IRecorder.Callback {
       override fun onStarted() {
         mBind.btnStartRecord.text = "正在录制"
         // 震动一下
@@ -235,7 +235,7 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    mPlayer = PlayerFactory.create(mAVFormat)
+    mPlayer = PlayerFactory.create(mAVFormat, mBind.cbAsyncMode.isChecked)
     Log.d(TAG, "playOrPause() new player: $mPlayer")
     mPlayer!!.setInputFile(mCurrentPath!!)
     mPlayer!!.start(object : IPlayer.Callback {

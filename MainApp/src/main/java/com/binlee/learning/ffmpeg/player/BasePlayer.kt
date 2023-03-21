@@ -28,13 +28,11 @@ import kotlin.concurrent.thread
 open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
 
   protected val TAG = javaClass.simpleName
-  private lateinit var path: String
+
   private var track: AudioTrack? = null
 
-  // 文件是否结束
-  protected var eof = false
-  private val queueLock = Object()
-  private val queue = LinkedList<Packet>()
+  protected var input: RandomAccessFile? = null
+  protected val buffer = ByteArray(1024)
 
   private val innerCallback = object: Callback {
     private val handler = Handler(Looper.getMainLooper())
@@ -45,7 +43,7 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
   private var userCallback: Callback? = null
 
   override fun setInputFile(path: String) {
-    this.path = path
+    this.input = RandomAccessFile(path, "r")
   }
 
   override fun start(callback: Callback) {
@@ -77,6 +75,8 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
     track!!.play()
     innerCallback.onState(PLAYING)
 
+    onFileOpened()
+
     // player thread
     thread(start = true, name = "$TAG-thread") {
       Log.e(TAG, "player thread enter!")
@@ -90,6 +90,7 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
         // Log.i(TAG, "player thread: packet size: ${packet?.size}")
         if (packet == null || packet.size < 0) {
           Log.e(TAG, "player thread: EOF!")
+          input?.close()
           break
         }
         val written = track!!.write(packet.buffer, 0, packet.size)
@@ -102,24 +103,6 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
       track!!.release()
       track = null
       innerCallback.onState(STOPPED)
-    }
-
-    val input = RandomAccessFile(path, "r")
-
-    // reader(encoder) thread
-    thread(start = true, name = "Reader-thread") {
-      Log.e(TAG, "reader thread enter!")
-      onReaderStarted(input)
-
-      val buffer = ByteArray(1024)
-      while (true) {
-        eof = readFile(input, buffer)
-        if (eof) break
-      }
-      input.close()
-
-      Log.e(TAG, "reader thread exit!")
-      onReaderStopped()
     }
   }
 
@@ -154,37 +137,14 @@ open class BasePlayer(protected val format: AVFormat = A_PCM): IPlayer {
     return track?.playState == AudioTrack.PLAYSTATE_PAUSED
   }
 
-  protected open fun onReaderStarted(input: RandomAccessFile) {
+  protected open fun onFileOpened() {
   }
 
-  protected open fun onReaderStopped() {
+  protected open fun enqueuePacket(packet: Packet) {
   }
 
-  protected open fun readFile(input: RandomAccessFile, buffer: ByteArray): Boolean/*eof*/ {
-    val readBytes = input.read(buffer)
-    enqueuePacket(Packet(buffer, readBytes))
-    eof = readBytes < 0
-    return eof
-  }
-
-  protected fun enqueuePacket(packet: Packet) {
-    synchronized(queueLock) {
-      while (queue.size >= 4) {
-        queueLock.wait(250L)
-      }
-      queue.addFirst(packet)
-      queueLock.notifyAll()
-    }
-  }
-
-  private fun dequeuePacket(): Packet? {
-    synchronized(queueLock) {
-      while (queue.size == 0 && !eof) {
-        queueLock.wait(250L)
-      }
-      val packet = if (queue.size == 0) null else queue.removeLast()
-      queueLock.notifyAll()
-      return packet
-    }
+  protected open fun dequeuePacket(): Packet? {
+    val readBytes = input!!.read(buffer)
+    return Packet(buffer, readBytes)
   }
 }

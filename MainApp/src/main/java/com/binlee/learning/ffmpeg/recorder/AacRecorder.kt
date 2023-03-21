@@ -18,7 +18,7 @@ import java.util.LinkedList
  *
  * @author binlee
  */
-open class AacRecorder : BaseRecorder(format = A_AAC) {
+abstract class AacRecorder : BaseRecorder(format = A_AAC) {
 
   protected var encoder: MediaCodec? = null
 
