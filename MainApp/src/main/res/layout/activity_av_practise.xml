@@ -39,9 +39,59 @@
     android:layout_height="wrap_content"
     app:layout_constraintLeft_toLeftOf="parent"
     app:layout_constraintRight_toRightOf="parent"
-    app:layout_constraintBottom_toTopOf="@+id/rg_audio_format"
-    android:text="重新扫描"
+    app:layout_constraintBottom_toTopOf="@+id/rg_codec_options"
+    android:text="重新扫描文件"
     />
+
+  <RadioGroup
+    android:id="@+id/rg_codec_options"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:visibility="gone"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintBottom_toTopOf="@+id/rg_audio_format"
+    tools:visibility="visible"
+    >
+
+    <TextView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="编解码选项："
+      android:textColor="@android:color/black"
+      android:textStyle="bold"
+      android:textSize="14sp"
+      />
+
+    <RadioButton
+      android:id="@+id/rb_ffmpeg"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:text="软件"
+      />
+
+    <RadioButton
+      android:id="@+id/rb_media_codec"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:text="硬件"
+      />
+
+    <CheckBox
+      android:id="@+id/cb_async"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:text="异步"
+      android:visibility="gone"
+      tools:visibility="visible"
+      />
+  </RadioGroup>
 
   <RadioGroup
     android:id="@+id/rg_audio_format"
@@ -85,7 +135,6 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:layout_weight="1"
-      android:checked="true"
       android:text="AAC"
       />
   </RadioGroup>
@@ -103,24 +152,12 @@
     tools:text="@string/text_recorded_duration"
     />
 
-  <CheckBox
-    android:id="@+id/cb_async_mode"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="异步编解码"
-    android:checked="true"
-    app:layout_constraintLeft_toRightOf="@+id/tv_recorded_duration"
-    app:layout_constraintTop_toTopOf="@+id/btn_start_play"
-    app:layout_constraintRight_toLeftOf="@+id/btn_start_record"
-    app:layout_constraintBottom_toBottomOf="parent"
-    />
-
   <Button
     android:id="@+id/btn_start_record"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:text="长按录制"
-    app:layout_constraintLeft_toRightOf="@+id/cb_async_mode"
+    app:layout_constraintLeft_toLeftOf="parent"
     app:layout_constraintRight_toLeftOf="@+id/btn_start_play"
     app:layout_constraintBottom_toBottomOf="parent"
     />

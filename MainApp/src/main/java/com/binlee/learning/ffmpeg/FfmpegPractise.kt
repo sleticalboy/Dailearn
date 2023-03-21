@@ -54,7 +54,7 @@ class FfmpegPractise : BaseActivity() {
     ModuleItem("打印媒体 meta 信息", "dump_meta"),
     ModuleItem("音频提取", "extract_audio"),
   )
-  private var mAVFormat = A_AAC
+  private var mAVFormat = NONE
   private var mCurrentPath: String? = null
   private var mTimer: Int = 0
   private var mRecorder: IRecorder? = null
@@ -128,7 +128,23 @@ class FfmpegPractise : BaseActivity() {
         R.id.rb_aac -> A_AAC
         else -> A_PCM
       }
+      mBind.rgCodecOptions.visibility = if (mAVFormat == A_AAC) View.VISIBLE else View.GONE
     }
+    mBind.rgCodecOptions.setOnCheckedChangeListener { _, checkedId ->
+      if (checkedId == R.id.rb_media_codec) {
+        mBind.cbAsync.visibility = View.VISIBLE
+      } else {
+        mBind.cbAsync.visibility = View.GONE
+      }
+    }
+
+    // 默认选中 aac
+    mBind.rbAac.performClick()
+    // mBind.rgAudioFormat.check(R.id.rb_aac)
+    // mBind.root.postDelayed({ mBind.rbAac.performClick() }, 500L)
+    // mBind.root.postDelayed({ mBind.rgAudioFormat.check(R.id.rb_aac) }, 500L)
+    // 默认选中硬件解码
+    mBind.rbMediaCodec.performClick()
   }
 
   @Suppress("UNCHECKED_CAST")
@@ -162,7 +178,7 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    mRecorder = RecorderFactory.create(mAVFormat, mBind.cbAsyncMode.isChecked)
+    mRecorder = RecorderFactory.create(mAVFormat, mBind.cbAsync.isChecked)
     mRecorder!!.setOutputFile(generateName(this, mAVFormat))
     mRecorder!!.start(object : IRecorder.Callback {
       override fun onStarted() {
@@ -235,7 +251,7 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    mPlayer = PlayerFactory.create(mAVFormat, mBind.cbAsyncMode.isChecked)
+    mPlayer = PlayerFactory.create(mAVFormat, mBind.cbAsync.isChecked)
     Log.d(TAG, "playOrPause() new player: $mPlayer")
     mPlayer!!.setInputFile(mCurrentPath!!)
     mPlayer!!.start(object : IPlayer.Callback {
