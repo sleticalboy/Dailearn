@@ -49,7 +49,7 @@ class FfmpegPractise : BaseActivity() {
     //
   }
 
-  private lateinit var mBind: ActivityAvPractiseBinding
+  private lateinit var binding: ActivityAvPractiseBinding
   private val dataSet = arrayListOf(
     ModuleItem("打印媒体 meta 信息", "dump_meta"),
     ModuleItem("音频提取", "extract_audio"),
@@ -67,17 +67,18 @@ class FfmpegPractise : BaseActivity() {
   private var flag: String? = null
 
   override fun layout(): View {
-    mBind = ActivityAvPractiseBinding.inflate(layoutInflater)
-    return mBind.root
+    binding = ActivityAvPractiseBinding.inflate(layoutInflater)
+    return binding.root
   }
 
   @Suppress("ClickableViewAccessibility")
   override fun initView() {
-    mBind.recyclerView.adapter = DataAdapter(dataSet)
     Toast.makeText(this, ffmpegVersions, Toast.LENGTH_SHORT).show()
 
+    binding.viewCover.setOnTouchListener { v, event -> false }
+
     val timeout = ViewConfiguration.getLongPressTimeout() / 2 * 3
-    mBind.btnStartRecord.setOnTouchListener { v, event ->
+    binding.btnStartRecord.setOnTouchListener { v, event ->
       if (event.action == MotionEvent.ACTION_DOWN) {
         // 长按开始录制
         v.postDelayed(mLongPressAction, timeout.toLong())
@@ -93,28 +94,34 @@ class FfmpegPractise : BaseActivity() {
       }
       true
     }
-    mBind.btnStartPlay.setOnClickListener { playOrPause() }
-    mBind.btnScanAudio.setOnClickListener { scanAudioFiles() }
-    val adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked)
-    mBind.lvMediaList.adapter = adapter
-    mBind.lvMediaList.setOnItemClickListener { _, _, position, _ ->
-      mBind.lvMediaList.setItemChecked(position, true)
+    binding.btnStartPlay.setOnClickListener { playOrPause() }
+    binding.btnScanAudio.setOnClickListener { scanAudioFiles() }
+    val adapter = object: ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked) {
+      override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val text = super.getView(position, convertView, parent) as TextView
+        text.textSize = 12f
+        return text
+      }
+    }
+    binding.lvAudioList.adapter = adapter
+    binding.lvAudioList.setOnItemClickListener { _, _, position, _ ->
+      binding.lvAudioList.setItemChecked(position, true)
       mCurrentPath = "${getExternalFilesDir("audio")}/${adapter.getItem(position)}"
       mAVFormat = fromPath(mCurrentPath)
       when (mAVFormat) {
         A_WAV -> {
-          mBind.rbWav.isChecked = true
+          binding.rbWav.isChecked = true
         }
         A_AAC -> {
-          mBind.rbAac.isChecked = true
+          binding.rbAac.isChecked = true
         }
         A_PCM -> {
-          mBind.rbPcm.isChecked = true
+          binding.rbPcm.isChecked = true
         }
         else -> {}
       }
     }
-    mBind.lvMediaList.setOnItemLongClickListener { _, _, position, _ ->
+    binding.lvAudioList.setOnItemLongClickListener { _, _, position, _ ->
       if (File("${getExternalFilesDir("audio")}/${adapter.getItem(position)}").delete()) {
         Toast.makeText(application, "${adapter.getItem(position)} 删除成功!", Toast.LENGTH_SHORT).show()
         adapter.remove(adapter.getItem(position))
@@ -122,37 +129,37 @@ class FfmpegPractise : BaseActivity() {
       mCurrentPath = null
       true
     }
-    mBind.rgAudioFormat.setOnCheckedChangeListener { _, checkedId ->
+    binding.rgAudioFormat.setOnCheckedChangeListener { _, checkedId ->
       mAVFormat = when (checkedId) {
         R.id.rb_wav -> A_WAV
         R.id.rb_aac -> A_AAC
         else -> A_PCM
       }
-      mBind.rgCodecOptions.visibility = if (mAVFormat == A_AAC) View.VISIBLE else View.GONE
+      binding.rgCodecOptions.visibility = if (mAVFormat == A_AAC) View.VISIBLE else View.GONE
     }
-    mBind.rgCodecOptions.setOnCheckedChangeListener { _, checkedId ->
+    binding.rgCodecOptions.setOnCheckedChangeListener { _, checkedId ->
       if (checkedId == R.id.rb_media_codec) {
-        mBind.cbAsync.visibility = View.VISIBLE
+        binding.cbAsync.visibility = View.VISIBLE
       } else {
-        mBind.cbAsync.visibility = View.GONE
+        binding.cbAsync.visibility = View.GONE
       }
     }
 
     // 默认选中 aac
-    mBind.rbAac.performClick()
+    binding.rbAac.performClick()
     // mBind.rgAudioFormat.check(R.id.rb_aac)
     // mBind.root.postDelayed({ mBind.rbAac.performClick() }, 500L)
     // mBind.root.postDelayed({ mBind.rgAudioFormat.check(R.id.rb_aac) }, 500L)
     // 默认选中硬件解码
-    mBind.rbMediaCodec.performClick()
+    binding.rbMediaCodec.performClick()
   }
 
   @Suppress("UNCHECKED_CAST")
   private fun scanAudioFiles() {
     val files = getExternalFilesDir("audio")?.list()?.asList()
     files?.let {
-      (mBind.lvMediaList.adapter as ArrayAdapter<String>).clear()
-      (mBind.lvMediaList.adapter as ArrayAdapter<String>).addAll(it)
+      (binding.lvAudioList.adapter as ArrayAdapter<String>).clear()
+      (binding.lvAudioList.adapter as ArrayAdapter<String>).addAll(it)
     }
   }
 
@@ -178,11 +185,11 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    mRecorder = RecorderFactory.create(mAVFormat, mBind.cbAsync.isChecked)
+    mRecorder = RecorderFactory.create(mAVFormat, binding.cbAsync.isChecked)
     mRecorder!!.setOutputFile(generateName(this, mAVFormat))
     mRecorder!!.start(object : IRecorder.Callback {
       override fun onStarted() {
-        mBind.btnStartRecord.text = "正在录制"
+        binding.btnStartRecord.text = "正在录制"
         // 震动一下
         val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         vibrator.vibrate(50L)
@@ -190,11 +197,11 @@ class FfmpegPractise : BaseActivity() {
 
       override fun onTimer(timer: Int) {
         mTimer = timer
-        mBind.tvRecordedDuration.text = getString(R.string.text_recorded_duration, timer)
+        binding.tvRecordedDuration.text = getString(R.string.text_recorded_duration, timer)
       }
 
       override fun onFinished(path: String) {
-        mBind.btnStartRecord.text = "长按录制"
+        binding.btnStartRecord.text = "长按录制"
         mCurrentPath = path
         onRecordOver()
       }
@@ -203,13 +210,13 @@ class FfmpegPractise : BaseActivity() {
 
   @Suppress("UNCHECKED_CAST")
   private fun onRecordOver() {
-    mBind.tvRecordedDuration.animate()
+    binding.tvRecordedDuration.animate()
       .alpha(0f)
       .setDuration(1000L)
       .setListener(object : AnimatorListenerAdapter() {
         override fun onAnimationEnd(animation: Animator?) {
-          mBind.tvRecordedDuration.text = ""
-          mBind.tvRecordedDuration.alpha = 1f
+          binding.tvRecordedDuration.text = ""
+          binding.tvRecordedDuration.alpha = 1f
         }
       })
     mCurrentPath?.let {
@@ -220,7 +227,7 @@ class FfmpegPractise : BaseActivity() {
         }
         mCurrentPath = null
       } else {
-        (mBind.lvMediaList.adapter as ArrayAdapter<String>).add(it.substring(it.lastIndexOf('/') + 1))
+        (binding.lvAudioList.adapter as ArrayAdapter<String>).add(it.substring(it.lastIndexOf('/') + 1))
         Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show()
       }
     }
@@ -251,13 +258,13 @@ class FfmpegPractise : BaseActivity() {
       return
     }
 
-    mPlayer = PlayerFactory.create(mAVFormat, mBind.cbAsync.isChecked)
+    mPlayer = PlayerFactory.create(mAVFormat, binding.cbAsync.isChecked)
     Log.d(TAG, "playOrPause() new player: $mPlayer")
     mPlayer!!.setInputFile(mCurrentPath!!)
     mPlayer!!.start(object : IPlayer.Callback {
       override fun onState(state: State) {
         Log.d(TAG, "onState() state = $state")
-        mBind.btnStartPlay.text = if (state == PLAYING) "暂停" else "播放"
+        binding.btnStartPlay.text = if (state == PLAYING) "暂停" else "播放"
         if (state == STOPPED) mPlayer = null
       }
     })
