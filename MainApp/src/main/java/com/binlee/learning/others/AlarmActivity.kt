@@ -36,8 +36,6 @@ class AlarmActivity : BaseActivity() {
   private var mAlarmManager: AlarmManager? = null
   private var mBind: ActivityAlarmBinding? = null
 
-  override fun logTag(): String = "AlarmActivity"
-
   override fun layout(): View {
     // return R.layout.activity_alarm
     mBind = ActivityAlarmBinding.inflate(layoutInflater)

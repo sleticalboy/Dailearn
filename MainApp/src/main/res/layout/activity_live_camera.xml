@@ -1,44 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  xmlns:tools="http://schemas.android.com/tools"
+  >
+
+  <TextureView
+    android:id="@+id/surface_view"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:layout_gravity="top|center_horizontal"
+    />
 
-    <com.binlee.learning.weight.FaceContourView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+  <!-- 对焦 view -->
+  <FrameLayout
+    android:id="@+id/focus_Icon"
+    android:layout_width="120dp"
+    android:layout_height="120dp"
+    android:visibility="gone"
+    tools:visibility="visible"
+    >
 
-    <TextureView
-        android:id="@+id/live_View"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="center_horizontal" />
+    <ImageView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="center"
+      android:src="@mipmap/camera_focus_inner"
+      />
 
-    <FrameLayout
-        android:id="@+id/focus_Icon"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:visibility="gone">
+    <ImageView
+      android:layout_width="120dp"
+      android:layout_height="120dp"
+      android:layout_gravity="center"
+      android:padding="20dp"
+      android:src="@mipmap/camera_focus_outer"
+      />
+  </FrameLayout>
 
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:src="@mipmap/camera_focus_inner" />
+  <com.binlee.learning.weight.FaceContourView
+    android:id="@+id/view_cover"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent"
+    android:visibility="visible"
+    />
 
-        <ImageView
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_gravity="center"
-            android:padding="20dp"
-            android:src="@mipmap/camera_focus_outer" />
-    </FrameLayout>
-
-    <ImageButton
-        android:id="@+id/btn_take_pic"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/take_pic_bg" />
+  <ImageButton
+    android:id="@+id/btn_take_pic"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:layout_gravity="bottom|center_horizontal"
+    android:layout_marginBottom="16dp"
+    android:background="@drawable/take_pic_bg"
+    />
 </FrameLayout>

@@ -1,8 +1,14 @@
 package com.binlee.learning.camera.v1
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
 import android.util.Log
+import android.util.Size
 import android.view.View
+import android.widget.FrameLayout
+import android.widget.Toast
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.camera.CameraManager
 import com.binlee.learning.camera.CameraManager.OnPictureTakenCallback
@@ -18,33 +24,65 @@ import java.io.File
  */
 class LiveCameraActivity : BaseActivity() {
 
-  private var mBind: ActivityLiveCameraBinding? = null
+  private lateinit var binding: ActivityLiveCameraBinding
+  private var surface: SurfaceTexture? = null
+  private var size: Size? = null
 
   override fun logTag(): String = "LiveCamera"
 
+  override fun requiredPermissions(): Array<String> {
+    return if (hasPermission(Manifest.permission.CAMERA)) arrayOf() else arrayOf(Manifest.permission.CAMERA)
+  }
+
+  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    if (requestCode == PERM_REQUEST_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      tryStartPreview()
+    }
+  }
+
   override fun layout(): View {
     // return R.layout.activity_live_camera
-    mBind = ActivityLiveCameraBinding.inflate(layoutInflater)
-    return mBind!!.root
+    binding = ActivityLiveCameraBinding.inflate(layoutInflater)
+    return binding.root
   }
 
+  @SuppressLint("ClickableViewAccessibility")
   override fun initView() {
-    mBind!!.liveView.surfaceTextureListener = object : SimpleSurfaceTextureListener() {
+    // 对焦
+    binding.viewCover.setOnTouchListener { _, event ->
+      CameraManager.get().autoFocus(this, binding.focusIcon, event)
+      false
+    }
+    binding.surfaceView.surfaceTextureListener = object : SimpleSurfaceTextureListener() {
       override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-        CameraManager.getInstance().startPreview(surface)
+        this@LiveCameraActivity.surface = surface
+        this@LiveCameraActivity.size = Size(width, height)
+        tryStartPreview()
       }
     }
-    mBind!!.btnTakePic.setOnClickListener { takePicture() }
+    binding.btnTakePic.setOnClickListener { takePicture() }
   }
 
-  override fun onDestroy() {
-    super.onDestroy()
-    mBind = null
+  private fun tryStartPreview() {
+    if (hasPermission(Manifest.permission.CAMERA) && surface != null && size != null) {
+      val size = CameraManager.get().startPreview(surface)
+      if (size == null) {
+        Toast.makeText(this, "相机打开失败！", Toast.LENGTH_SHORT).show()
+        // finish()
+      } else {
+        Log.d(logTag(), "tryStartPreview() size: $size")
+        // 调整预览窗口大小
+        val params = binding.surfaceView.layoutParams as FrameLayout.LayoutParams
+        params.width = size.width
+        params.height = size.height
+        binding.surfaceView.layoutParams = params
+      }
+    }
   }
 
   private fun takePicture() {
-    // take photos
-    CameraManager.getInstance().takePicture(getExternalFilesDirs(null)[0],
+    CameraManager.get().takePicture(getExternalFilesDir("picture")?.absolutePath!!,
       object : OnPictureTakenCallback {
         override fun onSuccess(picture: File) {
           Log.d(logTag(), picture.path)

@@ -161,8 +161,6 @@ class IndexActivity : BaseActivity() {
 
   }
 
-  override fun logTag(): String = "IndexActivity"
-
   override fun onDestroy() {
     super.onDestroy()
     mBind = null

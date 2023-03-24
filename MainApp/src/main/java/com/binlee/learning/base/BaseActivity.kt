@@ -1,6 +1,8 @@
 package com.binlee.learning.base
 
-import android.os.Build
+import android.content.pm.PackageManager
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -13,8 +15,6 @@ import androidx.appcompat.app.AppCompatActivity
  */
 abstract class BaseActivity : AppCompatActivity() {
 
-  protected val requestCode = 0x12
-
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     prepareWork(savedInstanceState)
@@ -25,15 +25,22 @@ abstract class BaseActivity : AppCompatActivity() {
 
   override fun onStart() {
     super.onStart()
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+    if (VERSION.SDK_INT >= VERSION_CODES.M) {
       val perms = requiredPermissions()
-      if (perms.isEmpty()) return
-      requestPermissions(perms, this.requestCode)
+      if (perms.isNotEmpty()) requestPermissions(perms, PERM_REQUEST_CODE)
     }
   }
 
   protected open fun requiredPermissions(): Array<String> {
     return arrayOf()
+  }
+
+  protected fun hasPermission(perm: String): Boolean {
+    return if (VERSION.SDK_INT >= VERSION_CODES.M) {
+      checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED
+    } else {
+      true
+    }
   }
 
   protected abstract fun layout(): View
@@ -44,6 +51,11 @@ abstract class BaseActivity : AppCompatActivity() {
 
   protected open fun prepareWork(savedInstanceState: Bundle?) {}
 
-  protected open fun logTag(): String = "BaseActivity"
+  protected open fun logTag(): String = javaClass.simpleName
+
+  companion object {
+    @JvmStatic
+    protected val PERM_REQUEST_CODE = 0x12
+  }
 
 }

@@ -40,7 +40,7 @@ class NewCameraActivity : BaseActivity() {
     grantResults: IntArray
   ) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    if (requestCode == super.requestCode) {
+    if (requestCode == PERM_REQUEST_CODE) {
       mCameraCompat.openCamera()
     }
   }

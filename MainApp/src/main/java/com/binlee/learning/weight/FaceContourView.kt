@@ -8,8 +8,8 @@ import android.graphics.Path
 import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.util.Log
+import android.view.View
 import android.view.WindowManager
-import androidx.appcompat.widget.AppCompatImageView
 
 /**
  * Created on 18-3-1.
@@ -21,7 +21,7 @@ import androidx.appcompat.widget.AppCompatImageView
 class FaceContourView @JvmOverloads constructor(
   context: Context?, attrs: AttributeSet? = null,
   defStyleAttr: Int = 0
-) : AppCompatImageView(context!!, attrs, defStyleAttr) {
+) : View(context!!, attrs, defStyleAttr) {
 
   private var mPaint: Paint? = null
   private var mPath: Path? = null
@@ -29,12 +29,11 @@ class FaceContourView @JvmOverloads constructor(
 
   override fun onDraw(canvas: Canvas) {
     drawBeforeSuper(canvas)
-    super.onDraw(canvas)
     drawFaceContour(canvas)
   }
 
   private fun drawBeforeSuper(canvas: Canvas) {
-    canvas.drawColor(Color.parseColor("#5c5c5c"))
+    canvas.drawColor(Color.TRANSPARENT)
 
     // 画脸部
     // 起点 天灵

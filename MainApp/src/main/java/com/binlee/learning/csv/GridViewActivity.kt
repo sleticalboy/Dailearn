@@ -47,8 +47,6 @@ class GridViewActivity : BaseActivity() {
     return mBind!!.root
   }
 
-  override fun logTag(): String = "GridViewActivity"
-
   override fun initView() {
     mBind!!.btnShowDialog.setOnClickListener {
       showGridDialog()

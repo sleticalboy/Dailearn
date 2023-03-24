@@ -11,8 +11,6 @@ class BluetoothUI : BaseActivity() {
 
   private var mBind: ActivityBluetoothMainBinding? = null
 
-  override fun logTag(): String = "BluetoothUI"
-
   override fun layout(): View {
     // R.layout.activity_bluetooth_main
     mBind = ActivityBluetoothMainBinding.inflate(layoutInflater)
@@ -28,7 +26,7 @@ class BluetoothUI : BaseActivity() {
     grantResults: IntArray
   ) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    if (requestCode == super.requestCode) {
+    if (requestCode == PERM_REQUEST_CODE) {
       Log.d(logTag(), "onRequestPermissionsResult() permission granted.")
     }
   }

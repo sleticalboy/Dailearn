@@ -53,6 +53,4 @@ class AlphaActivity : BaseActivity() {
       false
     }
   }
-
-  override fun logTag(): String = "AlphaActivity"
 }

@@ -70,7 +70,7 @@ class IndexModel internal constructor() {
       ModuleItem("头部悬停效果", HeaderActivity::class.java),
       ModuleItem("控件透明度", AlphaActivity::class.java),
       // camera
-      ModuleItem("TextureView 实现实时预览", LiveCameraActivity::class.java),
+      ModuleItem("相机预览（TextureView）", LiveCameraActivity::class.java),
       // Bitmap
       ModuleItem("图片和字符串相互转换", ImageConvertUI::class.java),
       // Tasks

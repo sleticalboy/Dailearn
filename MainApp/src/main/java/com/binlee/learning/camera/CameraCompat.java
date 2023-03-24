@@ -84,8 +84,7 @@ public final class CameraCompat {
 
   @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
   private void openLollipop(Context context) throws CameraAccessException {
-    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-      != PackageManager.PERMISSION_GRANTED) {
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
       return;
     }
     CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
