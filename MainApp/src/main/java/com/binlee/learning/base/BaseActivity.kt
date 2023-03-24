@@ -1,11 +1,10 @@
 package com.binlee.learning.base
 
 import android.content.pm.PackageManager
-import android.os.Build.VERSION
-import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 
 /**
  * Created on 18-2-1.
@@ -23,23 +22,26 @@ abstract class BaseActivity : AppCompatActivity() {
     initData()
   }
 
-  override fun onStart() {
-    super.onStart()
-    if (VERSION.SDK_INT >= VERSION_CODES.M) {
-      val perms = requiredPermissions()
-      if (perms.isNotEmpty()) requestPermissions(perms, PERM_REQUEST_CODE)
-    }
-  }
-
-  protected open fun requiredPermissions(): Array<String> {
-    return arrayOf()
-  }
-
   protected fun hasPermission(perm: String): Boolean {
-    return if (VERSION.SDK_INT >= VERSION_CODES.M) {
-      checkSelfPermission(perm) == PackageManager.PERMISSION_GRANTED
-    } else {
-      true
+    return ActivityCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED
+  }
+
+  protected fun askPermission(permissions: Array<String>) {
+    ActivityCompat.requestPermissions(this, permissions, PERM_REQUEST_CODE)
+  }
+
+  protected open fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
+  }
+
+  final override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
+    grantResults: IntArray) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    if (requestCode == PERM_REQUEST_CODE) {
+      val results = BooleanArray(grantResults.size)
+      for (i in grantResults.indices) {
+        results[i] = grantResults[i] == PackageManager.PERMISSION_GRANTED
+      }
+      whenPermissionResult(permissions, results)
     }
   }
 
@@ -51,7 +53,7 @@ abstract class BaseActivity : AppCompatActivity() {
 
   protected open fun prepareWork(savedInstanceState: Bundle?) {}
 
-  protected open fun logTag(): String = javaClass.simpleName
+  protected open fun logTag(): String = javaClass.simpleName.replace(Regex("Activity|UI"), "")
 
   companion object {
     @JvmStatic

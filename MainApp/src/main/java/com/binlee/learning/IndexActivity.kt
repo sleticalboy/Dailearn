@@ -40,18 +40,15 @@ class IndexActivity : BaseActivity() {
   private var mBind: ActivityListItemBinding? = null
 
   override fun prepareWork(savedInstanceState: Bundle?) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
-    } else {
+    if (hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
       loadJvmti()
+    } else {
+      askPermission(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))
     }
   }
 
-  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    if (requestCode == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-      loadJvmti();
-    }
+  override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
+    if (grantResults[0]) loadJvmti()
   }
 
   private fun loadJvmti() {
@@ -67,7 +64,7 @@ class IndexActivity : BaseActivity() {
   override fun initView() {
     mBind!!.recyclerView.adapter = DataAdapter(dataSet)
     val start = System.currentTimeMillis()
-    DataEngine.get().indexModel().getModules().observe(this, {
+    DataEngine.get().indexModel().getModules().observe(this) {
       when (it) {
         is Result.Loading -> {
           Log.d(logTag(), "initView() loading data: $it")
@@ -83,7 +80,7 @@ class IndexActivity : BaseActivity() {
           Log.d(logTag(), "show UI cost: ${System.currentTimeMillis() - start} ms")
         }
       }
-    })
+    }
     KeyboardHeightProvider.inject(this, object : KeyboardHeightProvider.HeightObserver {
       override fun onHeightChanged(height: Int, orientation: Int) {
         // 检测到软键盘弹出
@@ -95,11 +92,11 @@ class IndexActivity : BaseActivity() {
     // baidu()
     // github()
     // coroutines()
-    threadException()
+    // threadException()
   }
 
   private fun threadException() {
-    thread {
+    thread(start = true, name = "Exception-Thread") {
       Thread.sleep(5000L)
       try {
         throw NullPointerException("thread throw exception.")
@@ -125,7 +122,7 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun github() {
-    thread {
+    thread(start = true, name = "Github-Thread") {
       val service = RetrofitClient.get().create(IDemo::class.java)
       service.listApis().enqueue(object : Callback<Apis> {
         override fun onResponse(call: Call<Apis>, response: Response<Apis>) {
@@ -140,7 +137,7 @@ class IndexActivity : BaseActivity() {
   }
 
   private fun baidu() {
-    thread {
+    thread(start = true, name = "Baidu-Thread") {
       val demo = RetrofitClient.get().create(IDemo::class.java)
       val result = demo.visit("text/html").execute().body()
       Log.v(logTag(), "retrofit result: $result")
@@ -158,12 +155,6 @@ class IndexActivity : BaseActivity() {
       val webPage = demo.webPage()
       Log.v(logTag(), "web page result: $webPage")
     }
-
-  }
-
-  override fun onDestroy() {
-    super.onDestroy()
-    mBind = null
   }
 
   private fun reflectHiddenApiWithoutWarning() {

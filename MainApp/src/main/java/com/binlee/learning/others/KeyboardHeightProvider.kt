@@ -15,7 +15,7 @@ import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.view.Window
 import android.view.WindowManager
 import android.widget.PopupWindow
-import com.binlee.learning.util.UiUtils.getStatusBarHeight
+import com.binlee.learning.util.UiUtils
 
 /**
  * The keyboard height provider, this class uses a PopupWindow
@@ -94,7 +94,7 @@ class KeyboardHeightProvider private constructor(
       .defaultDisplay.getSize(screenSize)
     val rect = Rect()
     popupView.getWindowVisibleDisplayFrame(rect)
-    val stateHeight = getStatusBarHeight()
+    val stateHeight = UiUtils.getStatusBarHeight()
 
     // REMIND, you may like to change this using the fullscreen size of the phone
     // and also using the status bar and navigation bar heights of the phone to calculate

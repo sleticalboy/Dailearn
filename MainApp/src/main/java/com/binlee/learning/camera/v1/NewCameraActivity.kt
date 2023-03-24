@@ -28,20 +28,13 @@ class NewCameraActivity : BaseActivity() {
     return ActivityEmptyBinding.inflate(layoutInflater).root
   }
 
-  override fun logTag(): String = "NewCamera"
-
-  override fun requiredPermissions(): Array<String> {
-    return arrayOf(Manifest.permission.CAMERA)
+  override fun onStart() {
+    super.onStart()
+    askPermission(arrayOf(Manifest.permission.CAMERA))
   }
 
-  override fun onRequestPermissionsResult(
-    requestCode: Int,
-    permissions: Array<out String>,
-    grantResults: IntArray
-  ) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    if (requestCode == PERM_REQUEST_CODE) {
-      mCameraCompat.openCamera()
-    }
+  override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
+    if (grantResults[0])
+    mCameraCompat.openCamera()
   }
 }

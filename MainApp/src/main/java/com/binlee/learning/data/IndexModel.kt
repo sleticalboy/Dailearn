@@ -48,7 +48,8 @@ class IndexModel internal constructor() {
       ModuleItem("鲁班图片压缩", LubanActivity::class.java),
       // 插件管理
       ModuleItem("插件管理", PluginManageActivity::class.java),
-      // ffmpeg 实战
+      // 音视频实战
+      ModuleItem("相机预览（TextureView）", LiveCameraActivity::class.java),
       ModuleItem("音视频实战", FfmpegPractise::class.java),
       // 突破系统 hidden API
       ModuleItem("突破 hidden API", "crack_hidden_api"),
@@ -69,8 +70,6 @@ class IndexModel internal constructor() {
       ModuleItem("自定义 View", CustomViewActivity::class.java),
       ModuleItem("头部悬停效果", HeaderActivity::class.java),
       ModuleItem("控件透明度", AlphaActivity::class.java),
-      // camera
-      ModuleItem("相机预览（TextureView）", LiveCameraActivity::class.java),
       // Bitmap
       ModuleItem("图片和字符串相互转换", ImageConvertUI::class.java),
       // Tasks

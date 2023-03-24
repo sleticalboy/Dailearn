@@ -6,8 +6,6 @@ import android.graphics.Rect
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.hardware.Camera.Parameters
-import android.os.Handler
-import android.os.Looper
 import android.text.TextUtils
 import android.util.Log
 import android.util.Size
@@ -15,7 +13,7 @@ import android.view.MotionEvent
 import android.view.TextureView.SurfaceTextureListener
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
+import com.binlee.learning.util.UiUtils
 import java.io.File
 import java.io.IOException
 
@@ -32,7 +30,6 @@ class CameraManager {
 
   private var mCamera: Camera? = null
   private var mSize: Size? = null
-  private val mHandler = Handler(Looper.getMainLooper())
 
   /**
    * 开启预览
@@ -102,7 +99,7 @@ class CameraManager {
    * @param callback
    */
   fun takePicture(dir: String, callback: OnPictureTakenCallback?) {
-    mCamera!!.takePicture({}, null, { data: ByteArray, camera: Camera ->
+    mCamera!!.takePicture(/* shutter = */{}, /* raw = */null, /* jpeg = */{ data: ByteArray, camera: Camera ->
       onPictureTaken(dir, data, callback)
       camera.startPreview()
     })
@@ -119,17 +116,14 @@ class CameraManager {
     }
   }
 
-  fun autoFocus(context: Context, focusView: ViewGroup, event: MotionEvent) {
+  fun autoFocus(context: Context, focusView: View, event: MotionEvent) {
     mCamera?.autoFocus { success: Boolean, _: Camera? ->
       Log.d(TAG, "autoFocus() onAutoFocus() success: $success")
       if (success) {
         // 1, 设置聚焦区域
-        setFocusArea(context, event)
+        // setFocusArea(context, event)
         // 2, 显示聚焦图标
         showFocusIcon(focusView, event)
-        Log.e(TAG, "onAutoFocus: 聚焦成功")
-      } else {
-        Log.e(TAG, "onAutoFocus: 聚焦失败")
       }
     }
   }
@@ -160,7 +154,7 @@ class CameraManager {
       try {
         it.parameters = params
       } catch (tr: Throwable) {
-        dumpParameters(params, "setFocusArea", tr)
+        // dumpParameters(params, "setFocusArea", tr)
       }
     }
   }
@@ -179,17 +173,28 @@ class CameraManager {
   /**
    * 显示聚焦图标
    */
-  private fun showFocusIcon(focusView: ViewGroup, event: MotionEvent) {
+  private fun showFocusIcon(focusView: View, event: MotionEvent) {
     val x = event.x
     val y = event.y
-    Log.d(TAG, "showFocusIcon() point($x, $y)")
-    val params = focusView.layoutParams as FrameLayout.LayoutParams
+
+    val width = 240
+    val params = focusView.layoutParams as ViewGroup.MarginLayoutParams
+    params.width = width
+    params.height = width
     // 触点 - 宽或高的一半
-    params.leftMargin = (x - 60 + 0.5f).toInt()
-    params.topMargin = (y - 60 + 0.5f).toInt()
-    focusView.layoutParams = params
+    params.leftMargin = (x - width / 2 + 0.5f).toInt()
+    // margin top 要多处理一个状态栏高度
+    val sh = UiUtils.getStatusBarHeight()
+    params.topMargin = (y - sh - width / 2 + 0.5f).toInt()
     focusView.visibility = View.VISIBLE
-    mHandler.postDelayed({ focusView.visibility = View.GONE }, 100)
+    focusView.postDelayed({ hideFocusIcon(focusView) }, 500L)
+  }
+
+  private fun hideFocusIcon(focusView: View) {
+    val params = focusView.layoutParams as ViewGroup.MarginLayoutParams
+    params.topMargin = 0
+    params.leftMargin = 0
+    focusView.visibility = View.GONE
   }
 
   /**

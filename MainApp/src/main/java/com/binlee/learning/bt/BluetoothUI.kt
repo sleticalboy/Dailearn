@@ -17,16 +17,13 @@ class BluetoothUI : BaseActivity() {
     return mBind!!.root
   }
 
-  override fun requiredPermissions(): Array<String> {
-    return arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+  override fun onStart() {
+    super.onStart()
+    askPermission(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
   }
 
-  override fun onRequestPermissionsResult(
-    requestCode: Int, permissions: Array<String>,
-    grantResults: IntArray
-  ) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    if (requestCode == PERM_REQUEST_CODE) {
+  override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
+    if (grantResults[0]) {
       Log.d(logTag(), "onRequestPermissionsResult() permission granted.")
     }
   }

@@ -1,12 +1,11 @@
 package com.binlee.learning.ffmpeg
 
-import android.Manifest.permission
+import android.Manifest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.net.Uri
 import android.os.Vibrator
 import android.provider.MediaStore.Video.Media
@@ -25,7 +24,6 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
@@ -93,11 +91,6 @@ class FfmpegPractise : BaseActivity() {
       Log.d(TAG, "onTouch() raw(${event.rawX}, ${event.rawY}) -> (${event.x}, ${event.y})" +
           " ${if (isAudio) "audio" else "video"} list")
       binding.tvDirName.text = getExternalFilesDir(if (isAudio) "audio" else "video")?.absolutePath
-      if (isAudio) {
-        binding.lvAudioList.outlineSpotShadowColor = Color.GREEN
-      } else {
-        binding.lvVideoList.outlineSpotShadowColor = Color.GREEN
-      }
       false
     }
 
@@ -249,8 +242,8 @@ class FfmpegPractise : BaseActivity() {
   }
 
   private fun startRecordAudio() {
-    if (ActivityCompat.checkSelfPermission(this, permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-      ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), P_RECORD_AUDIO)
+    if (!hasPermission(Manifest.permission.RECORD_AUDIO)) {
+      askPermission(arrayOf(Manifest.permission.RECORD_AUDIO))
       return
     }
 
@@ -339,11 +332,8 @@ class FfmpegPractise : BaseActivity() {
     })
   }
 
-  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    if (requestCode == P_RECORD_AUDIO && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-      startRecordAudio()
-    }
+  override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
+    if (grantResults[0]) startRecordAudio()
   }
 
   @Deprecated("Deprecated in Java")

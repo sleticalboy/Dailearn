@@ -117,7 +117,7 @@ class MainActivityFragment : Fragment() {
         }
       })
     } else {
-      thread(true) {
+      thread(start = true, name = "HttpEngine-Thread") {
         try {
           val result = HttpAdapter.engine().request(request).string()
           mBinding.helloWorld.post { mBinding.helloWorld.text = result }
