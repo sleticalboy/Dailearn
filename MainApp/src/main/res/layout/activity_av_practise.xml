@@ -8,16 +8,44 @@
   android:padding="8dp"
   >
 
+  <TextView
+    android:id="@+id/tv_dir_name"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:padding="4dp"
+    android:textColor="@android:color/black"
+    android:ellipsize="start"
+    android:singleLine="true"
+    android:textStyle="bold"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintRight_toLeftOf="@+id/btn_settings"
+    app:layout_constraintBottom_toBottomOf="@+id/btn_settings"
+    tools:text="@string/app_name"
+    />
+
+  <ImageView
+    android:id="@+id/btn_settings"
+    android:layout_width="36dp"
+    android:layout_height="36dp"
+    android:padding="2dp"
+    android:src="@drawable/ic_more"
+    app:layout_constraintLeft_toRightOf="@+id/tv_dir_name"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    app:tint="@android:color/black"
+    />
+
   <ListView
     android:id="@+id/lv_audio_list"
     android:layout_width="0dp"
     android:layout_height="0dp"
-    android:scrollbars="none"
     android:choiceMode="singleChoice"
+    android:scrollbars="none"
     app:layout_constraintLeft_toLeftOf="parent"
-    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintTop_toBottomOf="@+id/btn_settings"
     app:layout_constraintRight_toLeftOf="@+id/lv_video_list"
-    app:layout_constraintBottom_toTopOf="@+id/btn_scan_audio"
+    app:layout_constraintBottom_toTopOf="@+id/btn_scan_files"
     tools:listitem="@android:layout/simple_list_item_checked"
     />
 
@@ -34,8 +62,8 @@
     android:id="@+id/lv_video_list"
     android:layout_width="0dp"
     android:layout_height="0dp"
-    android:scrollbars="none"
     android:choiceMode="singleChoice"
+    android:scrollbars="none"
     app:layout_constraintLeft_toRightOf="@+id/lv_audio_list"
     app:layout_constraintTop_toTopOf="@+id/lv_audio_list"
     app:layout_constraintRight_toRightOf="parent"
@@ -55,7 +83,7 @@
     />
 
   <Button
-    android:id="@+id/btn_scan_audio"
+    android:id="@+id/btn_scan_files"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
     app:layout_constraintLeft_toLeftOf="parent"

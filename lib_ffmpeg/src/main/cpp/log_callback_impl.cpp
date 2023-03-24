@@ -5,7 +5,7 @@
 #include <android/log.h>
 #include "log_callback_impl.h"
 
-#define LOG_TAG "FFMPEG_LOG"
+#define LOG_TAG "FF_LOG"
 
 const int kBufferSize = 2048;
 

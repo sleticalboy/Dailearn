@@ -15,6 +15,10 @@ public enum AVFormat {
     this.suffix = suffix;
   }
 
+  public boolean isAudio() {
+    return name().startsWith("A_");
+  }
+
   public static AVFormat fromPath(String path) {
     return fromSuffix(path.substring(path.lastIndexOf('.')));
   }

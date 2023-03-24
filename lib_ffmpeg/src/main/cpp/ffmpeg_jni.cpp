@@ -30,30 +30,32 @@ jstring Ffmpeg_GetVersions(JNIEnv *env, jclass clazz) {
   return env->NewStringUTF(ffmpeg::util::GetVersionString());
 }
 
-void Ffmpeg_DumpMetaInfo(JNIEnv *env, jclass clazz, jstring filepath) {
-  const char *url = env->GetStringUTFChars(filepath, JNI_FALSE);
+void Ffmpeg_DumpMetaInfo(JNIEnv *env, jclass clazz, jstring str_path) {
+  const char *path = env->GetStringUTFChars(str_path, JNI_FALSE);
 
-  FlogD("%s for %s", __func__, url)
+  FlogD("%s for %s", __func__, path)
 
   AVFormatContext *format_ctx = nullptr;
-  int res = avformat_open_input(&format_ctx, url, nullptr, nullptr);
+  int res = avformat_open_input(&format_ctx, path, nullptr, nullptr);
   if (res < 0) {
-    FlogE("%s, open %s error %s", __func__, url, av_err2str(res))
+    FlogE("%s, open %s error %s", __func__, path, av_err2str(res))
     goto exit;
   }
+
   FlogD("%s, av format context: %s", __func__, ffmpeg::util::AVFormatContextToString(format_ctx))
-  av_dump_format(format_ctx, 0, url, 0);
+  av_dump_format(format_ctx, 0, path, 0);
   avformat_close_input(&format_ctx);
+
   // 退出
   exit:
-  env->ReleaseStringUTFChars(filepath, url);
+  env->ReleaseStringUTFChars(str_path, path);
 }
 
-jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring jInput, jstring jOutput) {
+jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring str_input, jstring str_output) {
   // 输入的媒体源
-  const char *input = env->GetStringUTFChars(jInput, JNI_FALSE);
+  const char *input = env->GetStringUTFChars(str_input, JNI_FALSE);
   // 输出的音频文件
-  const char *output = env->GetStringUTFChars(jOutput, JNI_FALSE);
+  const char *output = env->GetStringUTFChars(str_output, JNI_FALSE);
 
   AVFormatContext *format_ctx = nullptr;
   AVPacket *pkt;
@@ -64,16 +66,16 @@ jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring jInput, jstring jOut
   // 打开媒体文件
   int res = avformat_open_input(&format_ctx, input, nullptr, nullptr);
   if (res < 0) {
-    FlogI("%s open input failed: %s", __func__, av_err2str(res))
+    FlogE("%s open input failed: %s", __func__, av_err2str(res))
     goto exit;
   }
 
-  stream_index = av_find_best_stream(format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
-  if (stream_index < 0) {
-    FlogI("%s stream index: %d", __func__, stream_index)
-    res = stream_index;
+  res = av_find_best_stream(format_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+  if (res < 0) {
+    FlogE("%s find best stream failed: %s", __func__, av_err2str(res))
     goto exit;
   }
+  stream_index = res;
 
   FlogD("%s out file: %s", __func__, output)
   out_fd = fopen(output, "wr");
@@ -97,8 +99,10 @@ jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring jInput, jstring jOut
     // 重置 packet，以便下次复用
     av_packet_unref(pkt);
   }
+
   // 释放 packet
   av_packet_free(&pkt);
+
   // 关闭文件
   fclose(out_fd);
 
@@ -107,8 +111,8 @@ jint Ffmpeg_ExtractAudio(JNIEnv *env, jclass clazz, jstring jInput, jstring jOut
     // 关闭媒体文件
     avformat_close_input(&format_ctx);
     // 释放字符串
-    env->ReleaseStringUTFChars(jInput, input);
-    env->ReleaseStringUTFChars(jOutput, output);
+    env->ReleaseStringUTFChars(str_input, input);
+    env->ReleaseStringUTFChars(str_output, output);
     return res;
   }
 }

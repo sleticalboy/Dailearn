@@ -7,19 +7,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Vibrator
 import android.provider.MediaStore.Video.Media
+import android.util.DisplayMetrics
 import android.util.Log
-import android.view.Gravity
+import android.view.ContextMenu
+import android.view.ContextMenu.ContextMenuInfo
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.view.WindowManager
+import android.widget.AbsListView
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
-import androidx.recyclerview.widget.RecyclerView
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.bean.ModuleItem
@@ -50,21 +56,21 @@ class FfmpegPractise : BaseActivity() {
   }
 
   private lateinit var binding: ActivityAvPractiseBinding
-  private val dataSet = arrayListOf(
-    ModuleItem("打印媒体 meta 信息", "dump_meta"),
-    ModuleItem("音频提取", "extract_audio"),
-  )
+
   private var mAVFormat = NONE
   private var mCurrentPath: String? = null
   private var mTimer: Int = 0
   private var mRecorder: IRecorder? = null
   private var mPlayer: IPlayer? = null
-  private val mLongPressAction = Runnable {
+  private val mLongPress = Runnable {
     Log.d(TAG, "onTouch() action long press")
     startRecordAudio()
   }
 
-  private var flag: String? = null
+  private lateinit var audioAdapter: ArrayAdapter<String>
+  private lateinit var videoAdapter: ArrayAdapter<String>
+
+  private var isAudio = false
 
   override fun layout(): View {
     binding = ActivityAvPractiseBinding.inflate(layoutInflater)
@@ -75,19 +81,37 @@ class FfmpegPractise : BaseActivity() {
   override fun initView() {
     Toast.makeText(this, ffmpegVersions, Toast.LENGTH_SHORT).show()
 
-    binding.viewCover.setOnTouchListener { v, event -> false }
+    binding.tvDirName.text = getExternalFilesDir("audio")?.absolutePath
+    registerForContextMenu(binding.btnSettings)
+
+    // 判断触点在屏幕左侧还是右侧，给对应的 list 设置选中状态
+    val metrics = DisplayMetrics()
+    (getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay.getMetrics(metrics)
+    val half = metrics.widthPixels / 2f
+    binding.viewCover.setOnTouchListener { _, event ->
+      isAudio = event.rawX < half
+      Log.d(TAG, "onTouch() raw(${event.rawX}, ${event.rawY}) -> (${event.x}, ${event.y})" +
+          " ${if (isAudio) "audio" else "video"} list")
+      binding.tvDirName.text = getExternalFilesDir(if (isAudio) "audio" else "video")?.absolutePath
+      if (isAudio) {
+        binding.lvAudioList.outlineSpotShadowColor = Color.GREEN
+      } else {
+        binding.lvVideoList.outlineSpotShadowColor = Color.GREEN
+      }
+      false
+    }
 
     val timeout = ViewConfiguration.getLongPressTimeout() / 2 * 3
     binding.btnStartRecord.setOnTouchListener { v, event ->
       if (event.action == MotionEvent.ACTION_DOWN) {
         // 长按开始录制
-        v.postDelayed(mLongPressAction, timeout.toLong())
+        v.postDelayed(mLongPress, timeout.toLong())
       } else if (event.action == MotionEvent.ACTION_MOVE) {
         Log.d(TAG, "onTouch() action move: raw(${event.rawX}, ${event.rawY}) -> (${event.x}, ${event.y})")
       } else if (event.action == MotionEvent.ACTION_UP) {
         Log.d(TAG, "onTouch() action up")
         // 抬起结束录制
-        v.removeCallbacks(mLongPressAction)
+        v.removeCallbacks(mLongPress)
         mRecorder?.stop()
       } else if (event.action == MotionEvent.ACTION_CANCEL) {
         Log.d(TAG, "onTouch() action cancel")
@@ -95,40 +119,18 @@ class FfmpegPractise : BaseActivity() {
       true
     }
     binding.btnStartPlay.setOnClickListener { playOrPause() }
-    binding.btnScanAudio.setOnClickListener { scanAudioFiles() }
-    val adapter = object: ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked) {
-      override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val text = super.getView(position, convertView, parent) as TextView
-        text.textSize = 12f
-        return text
-      }
-    }
-    binding.lvAudioList.adapter = adapter
-    binding.lvAudioList.setOnItemClickListener { _, _, position, _ ->
-      binding.lvAudioList.setItemChecked(position, true)
-      mCurrentPath = "${getExternalFilesDir("audio")}/${adapter.getItem(position)}"
-      mAVFormat = fromPath(mCurrentPath)
-      when (mAVFormat) {
-        A_WAV -> {
-          binding.rbWav.isChecked = true
-        }
-        A_AAC -> {
-          binding.rbAac.isChecked = true
-        }
-        A_PCM -> {
-          binding.rbPcm.isChecked = true
-        }
-        else -> {}
-      }
-    }
-    binding.lvAudioList.setOnItemLongClickListener { _, _, position, _ ->
-      if (File("${getExternalFilesDir("audio")}/${adapter.getItem(position)}").delete()) {
-        Toast.makeText(application, "${adapter.getItem(position)} 删除成功!", Toast.LENGTH_SHORT).show()
-        adapter.remove(adapter.getItem(position))
-      }
-      mCurrentPath = null
-      true
-    }
+    binding.btnScanFiles.setOnClickListener { scanFiles(isAudio) }
+
+    audioAdapter = createArrayAdapter()
+    videoAdapter = createArrayAdapter()
+    binding.lvAudioList.adapter = audioAdapter
+    binding.lvVideoList.adapter = videoAdapter
+    binding.lvAudioList.setOnItemClickListener { _, _, position, _ -> onListItemClick(position) }
+    binding.lvVideoList.setOnItemClickListener { _, _, position, _ -> onListItemClick(position) }
+    // 上下文菜单：删除、提取音频、打印媒体 meta 信息
+    registerForContextMenu(binding.lvAudioList)
+    registerForContextMenu(binding.lvVideoList)
+
     binding.rgAudioFormat.setOnCheckedChangeListener { _, checkedId ->
       mAVFormat = when (checkedId) {
         R.id.rb_wav -> A_WAV
@@ -154,34 +156,101 @@ class FfmpegPractise : BaseActivity() {
     binding.rbMediaCodec.performClick()
   }
 
-  @Suppress("UNCHECKED_CAST")
-  private fun scanAudioFiles() {
-    val files = getExternalFilesDir("audio")?.list()?.asList()
-    files?.let {
-      (binding.lvAudioList.adapter as ArrayAdapter<String>).clear()
-      (binding.lvAudioList.adapter as ArrayAdapter<String>).addAll(it)
+  private fun createArrayAdapter(): ArrayAdapter<String> {
+    return object: ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked) {
+      override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val text = super.getView(position, convertView, parent) as TextView
+        text.textSize = 10f
+        super.getItem(position)?.let {
+          text.text = it.substring(it.lastIndexOf('/') + 1)
+        }
+        return text
+      }
     }
   }
 
+  private fun onListItemClick(position: Int) {
+    (if (isAudio) binding.lvAudioList else binding.lvVideoList).setItemChecked(position, true)
+    mCurrentPath = (if (isAudio) audioAdapter else videoAdapter).getItem(position)
+    mAVFormat = fromPath(mCurrentPath)
+    when (mAVFormat) {
+      A_WAV -> {
+        binding.rbWav.isChecked = true
+      }
+      A_AAC -> {
+        binding.rbAac.isChecked = true
+      }
+      A_PCM -> {
+        binding.rbPcm.isChecked = true
+      }
+      else -> {}
+    }
+  }
+
+  // 这里的 menuInfo 是 AdapterContextMenuInfo，包含当前点击的位置
+  override fun onCreateContextMenu(menu: ContextMenu?, v: View?, menuInfo: ContextMenuInfo?) {
+    Log.d(TAG, "onCreateContextMenu() v = $v, menuInfo = $menuInfo")
+    // 上下文菜单：删除、提取音频、打印媒体 meta 信息
+    if (v is AbsListView && menuInfo is AdapterView.AdapterContextMenuInfo) {
+      v.performItemClick(v.getChildAt(menuInfo.position), menuInfo.position, menuInfo.id)
+
+      menu?.setHeaderTitle("请选择：")
+      // menuInflater.inflate(R.menu.av_operation_list, menu)
+      menu?.add(0, R.id.delete, 0, "删除")
+      menu?.add(0, R.id.extract_audio, 1, "提取音频")?.isVisible = !isAudio
+      menu?.add(0, R.id.dump_meta_info, 2, "打印 meta 信息")
+    }
+  }
+
+  override fun onContextItemSelected(item: MenuItem): Boolean {
+    Log.d(TAG, "onContextItemSelected() menu info: ${item.menuInfo}")
+    if (item.menuInfo is AdapterView.AdapterContextMenuInfo && mCurrentPath != null) {
+      if (item.itemId == R.id.delete) {
+        mCurrentPath?.let {
+          if (File(it).delete()) {
+            Toast.makeText(application, "$it 删除成功!", Toast.LENGTH_SHORT).show()
+            (if (isAudio) audioAdapter else videoAdapter).remove(it)
+          }
+        }
+
+      } else if (item.itemId == R.id.extract_audio) {
+        mCurrentPath?.let {
+          val output = generateName(this, A_AAC)
+          val res = extractAudio(it, output)
+          // 提取音频数据之后，打印 meta 信息
+          if (res == 0) FfmpegHelper.dumpMetaInfo(output)
+        }
+      } else if (item.itemId == R.id.dump_meta_info) {
+        mCurrentPath?.let { dumpMetaInfo(it) }
+      }
+    }
+    return super.onContextItemSelected(item)
+  }
+
   override fun initData() {
-    scanAudioFiles()
+    scanFiles(true)
+    scanFiles(false)
+  }
+
+  @Suppress("UNCHECKED_CAST")
+  private fun scanFiles(isAudio: Boolean) {
+    val files = getExternalFilesDir(if (isAudio) "audio" else "video")?.list()?.asList()
+    files?.let {
+      ((if (isAudio) binding.lvAudioList else binding.lvVideoList).adapter as ArrayAdapter<String>).clear()
+      ((if (isAudio) binding.lvAudioList else binding.lvVideoList).adapter as ArrayAdapter<String>).addAll(files)
+    }
   }
 
   private fun onClickItem(item: ModuleItem) {
     Log.d(TAG, "item click with: ${item.title}")
-    if (item.cls == "record_audio") {
-      // startRecordAudio()
-    } else {
-      flag = item.cls
-      // 打开相册选视频
-      val intent = Intent(Intent.ACTION_PICK).setType("video/*")
-      startActivityForResult(intent, PICK_VIDEO)
-    }
+    // 打开相册选视频
+    val intent = Intent(Intent.ACTION_PICK).setType("video/*")
+    startActivityForResult(intent, P_PICK_VIDEO)
   }
 
   private fun startRecordAudio() {
     if (ActivityCompat.checkSelfPermission(this, permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-      ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), 0x44100)
+      ActivityCompat.requestPermissions(this, arrayOf(permission.RECORD_AUDIO), P_RECORD_AUDIO)
       return
     }
 
@@ -272,7 +341,7 @@ class FfmpegPractise : BaseActivity() {
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    if (requestCode == 0x44100 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+    if (requestCode == P_RECORD_AUDIO && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
       startRecordAudio()
     }
   }
@@ -280,85 +349,57 @@ class FfmpegPractise : BaseActivity() {
   @Deprecated("Deprecated in Java")
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)
-    if (requestCode == PICK_VIDEO && resultCode == RESULT_OK) {
+    if (requestCode == P_PICK_VIDEO && resultCode == RESULT_OK) {
       Log.d(TAG, "onActivityResult() video url: ${data?.data}")
       if (data?.data == null) return
 
-      val columns = arrayOf(Media.DATA, Media.WIDTH, Media.HEIGHT)
-      //从系统表中查询指定Uri对应的照片
-      try {
-        contentResolver.query(data.data!!, columns, null, null, null).use { cursor ->
-          cursor!!.moveToFirst()
-          // 获取媒体绝对路径
-          val filepath = cursor.getString(0)
-          Log.d(TAG, "onActivityResult() url: $data, path: $filepath")
-          if ("dump_meta" == flag) {
-            FfmpegHelper.dumpMetaInfo(filepath)
-          } else if ("extract_audio" == flag) {
-            // 输出文件路径 /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
-            val output = File(generateName(this, A_AAC))
-            if (output.exists()) output.delete()
-            output.createNewFile()
+      if ("dump_meta" == "flag") {
+        dumpMetaInfo(queryPath(this, data.data!!))
+      } else if ("extract_audio" == "flag") {
+        // 输出文件路径 /storage/emulated/0/Android/data/com.binlee.learning/files/audio/
+        val output = generateName(this, A_AAC)
 
-            val res = FfmpegHelper.extractAudio(filepath, output.absolutePath)
-            // 提取音频数据之后，打印 meta 信息
-            if (res == 0) FfmpegHelper.dumpMetaInfo(output.absolutePath)
-            // output.delete()
-          }
-        }
-      } catch (e: Throwable) {
-        e.printStackTrace()
+        with(File(output)) { if (exists()) delete() }
+
+        val res = extractAudio(queryPath(this, data.data!!), output)
+        // 提取音频数据之后，打印 meta 信息
+        if (res == 0) FfmpegHelper.dumpMetaInfo(output)
       }
     }
   }
 
-  private inner class DataAdapter(private val dataSet: ArrayList<ModuleItem>) :
-    RecyclerView.Adapter<ItemHolder>() {
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
-      val itemView = TextView(parent.context)
-      itemView.setBackgroundResource(R.drawable.module_item_bg)
-      return ItemHolder(itemView)
-    }
-
-    override fun getItemCount(): Int {
-      return dataSet.size
-    }
-
-    override fun onBindViewHolder(holder: ItemHolder, position: Int) {
-      val item = dataSet[position]
-      holder.textView.text = item.title
-      holder.textView.setOnClickListener {
-        onClickItem(item)
-      }
-    }
+  private fun dumpMetaInfo(path: String) {
+    FfmpegHelper.dumpMetaInfo(path)
   }
 
-  private class ItemHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-
-    val textView = itemView as TextView
-
-    init {
-      textView.gravity = Gravity.CENTER
-      textView.layoutParams = ViewGroup.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT
-      )
-      textView.setPadding(32, 16, 32, 16)
-      textView.textSize = 24F
-      textView.setTextColor(Color.BLUE)
-    }
+  private fun extractAudio(input: String, output: String): Int {
+    return FfmpegHelper.extractAudio(input, output)
   }
 
   companion object {
     private const val TAG = "FfmpegPractise"
-    private const val PICK_VIDEO = 0x1001
+    private const val P_PICK_VIDEO = 0x1001
+    private const val P_RECORD_AUDIO = 0x44100
     private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US)
 
     private val ffmpegVersions: String = FfmpegHelper.getVersions()
 
     private fun generateName(context: Context, format: AVFormat): String {
-      return "${context.getExternalFilesDir("audio")}/${DATE_FORMAT.format(System.currentTimeMillis())}${format.suffix}"
+      val type = if (format.isAudio) "audio" else "video"
+      return "${context.getExternalFilesDir(type)}/${DATE_FORMAT.format(System.currentTimeMillis())}${format.suffix}"
+    }
+
+    private fun queryPath(context: Context, uri: Uri): String {
+      val columns = arrayOf(Media.DATA, Media.WIDTH, Media.HEIGHT)
+      //从系统表中查询指定Uri对应的照片
+      context.contentResolver.query(uri, columns, null, null, null).use { cursor ->
+        cursor!!.moveToFirst()
+        // 获取媒体绝对路径
+        val path = cursor.getString(0)
+        Log.d(TAG, "onActivityResult() url: $uri, path: $path")
+        cursor.close()
+        return path
+      }
     }
   }
 }
