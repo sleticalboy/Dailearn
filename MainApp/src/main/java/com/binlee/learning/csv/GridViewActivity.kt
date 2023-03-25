@@ -38,7 +38,7 @@ class GridViewActivity : BaseActivity() {
         mData!!.add(item)
       }
     }
-    Log.d(logTag(), "initData() selection: $mSelection, data size: ${mData!!.size}")
+    Log.d(TAG, "initData() selection: $mSelection, data size: ${mData!!.size}")
   }
 
   override fun layout(): View {

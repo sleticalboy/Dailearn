@@ -32,12 +32,12 @@ class BleFragment : BaseListFragment<BleScanner.Result>() {
   private var mService: BleService.LeBinder? = null
   private val mConn: ServiceConnection = object : ServiceConnection {
     override fun onServiceConnected(name: ComponentName, service: IBinder) {
-      Log.d(logTag(), "onServiceConnected() name: $name, service: $service")
+      Log.d(TAG, "onServiceConnected() name: $name, service: $service")
       mService = service as BleService.LeBinder
     }
 
     override fun onServiceDisconnected(name: ComponentName) {
-      Log.d(logTag(), "onServiceDisconnected() name:$name")
+      Log.d(TAG, "onServiceDisconnected() name:$name")
       mService?.release()
       mService = null
     }
@@ -63,11 +63,11 @@ class BleFragment : BaseListFragment<BleScanner.Result>() {
     request.mCallback = object : BleScanner.Callback() {
       override fun onScanResult(result: BleScanner.Result) {
         val position = getAdapter().addData(result)
-        Log.d(logTag(), "onDeviceScanned() device: $result, index: $position")
+        Log.d(TAG, "onDeviceScanned() device: $result, index: $position")
       }
 
       override fun onScanFailed(errorCode: Int) {
-        Log.d(logTag(), "onScanFailed() errorCode = $errorCode")
+        Log.d(TAG, "onScanFailed() errorCode = $errorCode")
       }
     }
     request.mDuration = 10000L
@@ -81,15 +81,15 @@ class BleFragment : BaseListFragment<BleScanner.Result>() {
   }
 
   private fun doConnect(device: BluetoothDevice) {
-    Log.d(logTag(), "connect to $device")
+    Log.d(TAG, "connect to $device")
     if (mService != null) {
       mService!!.connect(device, object : IConnectCallback {
         override fun onFailure(connection: Connection, e: BleException) {
-          Log.d(logTag(), "onFailure() connection = $connection error: $e")
+          Log.d(TAG, "onFailure() connection = $connection error: $e")
         }
 
         override fun onSuccess(connection: Connection) {
-          Log.d(logTag(), "onSuccess() connection = $connection")
+          Log.d(TAG, "onSuccess() connection = $connection")
         }
       })
     }
@@ -105,8 +105,6 @@ class BleFragment : BaseListFragment<BleScanner.Result>() {
     doCancel(null)
     context?.unbindService(mConn)
   }
-
-  override fun logTag(): String = "BleFragment"
 
   private inner class DevicesAdapter : BaseRVAdapter<BleScanner.Result>() {
 

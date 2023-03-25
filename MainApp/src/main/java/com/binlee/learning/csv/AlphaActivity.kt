@@ -30,26 +30,26 @@ class AlphaActivity : BaseActivity() {
     mBind!!.seekBar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
       override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
         Log.d(
-          logTag(),
+          TAG,
           "onProgressChanged() progress = [$progress], fromUser = [$fromUser]"
         )
         mBind!!.tvShow.alpha = progress / 100f
       }
 
       override fun onStartTrackingTouch(seekBar: SeekBar) {
-        Log.d(logTag(), "onStartTrackingTouch() called with: seekBar = [$seekBar]")
+        Log.d(TAG, "onStartTrackingTouch() called with: seekBar = [$seekBar]")
       }
 
       override fun onStopTrackingTouch(seekBar: SeekBar) {
-        Log.d(logTag(), "onStopTrackingTouch() called with: seekBar = [$seekBar]")
+        Log.d(TAG, "onStopTrackingTouch() called with: seekBar = [$seekBar]")
       }
     })
     mBind!!.touchButton.setOnTouchListener { _: View?, _: MotionEvent? ->
       mBind!!.touchButton.getLocationInWindow(mLocation)
-      Log.d(logTag(), "mLocation[0]:" + mLocation[0])
-      Log.d(logTag(), "mLocation[1]:" + mLocation[1])
-      Log.d(logTag(), "touchButton.getMeasuredWidth():" + mBind!!.touchButton.measuredWidth)
-      Log.d(logTag(), "touchButton.getMeasuredHeight():" + mBind!!.touchButton.measuredHeight)
+      Log.d(TAG, "mLocation[0]:" + mLocation[0])
+      Log.d(TAG, "mLocation[1]:" + mLocation[1])
+      Log.d(TAG, "touchButton.getMeasuredWidth():" + mBind!!.touchButton.measuredWidth)
+      Log.d(TAG, "touchButton.getMeasuredHeight():" + mBind!!.touchButton.measuredHeight)
       false
     }
   }

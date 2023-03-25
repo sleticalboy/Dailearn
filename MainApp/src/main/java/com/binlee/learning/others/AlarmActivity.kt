@@ -28,7 +28,7 @@ class AlarmActivity : BaseActivity() {
   private val alarmReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
       if (mAction == intent.action) {
-        intent.action?.let { Log.d(logTag(), it) }
+        intent.action?.let { Log.d(TAG, it) }
       }
     }
   }
@@ -52,7 +52,7 @@ class AlarmActivity : BaseActivity() {
     Log.d("AlarmActivity", time)
     tvTime.text = time
     val msg = TimeUtils.millis2str(System.currentTimeMillis())
-    msg?.let { Log.d(logTag(), it) }
+    msg?.let { Log.d(TAG, it) }
     tvTime.append("$msg".trimIndent())
     val distance =
       TimeUtils.getDistance(34.7704267, 113.7584882, 34.7703974, 113.7583287).toDouble()

@@ -36,7 +36,7 @@ abstract class BaseRVAdapter<DATA> @JvmOverloads constructor(data: List<DATA>? =
     }
     val position = if (index < 0) mData.size - 1 else index
     notifyItemChanged(position)
-    // Log.d(logTag(), "onDeviceScanned() index: $index, device: $device");
+    // Log.d(TAG, "onDeviceScanned() index: $index, device: $device");
     return position
   }
 

@@ -11,6 +11,8 @@ import androidx.fragment.app.DialogFragment
 
 abstract class BaseDialog : DialogFragment() {
 
+  protected val TAG: String = javaClass.simpleName
+
   final override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
     val dialog = super.onCreateDialog(savedInstanceState)
     configureDialog(dialog)
@@ -49,6 +51,4 @@ abstract class BaseDialog : DialogFragment() {
 
   protected open fun configureDialog(dialog: Dialog) {
   }
-
-  protected open fun logTag(): String = "BaseDialog"
 }

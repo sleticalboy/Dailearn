@@ -24,7 +24,7 @@ class BluetoothUI : BaseActivity() {
 
   override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
     if (grantResults[0]) {
-      Log.d(logTag(), "onRequestPermissionsResult() permission granted.")
+      Log.d(TAG, "onRequestPermissionsResult() permission granted.")
     }
   }
 

@@ -25,8 +25,6 @@ class GridDialog : BaseDialog() {
   private var mSelection: Int = 0
   private lateinit var mData: List<AudioItem>
 
-  override fun logTag(): String = "GridDialog"
-
   override fun layout(inflater: LayoutInflater, parent: ViewGroup?): View {
     // R.layout.layout_grid_dialog
     mBind = LayoutGridDialogBinding.inflate(inflater, parent, false)
@@ -46,9 +44,9 @@ class GridDialog : BaseDialog() {
           itemView = convertView
           holder = convertView.tag as ItemHolder
         }
-        // Log.d(logTag(), "getView() position = $position, data = ${mData[position]}")
+        // Log.d(TAG, "getView() position = $position, data = ${mData[position]}")
         if (mSelection == position) {
-          itemView.setTag(R.id.gridView, logTag())
+          itemView.setTag(R.id.gridView, TAG)
         } else {
           itemView.setTag(R.id.gridView, "")
         }
@@ -71,16 +69,16 @@ class GridDialog : BaseDialog() {
       if ((left || right) && event.action == KeyEvent.ACTION_DOWN) {
         val child = mBind!!.gridView.selectedView // getSelectedView()
         val pos = mBind!!.gridView.selectedItemPosition // getSelectedItemPosition()
-        // Log.d(logTag(), "onKey() -> down -> pos: $pos -> left: $left -> right: $right")
+        // Log.d(TAG, "onKey() -> down -> pos: $pos -> left: $left -> right: $right")
         if (child != null && pos > 0 && pos < mData.size - 1) {
           if (left && pos % mBind!!.gridView.numColumns == 0) { // getNumColumns()
             mBind!!.gridView.setSelection(pos - 1)
-            Log.d(logTag(), "onKey() -> left -> previous: ${pos - 1}")
+            Log.d(TAG, "onKey() -> left -> previous: ${pos - 1}")
             return@OnKeyListener true
           }
           if (right && pos % mBind!!.gridView.numColumns == mBind!!.gridView.numColumns - 1) {
             mBind!!.gridView.setSelection(pos + 1)
-            Log.d(logTag(), "onKey() -> right -> next: ${pos + 1}")
+            Log.d(TAG, "onKey() -> right -> next: ${pos + 1}")
             return@OnKeyListener true
           }
         }
@@ -93,14 +91,14 @@ class GridDialog : BaseDialog() {
       private var mView: View? = null
 
       override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-        Log.d(logTag(), "onItemSelected() position = $position, data = ${mData[position]}")
+        Log.d(TAG, "onItemSelected() position = $position, data = ${mData[position]}")
         if (mSelection == position && view?.isSelected!!) {
           mView = view
           updateColor(view, mData[position].mColor)
           return
         }
         if (mSelection != position) {
-          if (logTag() == mView?.getTag(R.id.gridView)) {
+          if (TAG == mView?.getTag(R.id.gridView)) {
             updateColor(mView, mData[mSelection].mColor2)
           }
           updateColor(view, mData[position].mColor2)

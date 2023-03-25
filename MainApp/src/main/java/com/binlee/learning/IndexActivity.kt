@@ -67,17 +67,17 @@ class IndexActivity : BaseActivity() {
     DataEngine.get().indexModel().getModules().observe(this) {
       when (it) {
         is Result.Loading -> {
-          Log.d(logTag(), "initView() loading data: $it")
+          Log.d(TAG, "initView() loading data: $it")
         }
         is Result.Error -> {
-          Log.d(logTag(), "initView() load data error: $it")
+          Log.d(TAG, "initView() load data error: $it")
         }
         else -> {
-          Log.d(logTag(), "initView() load data success: $it")
+          Log.d(TAG, "initView() load data success: $it")
           dataSet.clear()
           dataSet.addAll((it as Result.Success).getData())
           mBind!!.recyclerView.adapter?.notifyItemRangeChanged(0, dataSet.size - 1)
-          Log.d(logTag(), "show UI cost: ${System.currentTimeMillis() - start} ms")
+          Log.d(TAG, "show UI cost: ${System.currentTimeMillis() - start} ms")
         }
       }
     }
@@ -126,11 +126,11 @@ class IndexActivity : BaseActivity() {
       val service = RetrofitClient.get().create(IDemo::class.java)
       service.listApis().enqueue(object : Callback<Apis> {
         override fun onResponse(call: Call<Apis>, response: Response<Apis>) {
-          Log.v(logTag(), "response: ${response.body()}")
+          Log.v(TAG, "response: ${response.body()}")
         }
 
         override fun onFailure(call: Call<Apis>, t: Throwable) {
-          Log.e(logTag(), "error: $t")
+          Log.e(TAG, "error: $t")
         }
       })
     }
@@ -140,20 +140,20 @@ class IndexActivity : BaseActivity() {
     thread(start = true, name = "Baidu-Thread") {
       val demo = RetrofitClient.get().create(IDemo::class.java)
       val result = demo.visit("text/html").execute().body()
-      Log.v(logTag(), "retrofit result: $result")
+      Log.v(TAG, "retrofit result: $result")
 
       demo.visit().subscribeOn(Schedulers.io())
         .observeOn(Schedulers.io())
         .subscribe {
-          Log.v(logTag(), "rxjava result: $it")
+          Log.v(TAG, "rxjava result: $it")
         }
 
-      Log.v(logTag(), "list result: " + demo.list())
+      Log.v(TAG, "list result: " + demo.list())
       val array = demo.byteArray()
-      Log.v(logTag(), "byte array result: " + array.size + " " + String(array))
+      Log.v(TAG, "byte array result: " + array.size + " " + String(array))
 
       val webPage = demo.webPage()
-      Log.v(logTag(), "web page result: $webPage")
+      Log.v(TAG, "web page result: $webPage")
     }
   }
 

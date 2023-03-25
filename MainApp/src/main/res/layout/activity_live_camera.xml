@@ -9,7 +9,7 @@
 
   <TextureView
     android:id="@+id/surface_view"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     app:layout_constraintLeft_toLeftOf="parent"
     app:layout_constraintTop_toTopOf="parent"
@@ -43,16 +43,15 @@
       />
   </FrameLayout>
 
-  <com.binlee.learning.weight.FaceContourView
-    android:id="@+id/view_cover"
-    android:layout_width="0dp"
-    android:layout_height="0dp"
-    android:background="@android:color/transparent"
-    android:visibility="visible"
-    app:layout_constraintLeft_toLeftOf="@+id/surface_view"
-    app:layout_constraintTop_toTopOf="@+id/surface_view"
-    app:layout_constraintRight_toRightOf="@+id/surface_view"
-    app:layout_constraintBottom_toBottomOf="@+id/surface_view"
+  <View
+    android:id="@+id/btn_switch_camera"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:layout_marginBottom="16dp"
+    android:background="@mipmap/camera_setting_switch_front"
+    app:layout_constraintLeft_toRightOf="@+id/btn_take_pic"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintBottom_toBottomOf="parent"
     />
 
   <View

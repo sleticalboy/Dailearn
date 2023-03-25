@@ -37,10 +37,10 @@ class ServicePractise : BaseActivity() {
 
   override fun initView() {
     mBind!!.btnStart.setOnClickListener {
-      Log.d(logTag(), "start service")
+      Log.d(TAG, "start service")
     }
     mBind!!.btnStop.setOnClickListener {
-      Log.d(logTag(), "stop service")
+      Log.d(TAG, "stop service")
     }
 
     mBind!!.tvBindProgress.text = "Idle"

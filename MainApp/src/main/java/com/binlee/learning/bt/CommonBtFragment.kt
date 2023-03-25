@@ -35,7 +35,7 @@ class CommonBtFragment : BaseListFragment<BluetoothDevice>() {
         //
       }
       Log.d(
-        logTag(),
+        TAG,
         "receive action: " + intent.action + ", " + device + ", " + BtUtils.bondStr(state)
       )
     }
@@ -51,8 +51,6 @@ class CommonBtFragment : BaseListFragment<BluetoothDevice>() {
     context?.registerReceiver(mReceiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
     registered = true
   }
-
-  override fun logTag(): String = "CommonBtFragment"
 
   override fun initHeader(headerContainer: FrameLayout) {
     layoutInflater.inflate(R.layout.bt_common_header, headerContainer, true)
@@ -71,7 +69,7 @@ class CommonBtFragment : BaseListFragment<BluetoothDevice>() {
     mScanner?.startScan(object : BtScanner.Callback {
       override fun onDeviceFound(device: BluetoothDevice, rssi: Int) {
         val position = getAdapter().addData(device)
-        Log.d(logTag(), "onDeviceFound() device: $device, rssi: $rssi, pos: $position")
+        Log.d(TAG, "onDeviceFound() device: $device, rssi: $rssi, pos: $position")
       }
     })
   }
@@ -90,13 +88,13 @@ class CommonBtFragment : BaseListFragment<BluetoothDevice>() {
   private fun doConnect(device: BluetoothDevice) {
     when (device.bondState) {
       BluetoothDevice.BOND_BONDED -> {
-        Log.d(logTag(), "doConnect() $device bonded")
+        Log.d(TAG, "doConnect() $device bonded")
       }
       BluetoothDevice.BOND_NONE -> {
-        Log.d(logTag(), "doConnect() $device will create bond: ${device.createBond()}")
+        Log.d(TAG, "doConnect() $device will create bond: ${device.createBond()}")
       }
       else -> {
-        Log.d(logTag(), "doConnect() $device bonding...")
+        Log.d(TAG, "doConnect() $device bonding...")
       }
     }
   }

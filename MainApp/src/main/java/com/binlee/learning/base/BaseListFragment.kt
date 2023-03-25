@@ -17,8 +17,6 @@ abstract class BaseListFragment<DATA> : BaseFragment() {
   private var mAdapter: BaseRVAdapter<DATA>? = null
   private var mBind: FragmentBaseListBinding? = null
 
-  override fun logTag(): String = "BaseListFragment"
-
   final override fun initView(view: View) {
     initHeader(mBind!!.headerContainer)
 

@@ -14,6 +14,8 @@ import androidx.core.app.ActivityCompat
  */
 abstract class BaseActivity : AppCompatActivity() {
 
+  protected val TAG: String = javaClass.simpleName.replace(Regex("Activity|UI"), "")
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     prepareWork(savedInstanceState)
@@ -52,8 +54,6 @@ abstract class BaseActivity : AppCompatActivity() {
   protected open fun initData() {}
 
   protected open fun prepareWork(savedInstanceState: Bundle?) {}
-
-  protected open fun logTag(): String = javaClass.simpleName.replace(Regex("Activity|UI"), "")
 
   companion object {
     @JvmStatic
