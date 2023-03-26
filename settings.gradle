@@ -1,5 +1,5 @@
 // include ':sample-arch'
-include ':MainApp'
+include ':app'
 // include ':EmojiPanel'
 include ':lib_net'
 include ':Camera2'

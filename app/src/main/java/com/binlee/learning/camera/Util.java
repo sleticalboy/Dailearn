@@ -2,6 +2,7 @@ package com.binlee.learning.camera;
 
 import android.app.Activity;
 import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.Display;
@@ -90,5 +91,9 @@ public class Util {
       dest[i].mouth = faces[i].mouth;
     }
     return dest;
+  }
+
+  public static void dumpRect(RectF rect, String msg) {
+    Log.v(TAG, msg + "=(" + rect.left + "," + rect.top + "," + rect.right + "," + rect.bottom + ")");
   }
 }

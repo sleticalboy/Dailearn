@@ -3,7 +3,6 @@ package com.binlee.learning.camera.v1
 import android.Manifest
 import android.annotation.SuppressLint
 import android.graphics.SurfaceTexture
-import android.hardware.Camera
 import android.util.Log
 import android.util.Size
 import android.view.TextureView.SurfaceTextureListener
@@ -13,7 +12,7 @@ import android.widget.Toast
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.camera.CameraWrapper
 import com.binlee.learning.camera.CameraWrapper.Callback
-import com.binlee.learning.camera.CameraWrapper.OnPictureTakenCallback
+import com.binlee.learning.camera.Face
 import com.binlee.learning.databinding.ActivityLiveCameraBinding
 import java.io.File
 
@@ -44,8 +43,13 @@ class LiveCameraActivity : BaseActivity() {
       camera?.startPreview(mSurface)
     }
 
-    override fun onFaceDetected(faces: Array<Camera.Face>) {
+    override fun onFaceDetected(faces: Array<Face>, displayOrientation: Int) {
       // 更新人脸位置
+      binding.faceView.setFaces(faces, displayOrientation, mFront)
+    }
+
+    override fun onTakePictureDone(path: File?) {
+      // 拍照完成回调
     }
   })
   private var mFront = false
@@ -88,12 +92,18 @@ class LiveCameraActivity : BaseActivity() {
         // Log.d(TAG, "onSurfaceTextureUpdated() called with: surface = $surface")
       }
     }
-    binding.btnTakePic.setOnClickListener { takePicture() }
+    // 拍照
+    binding.btnTakePic.setOnClickListener {
+      mCamera.takePicture(getExternalFilesDir("picture")?.absolutePath!!)
+    }
+    // 切换摄像头
     binding.btnSwitchCamera.setOnClickListener {
       mFront = if (mFront) {
+        binding.faceView.clearFaces()
         mCamera.open(CameraWrapper.ID_BACK)
         false
       } else {
+        binding.faceView.clearFaces()
         mCamera.open(CameraWrapper.ID_FRONT)
         true
       }
@@ -105,20 +115,7 @@ class LiveCameraActivity : BaseActivity() {
       askPermission(arrayOf(Manifest.permission.CAMERA))
       return
     }
+    binding.faceView.clearFaces()
     mCamera.open(CameraWrapper.ID_BACK)
-  }
-
-  private fun takePicture() {
-    mCamera.takePicture(getExternalFilesDir("picture")?.absolutePath!!,
-        object : OnPictureTakenCallback {
-          override fun onSuccess(picture: File) {
-            Log.d(TAG, picture.path)
-          }
-
-          override fun onFailure(e: Throwable?) {
-            Log.e(TAG, "onFailure: ", e)
-          }
-        }
-    )
   }
 }

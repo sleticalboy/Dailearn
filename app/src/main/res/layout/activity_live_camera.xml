@@ -16,6 +16,17 @@
     app:layout_constraintRight_toRightOf="parent"
     />
 
+  <!-- 识别到的人脸框 -->
+  <com.binlee.learning.camera.FaceView
+    android:id="@+id/face_view"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    app:layout_constraintLeft_toLeftOf="@+id/surface_view"
+    app:layout_constraintTop_toTopOf="@+id/surface_view"
+    app:layout_constraintRight_toRightOf="@+id/surface_view"
+    app:layout_constraintBottom_toBottomOf="@+id/surface_view"
+    />
+
   <!-- 对焦 view -->
   <FrameLayout
     android:id="@+id/focus_Icon"
@@ -42,6 +53,9 @@
       android:src="@mipmap/camera_focus_outer"
       />
   </FrameLayout>
+
+  <!-- 曝光 -->
+  <!-- 闪光灯 -->
 
   <View
     android:id="@+id/btn_switch_camera"

@@ -14,34 +14,6 @@ import com.example.camera.compat.ICamera
  */
 class CameraCompat private constructor() {
 
-    // 整体流程：
-    // 1、获取相机信息：id、orientation、
-    //   Camera.getNumberOfCameras() 拿到所有可用相机 id，遍历并调用以下方法获取 info
-    //   Camera.getCameraInfo(id, CameraInfo()/*入参*，相机信息会包含在其中/)
-    // 2、打开相机：需要 id，返回 Camera 实例
-    //   Camera.open(id)
-    // 3、开始预览：
-    //   设置预览参数：图片格式/大小、orientation、闪关灯、对焦、fps、预览格式/大小
-    //      camera1 默认预览格式为 NV21；camera2 默认预览格式为 YUV_420_888
-    //   设置预览 SurfaceHolder/SurfaceTexture：显示相机画面
-    //      Camera.setPreviewDisplay(SurfaceHolder)
-    //      Camera.setPreviewTexture(SurfaceTexture)
-    //   设置预览回调：获取相机数据流，可用于推流或其他操作(数据流是从 native 层回调到 java 层的)
-    //      Camera.setPreviewCallbackWithBuffer()
-    //   开始预览
-    //      Camera.startPreview()
-
-    // 推流和拉流
-    // 推流指直播端
-    //   视频采集：yuv 格式
-    //   音频采集：pcm 格式
-    //   编码：h.264 格式
-    //   rtmp：push 到服务端
-    // 拉流指观看直播的客户端
-    //   通过指定的直播 url pull 到客户端
-    //   解码
-    //   播放
-
     private var camera: ICamera
     private var mUseCamera1 = true
 
