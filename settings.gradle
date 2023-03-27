@@ -1,15 +1,15 @@
-// include ':sample-arch'
 include ':app'
 // include ':EmojiPanel'
-include ':lib_net'
-include ':Camera2'
-include ':Camera'
+// include ':sample-arch'
+// include ':lib_net'
+// include ':Camera'
+// include ':Camera2'
 
 // ndk build 项目，直接挂在 Android 源码目录中进行编译的
 //include ':jni-demo'
 
 // jvmti 使用，性能分析工具
-include ':lib_jvmti'
+// include ':lib_jvmti'
 
 // lib jpeg 库使用，图片极限压缩
 include ':lib_luban'
@@ -18,7 +18,7 @@ include ':lib_luban'
 include ':lib_ffmpeg'
 
 // 攻破 hidden api 限制
-include ':lib_hidden_relieve'
+// include ':lib_hidden_relieve'
 
 // 插件化开发
 // include ':lib_plugin'
@@ -30,4 +30,4 @@ include ':lib_dl:aosp-stub'
 // include ':lib_sqlite_orm'
 
 // 手机端文件服务器
-include ':lib_file_server'
+// include ':lib_file_server'

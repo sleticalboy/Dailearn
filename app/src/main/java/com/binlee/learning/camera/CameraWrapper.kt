@@ -13,7 +13,6 @@ import android.util.Size
 import android.view.*
 import androidx.annotation.VisibleForTesting
 import com.binlee.learning.util.UiUtils
-import org.jetbrains.annotations.TestOnly
 import java.io.File
 import java.io.IOException
 
@@ -49,9 +48,8 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
 
   /* // 推流和拉流
   // 推流指直播端
-  //   视频采集：yuv 格式
-  //   音频采集：pcm 格式
-  //   编码：h.264 格式
+  //   视频采集：yuv 格式 & 编码：h.264 格式
+  //   音频采集：pcm 格式 & 编码：aac 格式
   //   rtmp：push 到服务端
   // 拉流指观看直播的客户端
   //   通过指定的直播 url pull 到客户端
@@ -63,6 +61,7 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
   // video-size=1920x1080
   // 首选预览尺寸、支持的预览尺寸、视频预览格式、fps
   // preferred-preview-size-for-video=1920x1080
+  // preview-size=1920x1080
   // preview-size-values=1920x1080,1600x1200,1440x1080,1280x960,1280x720,1200x1200,1024x768,800x600,720x480,640x480,640x360,480x360,480x320,352x288,320x240,176x144,160x120
   // video-size-values=3840x2160,2592x1944,2688x1512,2048x1536,1920x1080,1600x1200,1440x1080,1280x960,1280x720,1200x1200,1024x768,800x600,720x480,640x480,640x360,480x360,480x320,352x288,320x240,176x144,160x120
   // preview-format=yuv420sp
@@ -74,6 +73,8 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
   // 拍照格式及尺寸
   // picture-format-values=jpeg
   // picture-size-values=4032x3024,4000x3000,3840x2160,3264x2448,3200x2400,2976x2976,2592x1944,2688x1512,2048x1536,1920x1080,1600x1200,1440x1080,1280x960,1280x720,1200x1200,1024x768,800x600,720x480,640x480,640x360,480x360,480x320,352x288,320x240,176x144,160x120
+  // picture-format=jpeg
+  // picture-size=1920x1080
   // 缩略图相关
   // jpeg-thumbnail-width=320
   // jpeg-thumbnail-height=240
@@ -130,10 +131,6 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
   // video-snapshot-supported=true
   // video-stabilization=false
   // video-stabilization-supported=true
-  // picture-format=jpeg
-  // preview-size=1920x1080
-  // picture-size=1920x1080
-  // rotation=90
   */
 
   private var mCamera: Camera? = null
@@ -158,7 +155,7 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
       lastFaceId = faces[0].id
     }
     // 回调检测到的人脸
-    callback?.onFaceDetected(Util.convertFaces(faces), getDisplayOrientation(mCameraId))
+    callback?.onFaceDetected(CameraUtil.convertFaces(faces), getDisplayOrientation(mCameraId))
   }
 
   // open/startPreview/stopPreview/close
@@ -271,7 +268,7 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
    */
   private fun openCamera(cameraId: Int): Size? {
     val camera = Camera.open(rawId(cameraId)) ?: return null
-
+    // 显示角度
     camera.setDisplayOrientation(getDisplayOrientation(cameraId))
 
     mInitParams = camera.parameters
@@ -280,23 +277,28 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     val params = camera.parameters
     params.pictureFormat = ImageFormat.JPEG
 
-    // 设置预览大小
-    val size = params.preferredPreviewSizeForVideo
-    Log.d(TAG, "openCamera() preview size(${size.height}, ${size.width})")
-    params.setPreviewSize(size.width, size.height)
+    // 选择拍照时保存的图片尺寸
+    CameraUtil.setupPictureSize(activity, params, cameraId)
+    Log.d(TAG, "openCamera() picture size(${params.pictureSize.height}, ${params.pictureSize.width})")
 
-    // 设置保存图片宽高
-    val sizes = params.supportedPictureSizes
-    if (sizes.contains(size)) {
-      params.setPictureSize(size.width, size.height)
+    // 根据图片尺寸选择预览尺寸
+    val pictureSize = params.pictureSize
+    val previewSize = params.previewSize
+    val optimizedSize = CameraUtil.optimizePreviewSize(activity, params.supportedPreviewSizes,
+      pictureSize.width.toDouble() / pictureSize.height)
+    val size = if (!previewSize.equals(optimizedSize)) {
+      params.setPreviewSize(optimizedSize.width, optimizedSize.height)
+      Size(optimizedSize.height, optimizedSize.width)
     } else {
-      params.setPictureSize(sizes[0].width, sizes[1].height)
+      Size(previewSize.height, previewSize.width)
     }
+    Log.d(TAG, "openCamera() preview size(${size.width}, ${size.height})")
+    // 旋转
     params.setRotation(getCameraRotation(cameraId))
     return try {
       camera.parameters = params
       mCamera = camera
-      Size(size.height, size.width)
+      Size(size.width, size.height)
     } catch (tr: Exception) {
       dumpParameters(params, "openCamera()", tr)
       null
@@ -360,14 +362,21 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
       }
       val rect = Rect(ax - 100, ay - 100, ax + 100, ay + 100)
       val focusAreas = listOf(Area(rect, 1000))
+
+      // 是否需要更新参数
+      var notSet = true
       val params = it.parameters
       if (mInitParams!!.maxNumFocusAreas > 0
         && params.supportedFocusModes.contains(Parameters.FOCUS_MODE_AUTO)) {
         params.focusAreas = focusAreas
+        notSet = false
       }
       if (mInitParams!!.maxNumMeteringAreas > 0) {
         params.meteringAreas = focusAreas
+        notSet = false
       }
+
+      if (notSet) return
 
       try {
         it.parameters = params

@@ -45,7 +45,7 @@ public class FaceView extends View {
 
   public FaceView(Context context, AttributeSet attrs) {
     super(context, attrs);
-    setBackgroundColor(Color.TRANSPARENT);
+    setBackgroundColor(Color.WHITE);
     mPaint.setStyle(Paint.Style.STROKE);
     mPaint.setStrokeWidth(4f);
   }
@@ -71,7 +71,7 @@ public class FaceView extends View {
     if (mFaces == null || mFaces.length == 0) return;
 
     // Prepare the matrix.
-    Util.prepareMatrix(mMatrix, mMirror, mDisplayOrientation, getWidth(), getHeight());
+    CameraUtil.prepareMatrix(mMatrix, mMirror, mDisplayOrientation, getWidth(), getHeight());
 
     canvas.save();
     // Focus indicator is directional. Rotate the matrix and the canvas

@@ -66,11 +66,11 @@ dependencies {
   compileOnly("com.google.code.gson:gson:$gson")
   implementation("com.github.bumptech.glide:glide:$glide_version")
 
-  implementation project(path: ':lib_jvmti')
+  // implementation project(path: ':lib_jvmti')
+  // implementation project(path: ':lib_hidden_relieve')
   implementation project(path: ':lib_luban')
   implementation project(path: ':lib_ffmpeg')
   implementation project(path: ':lib_dl:host')
-  implementation project(path: ':lib_hidden_relieve')
 
   //coroutines
   implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'

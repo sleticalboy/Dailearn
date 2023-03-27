@@ -495,16 +495,14 @@ public class Camera2Helper {
       String[] cameraIdList = manager.getCameraIdList();
       for (String cameraId : cameraIdList) {
         CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-
-                /*Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
-                //前置摄像头
-                if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                    continue;
-                }else if(facing != null && facing == CameraCharacteristics.LENS_FACING_BACK){
-                    continue;
-                }*/
-        StreamConfigurationMap map = characteristics.get(
-          CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        /*Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
+        //前置摄像头
+        if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+            continue;
+        }else if(facing != null && facing == CameraCharacteristics.LENS_FACING_BACK){
+            continue;
+        }*/
+        StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         if (map == null) {
           continue;
         }
@@ -515,17 +513,15 @@ public class Camera2Helper {
           new Camera2Helper.CompareSizesByArea()
         );
         //初始化ImageReader
-        mImageReader = ImageReader.newInstance(
-          largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, /*maxImages*/2);
+        mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(), ImageFormat.JPEG, /*maxImages*/2);
         //设置ImageReader监听
         mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler);
 
         //处理图片方向相关
-        int displayRotation = ((Activity) textureView.getContext())
-          .getWindowManager().getDefaultDisplay().getRotation();
+        int rotation = ((Activity) textureView.getContext()).getWindowManager().getDefaultDisplay().getRotation();
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         boolean swappedDimensions = false;
-        switch (displayRotation) {
+        switch (rotation) {
           case Surface.ROTATION_0:
           case Surface.ROTATION_180:
             if (mSensorOrientation == 90 || mSensorOrientation == 270) {
@@ -542,8 +538,7 @@ public class Camera2Helper {
             break;
         }
         Point displaySize = new Point();
-        ((Activity) textureView.getContext())
-          .getWindowManager().getDefaultDisplay().getSize(displaySize);
+        ((Activity) textureView.getContext()).getWindowManager().getDefaultDisplay().getSize(displaySize);
         int rotatedPreviewWidth = width;
         int rotatedPreviewHeight = height;
         int maxPreviewWidth = displaySize.x;
@@ -593,12 +588,8 @@ public class Camera2Helper {
   /**
    * 为了避免太大的预览大小会超过相机总线的带宽限
    */
-  private Size chooseOptimalSize(Size[] choices,
-    int textureViewWidth,
-    int textureViewHeight,
-    int maxWidth,
-    int maxHeight,
-    Size aspectRatio) {
+  private Size chooseOptimalSize(Size[] choices, int textureViewWidth, int textureViewHeight,
+    int maxWidth, int maxHeight, Size aspectRatio) {
 
     // Collect the supported resolutions that are at least as big as the preview Surface
     List<Size> bigEnough = new ArrayList<>();

@@ -1,12 +1,15 @@
 package com.binlee.learning.camera;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.Display;
 import androidx.annotation.NonNull;
+import com.binlee.learning.R;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -15,9 +18,11 @@ import java.util.List;
  * @author binlee sleticalboy@gmail.com
  * created by IDEA on 3/25/23
  */
-public class Util {
+public class CameraUtil {
 
   private static final String TAG = "CameraUtil";
+  private static final int NOT_FOUND = -1;
+  public static final String KEY_PICTURE_SIZE = "camera_sp_key_picture_size_"/*cameraId*/;
 
   public static void prepareMatrix(Matrix matrix, boolean mirror, int displayOrientation,
                                    int viewWidth, int viewHeight) {
@@ -31,8 +36,7 @@ public class Util {
     matrix.postTranslate(viewWidth / 2f, viewHeight / 2f);
   }
 
-  public static Camera.Size getOptimalPreviewSize(Activity activity, List<Camera.Size> sizes,
-                                                  double targetRatio) {
+  public static Camera.Size optimizePreviewSize(Activity activity, List<Camera.Size> sizes, double targetRatio) {
     // Use a very small tolerance because we want an exact match.
     final double ASPECT_TOLERANCE = 0.001;
     if (sizes == null) return null;
@@ -93,7 +97,46 @@ public class Util {
     return dest;
   }
 
-  public static void dumpRect(RectF rect, String msg) {
-    Log.v(TAG, msg + "=(" + rect.left + "," + rect.top + "," + rect.right + "," + rect.bottom + ")");
+  public static void setupPictureSize(Activity activity, Camera.Parameters params, int cameraId) {
+    // When launching the camera app first time, we will set the picture
+    // size to the first one in the list defined in "arrays.xml" and is also
+    // supported by the driver.
+    final Display display = activity.getWindowManager().getDefaultDisplay();
+    Log.d(TAG, "setupPictureSize() display w: " + display.getWidth() + ", h: " + display.getHeight());
+    List<Camera.Size> supported = params.getSupportedPictureSizes();
+    if (supported == null) return;
+    final SharedPreferences sp = activity.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
+    final String value = sp.getString(KEY_PICTURE_SIZE + cameraId, "");
+    if (setCameraPictureSize(value, supported, params)) {
+      Log.e(TAG, "Use last picture size settings: " + value);
+      return;
+    }
+    int width = display.getHeight();
+    int height = display.getWidth();
+    for (Camera.Size size : supported) {
+      if (size.height == height && size.width < width) {
+        if (Math.round(size.width * 1f / width) == 1f) {
+          params.setPictureSize(size.width, size.height);
+          sp.edit().putString(KEY_PICTURE_SIZE + cameraId, size.width + "x" + size.height).apply();
+          return;
+        }
+      }
+    }
+    Log.e(TAG, "No supported picture size found");
   }
+
+  public static boolean setCameraPictureSize(String candidate, List<Camera.Size> supported, Camera.Parameters params) {
+    int index = candidate.indexOf('x');
+    if (index == NOT_FOUND) return false;
+    int width = Integer.parseInt(candidate.substring(0, index));
+    int height = Integer.parseInt(candidate.substring(index + 1));
+    for (Camera.Size size : supported) {
+      if (size.width == width && size.height == height) {
+        params.setPictureSize(width, height);
+        return true;
+      }
+    }
+    return false;
+  }
+
 }
