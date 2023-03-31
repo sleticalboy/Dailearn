@@ -4,13 +4,14 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Matrix;
+import android.graphics.Point;
+import android.graphics.PointF;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.Display;
 import androidx.annotation.NonNull;
-import com.binlee.learning.R;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -18,22 +19,21 @@ import java.util.List;
  * @author binlee sleticalboy@gmail.com
  * created by IDEA on 3/25/23
  */
-public class CameraUtil {
+public class CameraX {
 
   private static final String TAG = "CameraUtil";
   private static final int NOT_FOUND = -1;
   public static final String KEY_PICTURE_SIZE = "camera_sp_key_picture_size_"/*cameraId*/;
 
-  public static void prepareMatrix(Matrix matrix, boolean mirror, int displayOrientation,
-                                   int viewWidth, int viewHeight) {
+  public static void prepareMatrix(Matrix matrix, boolean mirror, int displayOrientation, Point spec) {
     // Need mirror for front camera.
     matrix.setScale(mirror ? -1 : 1, 1);
     // This is the value for android.hardware.Camera.setDisplayOrientation.
     matrix.postRotate(displayOrientation);
     // Camera driver coordinates range from (-1000, -1000) to (1000, 1000).
     // UI coordinates range from (0, 0) to (width, height).
-    matrix.postScale(viewWidth / 2000f, viewHeight / 2000f);
-    matrix.postTranslate(viewWidth / 2f, viewHeight / 2f);
+    matrix.postScale(spec.x / 2000f, spec.y / 2000f);
+    matrix.postTranslate(spec.x / 2f, spec.y / 2f);
   }
 
   public static Camera.Size optimizePreviewSize(Activity activity, List<Camera.Size> sizes, double targetRatio) {
@@ -139,4 +139,19 @@ public class CameraUtil {
     return false;
   }
 
+  public static Rect getTapArea(Point surfaceSpec, Point focusSpec, float scale, PointF point, Matrix matrix) {
+    float areaWidth = focusSpec.x * scale;
+    float areaHeight = focusSpec.y * scale;
+
+    float left = clamp(point.x - areaWidth / 2f, 0, surfaceSpec.x - focusSpec.x);
+    float top = clamp(point.y - areaHeight / 2f, 0, surfaceSpec.y - focusSpec.y);
+    RectF rectF = new RectF(left, top, left + areaWidth, top + areaHeight);
+    matrix.mapRect(rectF);
+
+    return new Rect(Math.round(rectF.left), Math.round(rectF.top), Math.round(rectF.right), Math.round(rectF.bottom));
+  }
+
+  public static float clamp(float x, float min, float max) {
+    return x > max ? max : Math.max(x, min);
+  }
 }

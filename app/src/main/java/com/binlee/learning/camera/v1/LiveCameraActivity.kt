@@ -66,9 +66,15 @@ class LiveCameraActivity : BaseActivity() {
 
   @SuppressLint("ClickableViewAccessibility")
   override fun initView() {
-    // 对焦
+    // 点击对焦、上下滑动切换相机
+    // val gesture = GestureDetector(this, object: SimpleOnGestureListener() {
+    //   override fun onSingleTapUp(e: MotionEvent?): Boolean {
+    //     mCamera.autoFocus(this@LiveCameraActivity, binding.focusIcon, e!!)
+    //     return true
+    //   }
+    // })
     binding.surfaceView.setOnTouchListener { _, event ->
-      mCamera.autoFocus(this, binding.focusIcon, event)
+      mCamera.autoFocus(binding.focusIcon, binding.surfaceView, event)
       false
     }
     binding.surfaceView.surfaceTextureListener = object : SurfaceTextureListener {
@@ -107,6 +113,10 @@ class LiveCameraActivity : BaseActivity() {
         mCamera.open(CameraWrapper.ID_FRONT)
         true
       }
+      it.animate()
+        .rotation(it.rotation + 180)
+        .setDuration(500L)
+        .start()
     }
   }
 
@@ -117,5 +127,15 @@ class LiveCameraActivity : BaseActivity() {
     }
     binding.faceView.clearFaces()
     mCamera.open(CameraWrapper.ID_BACK)
+  }
+
+  override fun onPause() {
+    super.onPause()
+    mCamera.stopPreview()
+  }
+
+  override fun onDestroy() {
+    super.onDestroy()
+    mCamera.close()
   }
 }

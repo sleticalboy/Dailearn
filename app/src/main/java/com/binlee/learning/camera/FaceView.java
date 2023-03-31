@@ -22,6 +22,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
@@ -40,14 +41,15 @@ public class FaceView extends View {
 
   private final Matrix mMatrix = new Matrix();
   private final RectF mRect = new RectF();
-  private final Path mPath = new Path();
   private final Paint mPaint = new Paint();
+  private final Point mSpec = new Point();
 
   public FaceView(Context context, AttributeSet attrs) {
     super(context, attrs);
-    setBackgroundColor(Color.WHITE);
+    setBackgroundColor(Color.TRANSPARENT);
+    mPaint.setColor(Color.WHITE);
     mPaint.setStyle(Paint.Style.STROKE);
-    mPaint.setStrokeWidth(4f);
+    mPaint.setStrokeWidth(2.5f);
   }
 
   public void setFaces(Face[] faces, int displayOrientation, boolean mirror) {
@@ -71,7 +73,8 @@ public class FaceView extends View {
     if (mFaces == null || mFaces.length == 0) return;
 
     // Prepare the matrix.
-    CameraUtil.prepareMatrix(mMatrix, mMirror, mDisplayOrientation, getWidth(), getHeight());
+    mSpec.set(getWidth(), getHeight());
+    CameraX.prepareMatrix(mMatrix, mMirror, mDisplayOrientation, mSpec);
 
     canvas.save();
     // Focus indicator is directional. Rotate the matrix and the canvas
@@ -84,10 +87,8 @@ public class FaceView extends View {
       mRect.set(face.rect);
       mMatrix.mapRect(mRect);
 
-      // 顺时针方向
-      mPath.addRect(mRect, Path.Direction.CW);
-      canvas.drawPath(mPath, mPaint);
-      mPath.reset();
+      // 画脸矩形框
+      canvas.drawRect(mRect, mPaint);
     }
     canvas.restore();
   }

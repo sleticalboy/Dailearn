@@ -1,9 +1,10 @@
 package com.binlee.learning.camera
 
 import android.app.Activity
-import android.content.Context
 import android.graphics.ImageFormat
-import android.graphics.Rect
+import android.graphics.Matrix
+import android.graphics.Point
+import android.graphics.PointF
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.hardware.Camera.*
@@ -12,9 +13,10 @@ import android.util.Log
 import android.util.Size
 import android.view.*
 import androidx.annotation.VisibleForTesting
-import com.binlee.learning.util.UiUtils
+import androidx.constraintlayout.widget.ConstraintLayout
 import java.io.File
 import java.io.IOException
+import kotlin.math.round
 
 /**
  * Created on 18-2-27.
@@ -138,6 +140,11 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
   private var mCameraId = ID_BACK
   private var mInitParams: Parameters? = null
 
+  private var mDisplayOrientation = 0
+  private var mMatrix: Matrix? = null
+  private var focusAreas = listOf(Area(null, 1))
+  private var meteringAreas = listOf(Area(null, 1))
+
   private val mFocusCallback = AutoFocusCallback { success, camera ->
     val params = camera.parameters
     val focusMode = params.focusMode
@@ -146,16 +153,16 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     } else {
       dumpAreas(params.focusAreas)
     }
-    Log.d(TAG, "onAutoFocus() success: $success, mode: $focusMode, area: $areas")
+    Log.w(TAG, "onAutoFocus() success: $success, mode: $focusMode, area: $areas")
   }
   @VisibleForTesting private var lastFaceId = -1
   private val mFaceCallback = FaceDetectionListener { faces, _ ->
     if (faces != null && faces.isNotEmpty() && lastFaceId != faces[0].id) {
-      Log.d(TAG, "onFaceDetection() ${faces.size} -> faces: ${dumpFace(faces[0])}")
+      Log.w(TAG, "onFaceDetection() ${faces.size} -> faces: ${dumpFace(faces[0])}")
       lastFaceId = faces[0].id
     }
     // 回调检测到的人脸
-    callback?.onFaceDetected(CameraUtil.convertFaces(faces), getDisplayOrientation(mCameraId))
+    callback?.onFaceDetected(CameraX.convertFaces(faces), getDisplayOrientation(mCameraId))
   }
 
   // open/startPreview/stopPreview/close
@@ -222,7 +229,12 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
 
     mCamera?.setPreviewTexture(surface)
     mCamera?.startPreview()
-    mCamera?.autoFocus(mFocusCallback)
+    val focusMode = mInitParams!!.focusMode
+    if (focusMode == Parameters.FOCUS_MODE_AUTO) {
+      mCamera?.autoFocus(mFocusCallback)
+    } else {
+      Log.w(TAG, "startPreview() focus modes: ${mInitParams?.supportedFocusModes} -> $focusMode")
+    }
 
     // 开启人脸检测
     if (mInitParams!!.maxNumDetectedFaces > 0) {
@@ -239,19 +251,19 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
    * 关闭预览
    */
   fun stopPreview() {
+    mCamera?.stopFaceDetection()
     mCamera?.stopPreview()
-    // cameraInternal?.release()
-    // cameraInternal = null
   }
 
   /**
    * 关闭相机
    */
   fun close() {
-    mCamera?.stopFaceDetection()
-    mCamera?.stopPreview()
+    stopPreview()
     mCamera?.release()
     mCamera = null
+    mMatrix = null
+    mMatrix = null
 
     // 回调
     callback?.onLastClosed(mCameraId)
@@ -268,8 +280,14 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
    */
   private fun openCamera(cameraId: Int): Size? {
     val camera = Camera.open(rawId(cameraId)) ?: return null
+    
+    camera.setErrorCallback { error, _ ->
+      Log.e(TAG, "onError() error: ${camera.errorStr(error)}")
+    }
+    
     // 显示角度
-    camera.setDisplayOrientation(getDisplayOrientation(cameraId))
+    mDisplayOrientation = getDisplayOrientation(cameraId)
+    camera.setDisplayOrientation(mDisplayOrientation)
 
     mInitParams = camera.parameters
     dumpParameters(mInitParams, "default", null)
@@ -278,13 +296,13 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     params.pictureFormat = ImageFormat.JPEG
 
     // 选择拍照时保存的图片尺寸
-    CameraUtil.setupPictureSize(activity, params, cameraId)
+    CameraX.setupPictureSize(activity, params, cameraId)
     Log.d(TAG, "openCamera() picture size(${params.pictureSize.height}, ${params.pictureSize.width})")
 
     // 根据图片尺寸选择预览尺寸
     val pictureSize = params.pictureSize
     val previewSize = params.previewSize
-    val optimizedSize = CameraUtil.optimizePreviewSize(activity, params.supportedPreviewSizes,
+    val optimizedSize = CameraX.optimizePreviewSize(activity, params.supportedPreviewSizes,
       pictureSize.width.toDouble() / pictureSize.height)
     val size = if (!previewSize.equals(optimizedSize)) {
       params.setPreviewSize(optimizedSize.width, optimizedSize.height)
@@ -328,62 +346,72 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
   /**
    * 自动对焦
    *
-   * @param [context] 上下文
-   * @param [focusView] 焦点视图
+   * @param [focusView] 焦点 view
+   * @param [surfaceView] 预览 view
    * @param [event] 事件
    */
-  fun autoFocus(context: Context, focusView: View, event: MotionEvent) {
+  fun autoFocus(focusView: View, surfaceView: View, event: MotionEvent) {
     // 先设置聚焦区域，再调用 autoFocus() 接口
 
     // 显示聚焦图标
-    showFocusIcon(focusView, event)
-    // 设置聚焦区域
-    setFocusArea(context, event)
-    // 调用接口自动对焦
-    mCamera?.autoFocus(mFocusCallback)
-  }
+    val point = PointF(round(event.x), round(event.y))
+    val surfaceSpec = Point(surfaceView.width, surfaceView.height)
+    val focusSpec = Point(surfaceSpec.x / 4, surfaceSpec.x / 4)
+    if (mMatrix == null) {
+      mMatrix = Matrix()
+      val matrix = Matrix()
+      CameraX.prepareMatrix(matrix, mCameraId == ID_FRONT, mDisplayOrientation, surfaceSpec)
+      matrix.invert(mMatrix)
+    }
 
-  /**
-   * 设置聚焦区域
-   */
-  private fun setFocusArea(context: Context, event: MotionEvent) {
-    mCamera?.let {
-      var ax = (2000f * event.rawX / context.resources.displayMetrics.widthPixels - 1000).toInt()
-      var ay = (2000f * event.rawY / context.resources.displayMetrics.heightPixels - 1000).toInt()
-      if (ax > 900) {
-        ax = 900
-      } else if (ax < -900) {
-        ax = -900
-      }
-      if (ay > 900) {
-        ay = 900
-      } else if (ay < -900) {
-        ay = -900
-      }
-      val rect = Rect(ax - 100, ay - 100, ax + 100, ay + 100)
-      val focusAreas = listOf(Area(rect, 1000))
+    // 计算对焦区域
+    focusAreas[0].rect  = CameraX.getTapArea(surfaceSpec, focusSpec, 1f, point, mMatrix)
+    meteringAreas[0].rect = CameraX.getTapArea(surfaceSpec, focusSpec, 1.5f, point, mMatrix)
+    Log.d(TAG, "autoFocus() areas: ${dumpAreas(focusAreas)}, ${dumpAreas(meteringAreas)}")
 
-      // 是否需要更新参数
-      var notSet = true
-      val params = it.parameters
-      if (mInitParams!!.maxNumFocusAreas > 0
-        && params.supportedFocusModes.contains(Parameters.FOCUS_MODE_AUTO)) {
-        params.focusAreas = focusAreas
-        notSet = false
-      }
-      if (mInitParams!!.maxNumMeteringAreas > 0) {
-        params.meteringAreas = focusAreas
-        notSet = false
-      }
-
-      if (notSet) return
-
+    // 是否需要更新参数
+    var needSet = false
+    val params = mCamera!!.parameters
+    if (mInitParams!!.maxNumFocusAreas > 0
+      && params.supportedFocusModes.contains(Parameters.FOCUS_MODE_AUTO)) {
+      params.focusAreas = focusAreas
+      needSet = true
+    }
+    if (mInitParams!!.maxNumMeteringAreas > 0) {
+      params.meteringAreas = meteringAreas
+      needSet = true
+    }
+    if (needSet) {
+      // 设置聚焦区域
       try {
-        it.parameters = params
+        mCamera!!.parameters = params
       } catch (tr: Throwable) {
-        Log.e(TAG, "setFocusArea() failed! ${params.focusMode} -> ${params.supportedFocusModes}")
+        Log.e(TAG, "setFocusArea() failed! ${params.focusMode}:${params.supportedFocusModes}")
+        dumpParameters(mCamera?.parameters, "autoFocus", tr)
+        return
+      }
+      // 调用接口自动对焦
+      val focusMode = mInitParams!!.focusMode
+      if (focusMode == Parameters.FOCUS_MODE_AUTO) {
+        mCamera!!.autoFocus(mFocusCallback)
+      } else {
+        Log.w(TAG, "autoFocus() focus modes: ${mInitParams?.supportedFocusModes} -> $focusMode")
       }
     }
+
+    // 更新对焦 view 位置
+    val lp = focusView.layoutParams as ConstraintLayout.LayoutParams
+    lp.width = focusSpec.x
+    lp.height = focusSpec.y
+    // 触点 - 宽或高的一半
+    val left = CameraX.clamp(point.x - focusSpec.x / 2 + 0.5f, 0f, surfaceSpec.x - focusSpec.x + 0f)
+    val top = CameraX.clamp(point.y - focusSpec.y / 2 + 0.5f, 0f, surfaceSpec.y - focusSpec.y + 0f)
+    // lp.setMargins(left.roundToInt(), top.roundToInt(), 0, 0)
+    lp.verticalBias = if (left == 0f) 0f else left / surfaceSpec.x
+    lp.horizontalBias = if (top == 0f) 0f else top / surfaceSpec.y
+    Log.e(TAG, "autoFocus() v bias: ${lp.verticalBias}, h bias: ${lp.horizontalBias}")
+    focusView.visibility = View.VISIBLE
+    focusView.postDelayed({ hideFocusIcon(focusView) }, 5000L)
   }
 
   private fun dumpParameters(params: Parameters?, where: String, tr: Throwable? = null) {
@@ -424,30 +452,10 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     }
   }
 
-  /**
-   * 显示聚焦图标
-   */
-  private fun showFocusIcon(focusView: View, event: MotionEvent) {
-    val x = event.x
-    val y = event.y
-
-    val width = 240
-    val params = focusView.layoutParams as ViewGroup.MarginLayoutParams
-    params.width = width
-    params.height = width
-    // 触点 - 宽或高的一半
-    params.leftMargin = (x - width / 2 + 0.5f).toInt()
-    // margin top 要多处理一个状态栏高度
-    val sh = UiUtils.getStatusBarHeight()
-    params.topMargin = (y - sh - width / 2 + 0.5f).toInt()
-    focusView.visibility = View.VISIBLE
-    focusView.postDelayed({ hideFocusIcon(focusView) }, 500L)
-  }
-
   private fun hideFocusIcon(focusView: View) {
-    val params = focusView.layoutParams as ViewGroup.MarginLayoutParams
-    params.topMargin = 0
-    params.leftMargin = 0
+    val lp = focusView.layoutParams as ConstraintLayout.LayoutParams
+    lp.verticalBias = 0f
+    lp.horizontalBias = 0f
     focusView.visibility = View.GONE
   }
 
