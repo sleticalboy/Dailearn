@@ -7,20 +7,26 @@ import requests
 
 
 def formatted_list(prefix: str, items: list) -> str:
+    """
+    格式化列表为字符串
+    :param prefix: 前缀
+    :param items: 列表
+    :return: 格式化之后的字符串
+    """
     chars_ = "abcdefghigklmnopqrstuvwxyz"
-    issues_ = ''
+    out_str = ''
     if items is not None and len(items) != 0:
         for index, item in enumerate(items, 0):
             if index > 25:
                 break
-            issues_ += f"{chars_[index]}、{item}\n"
-        return "\n**{0}**:\n{1}".format(prefix, issues_)
-    return issues_
+            out_str += f"{chars_[index]}、{item}\n"
+        return "\n**{0}**:\n{1}".format(prefix, out_str)
+    return out_str
 
 
 def is_clean_git_repo(cwd: str) -> bool:
     """
-    返回当前 git 工程是否所有文件已提交
+    检测当前 git 工程是否所有文件已提交
     :param cwd: git 工程根目录
     :return: True 所有文件已提交, False 有未提交文件
     """
@@ -72,7 +78,9 @@ def find_latest_git_tag_and_last_tag_hash(cwd: str) -> tuple[str, str]:
 
 
 class ReleaseNote:
-    # 获取最近提交日志：新功能、修复问题、作者
+    """
+    获取最近提交日志：新功能、修复问题、作者
+    """
     authors: dict = {}
     features: list = []
     issues: list = []
@@ -109,7 +117,7 @@ class ReleaseNote:
                 self.features.append(log[5:].strip())
             elif log.startswith("update:"):
                 self.features.append(log[7:].strip())
-            elif log.startswith("note:"):
+            elif log.startswith("note:") or log.startswith("test:"):
                 self.test_notes.append(log[5:].strip())
             elif log.startswith("engine:"):
                 self.engine_notes.append(log[7:].strip())
@@ -191,11 +199,17 @@ def notify_to_feishu(latest_tag: str, note: ReleaseNote):
     print(f"content: {resp.text}")
 
 
-def exec_task(cwd: str, task_type: str) -> int:
+def exec_task(cwd: str, task_type='debug') -> int:
+    """
+    执行任务
+    :param cwd: 工作目录
+    :param task_type: 任务类型 debug/release/upload
+    :return: 执行任务返回值
+    """
     proc = subprocess.Popen(f"bash upload-to-maven.sh {task_type}", shell=True, text=True,
                             stdout=subprocess.PIPE, cwd=cwd)
     if proc.returncode is not None and proc.returncode != 0:
-        print(f"./upload-to-maven.sh failed with {proc.returncode}")
+        print(f"upload-to-maven.sh failed with {proc.returncode}")
         for line in proc.stdout.readlines():
             line = line.replace('\n', '').strip()
             print(line)
@@ -203,10 +217,10 @@ def exec_task(cwd: str, task_type: str) -> int:
     return 0
 
 
-def run_main_work_flow(task_type: str):
+def run_main_work_flow(args: list):
     """
     执行主流程
-    :param task_type: debug/release/upload
+    :param args: 参数列表，扩展用
     :return:
     """
     # 校验当前工程是否合法
@@ -214,23 +228,22 @@ def run_main_work_flow(task_type: str):
         print("当前目录不是一个 git 工程目录", file=sys.stderr)
         # exit(1)
 
-    # 设置工作目录
-    # cwd = '/home/binlee/code/open-source/quvideo/XYAlgLibs'
-    cwd = '/home/binlee/code/open-source/quvideo/QuVideoEngineAI'
+    # 设置 git 工作目录
+    git_work_dir = '/home/binlee/code/open-source/quvideo/QuVideoEngineAI'
 
     # 如果当前工程有没有提交的文件，中断流程
-    if not is_clean_git_repo(cwd=cwd):
+    if not is_clean_git_repo(cwd=git_work_dir):
         print("有未提交的文件，请先提交！", file=sys.stderr)
         exit(1)
 
     # 找到最新 tag 和上一个 tag 的 hash 值
-    latest_tag, last_tag_hash = find_latest_git_tag_and_last_tag_hash(cwd=cwd)
+    latest_tag, last_tag_hash = find_latest_git_tag_and_last_tag_hash(cwd=git_work_dir)
 
     # 执行发布脚本
-    ret: int = exec_task(cwd=cwd, task_type=task_type)
+    ret: int = exec_task(cwd=git_work_dir, task_type=args[0])
     if ret == 0:
         # 解析 git log 拼装 release note
-        notes = ReleaseNote(last_tag_hash=last_tag_hash, cwd=cwd)
+        notes = ReleaseNote(last_tag_hash=last_tag_hash, cwd=git_work_dir)
         # 通过飞书机器人 API 发送升级通知
         notify_to_feishu(latest_tag, notes)
     else:
@@ -254,4 +267,4 @@ if __name__ == '__main__':
     print(f"argc: {len(sys.argv)} -> task type: {sys.argv[1]}")
 
     # 执行主流程
-    run_main_work_flow(sys.argv[1])
+    run_main_work_flow(args=sys.argv[1:])
