@@ -12,7 +12,6 @@ import android.hardware.Camera;
 import android.util.Log;
 import android.view.Display;
 import androidx.annotation.NonNull;
-
 import java.util.List;
 
 /**
@@ -34,6 +33,65 @@ public class CameraX {
     // UI coordinates range from (0, 0) to (width, height).
     matrix.postScale(spec.x / 2000f, spec.y / 2000f);
     matrix.postTranslate(spec.x / 2f, spec.y / 2f);
+  }
+
+  @NonNull public static Face[] convertFaces(Camera.Face[] faces) {
+    final Face[] dest = new Face[faces == null ? 0 : faces.length];
+    for (int i = 0; i < dest.length; i++) {
+      dest[i] = new Face();
+      dest[i].id = faces[i].id;
+      dest[i].score = faces[i].score;
+      dest[i].rect = faces[i].rect;
+      dest[i].leftEye = faces[i].leftEye;
+      dest[i].rightEye = faces[i].rightEye;
+      dest[i].mouth = faces[i].mouth;
+    }
+    return dest;
+  }
+
+  public static void setupPictureSize(Activity activity, Camera.Parameters params, int cameraId) {
+    // When launching the camera app first time, we will set the picture
+    // size to the first one in the list defined in "arrays.xml" and is also
+    // supported by the driver.
+    final List<Camera.Size> supported = params.getSupportedPictureSizes();
+    if (supported == null) return;
+
+    final SharedPreferences sp = activity.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
+    final String value = sp.getString(KEY_PICTURE_SIZE + cameraId, "");
+    if (setCameraPictureSize(value, supported, params)) {
+      Log.e(TAG, "setupPictureSize() use last picture size settings: " + value);
+      return;
+    }
+
+    final Display display = activity.getWindowManager().getDefaultDisplay();
+    int width = display.getHeight();
+    int height = display.getWidth();
+    // 屏幕宽高比例 & 所支持的高和屏幕高的最小差值
+    final float rawRatio = width * 1f / height;
+    float diff = 0f;
+    Log.w(TAG, "setupPictureSize() display w: " + width + ", h: " + height + ", ratio: " + rawRatio);
+
+    Camera.Size target = null;
+    for (Camera.Size size : supported) {
+      final float ratio = size.width * 1f / size.height;
+      Log.w(TAG, "setupPictureSize() size w: " + size.width + ", h: " + size.height + ", ratio: "
+          + ratio + " <-> " + Math.abs(ratio - rawRatio) + ", diff: " + Math.abs(height - size.height));
+      if (Math.abs(ratio - rawRatio) <= 0.12) {
+        if (Math.abs(height - size.height) < diff) {
+          diff = Math.abs(height - size.height);
+          target = size;
+        }
+      }
+    }
+    if (target != null) {
+      params.setPictureSize(target.width, target.height);
+      sp.edit().putString(KEY_PICTURE_SIZE + cameraId, target.width + "x" + target.height).apply();
+    } else {
+      final float ratio = 2688 / 1512f;
+      Log.e(TAG, "setupPictureSize() not found, use (2688, 1512), ratio: " + ratio + " <-> "
+          + Math.abs(ratio - rawRatio) + ", diff: " + Math.abs(1512 - height));
+      params.setPictureSize(2688, 1512);
+    }
   }
 
   public static Camera.Size optimizePreviewSize(Activity activity, List<Camera.Size> sizes, double targetRatio) {
@@ -80,49 +138,11 @@ public class CameraX {
         }
       }
     }
+    if (optimalSize != null) {
+      Log.w(TAG, "optimizePreviewSize() (" + optimalSize.width + ", " + optimalSize.height + "), ratio: "
+          + (optimalSize.width * 1f / optimalSize.height));
+    }
     return optimalSize;
-  }
-
-  @NonNull public static Face[] convertFaces(Camera.Face[] faces) {
-    final Face[] dest = new Face[faces == null ? 0 : faces.length];
-    for (int i = 0; i < dest.length; i++) {
-      dest[i] = new Face();
-      dest[i].id = faces[i].id;
-      dest[i].score = faces[i].score;
-      dest[i].rect = faces[i].rect;
-      dest[i].leftEye = faces[i].leftEye;
-      dest[i].rightEye = faces[i].rightEye;
-      dest[i].mouth = faces[i].mouth;
-    }
-    return dest;
-  }
-
-  public static void setupPictureSize(Activity activity, Camera.Parameters params, int cameraId) {
-    // When launching the camera app first time, we will set the picture
-    // size to the first one in the list defined in "arrays.xml" and is also
-    // supported by the driver.
-    final Display display = activity.getWindowManager().getDefaultDisplay();
-    Log.d(TAG, "setupPictureSize() display w: " + display.getWidth() + ", h: " + display.getHeight());
-    List<Camera.Size> supported = params.getSupportedPictureSizes();
-    if (supported == null) return;
-    final SharedPreferences sp = activity.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
-    final String value = sp.getString(KEY_PICTURE_SIZE + cameraId, "");
-    if (setCameraPictureSize(value, supported, params)) {
-      Log.e(TAG, "Use last picture size settings: " + value);
-      return;
-    }
-    int width = display.getHeight();
-    int height = display.getWidth();
-    for (Camera.Size size : supported) {
-      if (size.height == height && size.width < width) {
-        if (Math.round(size.width * 1f / width) == 1f) {
-          params.setPictureSize(size.width, size.height);
-          sp.edit().putString(KEY_PICTURE_SIZE + cameraId, size.width + "x" + size.height).apply();
-          return;
-        }
-      }
-    }
-    Log.e(TAG, "No supported picture size found");
   }
 
   public static boolean setCameraPictureSize(String candidate, List<Camera.Size> supported, Camera.Parameters params) {

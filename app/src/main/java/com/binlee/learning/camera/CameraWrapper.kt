@@ -17,6 +17,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import java.io.File
 import java.io.IOException
 import kotlin.math.round
+import kotlin.math.roundToInt
 
 /**
  * Created on 18-2-27.
@@ -290,20 +291,21 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     camera.setDisplayOrientation(mDisplayOrientation)
 
     mInitParams = camera.parameters
-    dumpParameters(mInitParams, "default", null)
+    // dumpParameters(mInitParams, "default", null)
 
     val params = camera.parameters
     params.pictureFormat = ImageFormat.JPEG
 
     // 选择拍照时保存的图片尺寸
     CameraX.setupPictureSize(activity, params, cameraId)
-    Log.d(TAG, "openCamera() picture size(${params.pictureSize.height}, ${params.pictureSize.width})")
-
-    // 根据图片尺寸选择预览尺寸
     val pictureSize = params.pictureSize
+    Log.d(TAG, "openCamera() picture size(${pictureSize.height}, ${pictureSize.width})")
+
+    Log.d(TAG, "openCamera() select preview size from: ${params.get("preview-size-values")}")
+    // 根据图片尺寸选择预览尺寸
     val previewSize = params.previewSize
     val optimizedSize = CameraX.optimizePreviewSize(activity, params.supportedPreviewSizes,
-      pictureSize.width.toDouble() / pictureSize.height)
+      pictureSize.width + 0.0 / pictureSize.height)
     val size = if (!previewSize.equals(optimizedSize)) {
       params.setPreviewSize(optimizedSize.width, optimizedSize.height)
       Size(optimizedSize.height, optimizedSize.width)
@@ -353,10 +355,10 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
   fun autoFocus(focusView: View, surfaceView: View, event: MotionEvent) {
     // 先设置聚焦区域，再调用 autoFocus() 接口
 
-    // 显示聚焦图标
     val point = PointF(round(event.x), round(event.y))
     val surfaceSpec = Point(surfaceView.width, surfaceView.height)
     val focusSpec = Point(surfaceSpec.x / 4, surfaceSpec.x / 4)
+    Log.d(TAG, "autoFocus() pos: $point, surface: $surfaceSpec, focus: $focusSpec")
     if (mMatrix == null) {
       mMatrix = Matrix()
       val matrix = Matrix()
@@ -396,6 +398,7 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
         mCamera!!.autoFocus(mFocusCallback)
       } else {
         Log.w(TAG, "autoFocus() focus modes: ${mInitParams?.supportedFocusModes} -> $focusMode")
+        return
       }
     }
 
@@ -406,9 +409,9 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     // 触点 - 宽或高的一半
     val left = CameraX.clamp(point.x - focusSpec.x / 2 + 0.5f, 0f, surfaceSpec.x - focusSpec.x + 0f)
     val top = CameraX.clamp(point.y - focusSpec.y / 2 + 0.5f, 0f, surfaceSpec.y - focusSpec.y + 0f)
-    // lp.setMargins(left.roundToInt(), top.roundToInt(), 0, 0)
-    lp.verticalBias = if (left == 0f) 0f else left / surfaceSpec.x
-    lp.horizontalBias = if (top == 0f) 0f else top / surfaceSpec.y
+    lp.setMargins(left.roundToInt(), top.roundToInt(), 0, 0)
+    // lp.verticalBias = if (left == 0f) 0f else left / surfaceSpec.x
+    // lp.horizontalBias = if (top == 0f) 0f else top / surfaceSpec.y
     Log.e(TAG, "autoFocus() v bias: ${lp.verticalBias}, h bias: ${lp.horizontalBias}")
     focusView.visibility = View.VISIBLE
     focusView.postDelayed({ hideFocusIcon(focusView) }, 5000L)
@@ -454,6 +457,8 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
 
   private fun hideFocusIcon(focusView: View) {
     val lp = focusView.layoutParams as ConstraintLayout.LayoutParams
+    lp.leftMargin = 0
+    lp.topMargin = 0
     lp.verticalBias = 0f
     lp.horizontalBias = 0f
     focusView.visibility = View.GONE
