@@ -16,8 +16,7 @@ def prepare_files(root: str, name: str = 'android.iml') -> (str, str):
     else:
         target_file = root + '/' + name
     bak_file: str = target_file + '.bak'
-    if not os.path.exists(bak_file):
-        os.rename(target_file, bak_file)
+    os.rename(target_file, bak_file)
     return target_file, bak_file
 
 
