@@ -72,7 +72,9 @@
     <activity android:name="com.binlee.learning.rv.DecorationActivity" />
     <activity android:name="com.binlee.learning.rv.PagerActivity" />
     <activity android:name="com.binlee.learning.rv.ClassifyActivity" />
-    <activity android:name="com.binlee.learning.camera.v1.LiveCameraActivity" />
+    <activity
+      android:name="com.binlee.learning.camera.v1.CameraActivity"
+      android:theme="@style/CameraTheme" />
     <!--custom view -->
     <activity android:name="com.binlee.learning.csv.PathActivity" />
     <activity android:name="com.binlee.learning.csv.AlphaActivity" />

@@ -1,6 +1,7 @@
 package com.binlee.learning.camera
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.Point
@@ -8,12 +9,13 @@ import android.graphics.PointF
 import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.hardware.Camera.*
+import android.net.Uri
 import android.text.TextUtils
 import android.util.Log
 import android.util.Size
 import android.view.*
+import android.view.ViewGroup.MarginLayoutParams
 import androidx.annotation.VisibleForTesting
-import androidx.constraintlayout.widget.ConstraintLayout
 import java.io.File
 import java.io.IOException
 import kotlin.math.round
@@ -305,7 +307,7 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     // 根据图片尺寸选择预览尺寸
     val previewSize = params.previewSize
     val optimizedSize = CameraX.optimizePreviewSize(activity, params.supportedPreviewSizes,
-      pictureSize.width + 0.0 / pictureSize.height)
+      pictureSize.width * 1f / pictureSize.height)
     val size = if (!previewSize.equals(optimizedSize)) {
       params.setPreviewSize(optimizedSize.width, optimizedSize.height)
       Size(optimizedSize.height, optimizedSize.width)
@@ -332,13 +334,17 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
    */
   fun takePicture(dir: String) {
     mCamera!!.takePicture(/* shutter = */{}, /* raw = */null, /* jpeg = */{ data: ByteArray, camera: Camera ->
+      // 数据放入子线程处理
       callback?.let {
-        val file = File(dir, "${System.currentTimeMillis()}.jpg")
+        // 保存文件
+        val file = File(dir, CameraX.generateFilepath(".jpg"))
         file.writeBytes(data)
         if (file.exists() && file.length() > 0) {
           Log.d(TAG, "onPictureTaken() path: ${file.path}, size: ${file.length()}")
           it.onTakePictureDone(file)
         }
+        // 刷新相册
+        activity.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).setData(Uri.fromFile(file)))
       }
       // 重新开启预览 ，不然不能继续拍照
       camera.startPreview()
@@ -403,18 +409,22 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
     }
 
     // 更新对焦 view 位置
-    val lp = focusView.layoutParams as ConstraintLayout.LayoutParams
+    val lp = focusView.layoutParams as MarginLayoutParams
     lp.width = focusSpec.x
     lp.height = focusSpec.y
     // 触点 - 宽或高的一半
     val left = CameraX.clamp(point.x - focusSpec.x / 2 + 0.5f, 0f, surfaceSpec.x - focusSpec.x + 0f)
     val top = CameraX.clamp(point.y - focusSpec.y / 2 + 0.5f, 0f, surfaceSpec.y - focusSpec.y + 0f)
     lp.setMargins(left.roundToInt(), top.roundToInt(), 0, 0)
-    // lp.verticalBias = if (left == 0f) 0f else left / surfaceSpec.x
-    // lp.horizontalBias = if (top == 0f) 0f else top / surfaceSpec.y
-    Log.e(TAG, "autoFocus() v bias: ${lp.verticalBias}, h bias: ${lp.horizontalBias}")
     focusView.visibility = View.VISIBLE
-    focusView.postDelayed({ hideFocusIcon(focusView) }, 5000L)
+    focusView.postDelayed({ hideFocusIcon(focusView) }, 500L)
+  }
+
+  fun updateSurface(surface: SurfaceTexture) {
+    try {
+      mCamera?.setPreviewTexture(surface)
+    } catch (_: IOException) {
+    }
   }
 
   private fun dumpParameters(params: Parameters?, where: String, tr: Throwable? = null) {
@@ -456,11 +466,9 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
   }
 
   private fun hideFocusIcon(focusView: View) {
-    val lp = focusView.layoutParams as ConstraintLayout.LayoutParams
+    val lp = focusView.layoutParams as MarginLayoutParams
     lp.leftMargin = 0
     lp.topMargin = 0
-    lp.verticalBias = 0f
-    lp.horizontalBias = 0f
     focusView.visibility = View.GONE
   }
 

@@ -1,6 +1,8 @@
 package com.binlee.learning.camera;
 
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Matrix;
@@ -9,10 +11,18 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.hardware.Camera;
+import android.location.Location;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
 import androidx.annotation.NonNull;
+import java.io.FileOutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * @author binlee sleticalboy@gmail.com
@@ -20,9 +30,10 @@ import java.util.List;
  */
 public class CameraX {
 
-  private static final String TAG = "CameraUtil";
+  private static final String TAG = "CameraX";
   private static final int NOT_FOUND = -1;
-  public static final String KEY_PICTURE_SIZE = "camera_sp_key_picture_size_"/*cameraId*/;
+  private static final String KEY_PICTURE_SIZE = "camera_sp_key_picture_size_"/*cameraId*/;
+  private static final String KEY_LAST_THUMBNAIL = "camera_sp_key_last_thumbnail";
 
   public static void prepareMatrix(Matrix matrix, boolean mirror, int displayOrientation, Point spec) {
     // Need mirror for front camera.
@@ -68,7 +79,7 @@ public class CameraX {
     int height = display.getWidth();
     // 屏幕宽高比例 & 所支持的高和屏幕高的最小差值
     final float rawRatio = width * 1f / height;
-    float diff = 0f;
+    float diff = 1000f;
     Log.w(TAG, "setupPictureSize() display w: " + width + ", h: " + height + ", ratio: " + rawRatio);
 
     Camera.Size target = null;
@@ -76,11 +87,11 @@ public class CameraX {
       final float ratio = size.width * 1f / size.height;
       Log.w(TAG, "setupPictureSize() size w: " + size.width + ", h: " + size.height + ", ratio: "
           + ratio + " <-> " + Math.abs(ratio - rawRatio) + ", diff: " + Math.abs(height - size.height));
-      if (Math.abs(ratio - rawRatio) <= 0.12) {
-        if (Math.abs(height - size.height) < diff) {
-          diff = Math.abs(height - size.height);
-          target = size;
-        }
+      if (Math.abs(ratio - rawRatio) > 0.125) continue;
+
+      if (Math.abs(height - size.height) < diff) {
+        diff = Math.abs(height - size.height);
+        target = size;
       }
     }
     if (target != null) {
@@ -94,13 +105,12 @@ public class CameraX {
     }
   }
 
-  public static Camera.Size optimizePreviewSize(Activity activity, List<Camera.Size> sizes, double targetRatio) {
-    // Use a very small tolerance because we want an exact match.
-    final double ASPECT_TOLERANCE = 0.001;
+  public static Camera.Size optimizePreviewSize(Activity activity, List<Camera.Size> sizes, float targetRatio) {
     if (sizes == null) return null;
 
-    Camera.Size optimalSize = null;
-    double minDiff = Double.MAX_VALUE;
+    // Use a very small tolerance because we want an exact match.
+    final float ASPECT_TOLERANCE = 0.001f;
+    float minDiff = 1000f;
 
     // Because of bugs of overlay and layout, we sometimes will try to
     // layout the viewfinder in the portrait orientation and thus get the
@@ -116,10 +126,16 @@ public class CameraX {
       targetHeight = display.getHeight();
     }
 
+    Log.d(TAG, "optimizePreviewSize() target r: " + targetRatio + ", h: " + targetHeight);
+
     // Try to find an size match aspect ratio and size
+    Camera.Size optimalSize = null;
     for (Camera.Size size : sizes) {
-      double ratio = (double) size.width / size.height;
+      float ratio = size.width * 1f / size.height;
+      // Log.d(TAG, "optimizePreviewSize() size(" + size.width + ", " + size.height + "), ratio: " + ratio
+      //   + " <-> " + Math.abs(ratio - targetRatio));
       if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
+
       if (Math.abs(size.height - targetHeight) < minDiff) {
         optimalSize = size;
         minDiff = Math.abs(size.height - targetHeight);
@@ -129,8 +145,7 @@ public class CameraX {
     // Cannot find the one match the aspect ratio. This should not happen.
     // Ignore the requirement.
     if (optimalSize == null) {
-      Log.w(TAG, "No preview size match the aspect ratio");
-      minDiff = Double.MAX_VALUE;
+      Log.w(TAG, "optimizePreviewSize() not found");
       for (Camera.Size size : sizes) {
         if (Math.abs(size.height - targetHeight) < minDiff) {
           optimalSize = size;
@@ -173,5 +188,74 @@ public class CameraX {
 
   public static float clamp(float x, float min, float max) {
     return x > max ? max : Math.max(x, min);
+  }
+
+  private static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US);
+
+  public static String generateFilepath(String suffix) {
+    return generateFilepath(null, suffix);
+  }
+
+  public static String generateFilepath(String prefix, String suffix) {
+    if (!TextUtils.isEmpty(prefix)) {
+      return String.format("%s_%s_%s", prefix, FORMAT.format(System.currentTimeMillis()), suffix);
+    } else {
+      return String.format("%s_%s", FORMAT.format(System.currentTimeMillis()), suffix);
+    }
+  }
+
+  public static Uri addImage(ContentResolver resolver, String path, long date,
+    Location location, int orientation, byte[] jpeg, int width, int height) {
+    // Save the image.
+    try (FileOutputStream out = new FileOutputStream(path)) {
+      out.write(jpeg);
+    } catch (Exception e) {
+      Log.e(TAG, "Failed to write image", e);
+      return null;
+    }
+
+    // 取文件名
+    String title = path.substring(path.lastIndexOf('/') + 1, path.lastIndexOf('.'));
+    final int index = title.indexOf('_');
+    final int lastIndex = title.lastIndexOf('_');
+    if (index != lastIndex) {
+      title = title.substring(0, lastIndex);
+    }
+
+    // Insert into MediaStore.
+    ContentValues values = new ContentValues(9);
+    values.put(MediaStore.Images.ImageColumns.TITLE, title);
+    values.put(MediaStore.Images.ImageColumns.DISPLAY_NAME, title + ".jpg");
+    values.put(MediaStore.Images.ImageColumns.DATE_TAKEN, date);
+    values.put(MediaStore.Images.ImageColumns.MIME_TYPE, "image/jpeg");
+    values.put(MediaStore.Images.ImageColumns.ORIENTATION, orientation);
+    values.put(MediaStore.Images.ImageColumns.DATA, path);
+    values.put(MediaStore.Images.ImageColumns.SIZE, jpeg.length);
+    values.put(MediaStore.Images.ImageColumns.WIDTH, width);
+    values.put(MediaStore.Images.ImageColumns.HEIGHT, height);
+
+    if (location != null) {
+      values.put(MediaStore.Images.ImageColumns.LATITUDE, location.getLatitude());
+      values.put(MediaStore.Images.ImageColumns.LONGITUDE, location.getLongitude());
+    }
+
+    Uri uri = null;
+    try {
+      uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+    } catch (Throwable tr)  {
+      // This can happen when the external volume is already mounted, but
+      // MediaScanner has not notify MediaProvider to add that volume.
+      // The picture is still safe and MediaScanner will find it and
+      // insert it into MediaProvider. The only problem is that the user
+      // cannot click the thumbnail to review the picture.
+      Log.e(TAG, "Failed to write MediaStore" + tr);
+    }
+    return uri;
+  }
+
+  public static void setThumbnail(String path) {}
+
+  public static String getLastThumbnail() {
+    return null;
   }
 }

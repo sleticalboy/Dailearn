@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  >
+
+  <!-- 预览 surface -->
+  <TextureView
+    android:id="@+id/surface_view"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintTop_toBottomOf="@+id/top_menu"
+    app:layout_constraintBottom_toTopOf="@+id/tab_scenes"
+    />
+
+  <!-- 识别到的人脸框 -->
+  <com.binlee.learning.camera.FaceView
+    android:id="@+id/face_view"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    app:layout_constraintLeft_toLeftOf="@+id/surface_view"
+    app:layout_constraintTop_toTopOf="@+id/surface_view"
+    app:layout_constraintRight_toRightOf="@+id/surface_view"
+    app:layout_constraintBottom_toBottomOf="@+id/surface_view"
+    />
+
+  <!-- 对焦 view -->
+  <FrameLayout
+    android:id="@+id/focus_Icon"
+    android:layout_width="120dp"
+    android:layout_height="120dp"
+    android:visibility="gone"
+    app:layout_constraintLeft_toLeftOf="@+id/surface_view"
+    app:layout_constraintTop_toTopOf="@+id/surface_view"
+    app:layout_constraintRight_toRightOf="@+id/surface_view"
+    app:layout_constraintBottom_toBottomOf="@+id/surface_view"
+    app:layout_constraintHorizontal_bias="0.0"
+    app:layout_constraintVertical_bias="0.0"
+    tools:visibility="visible"
+    >
+
+    <ImageView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="center"
+      android:src="@mipmap/camera_focus_inner"
+      />
+
+    <ImageView
+      android:layout_width="120dp"
+      android:layout_height="120dp"
+      android:layout_gravity="center"
+      android:padding="20dp"
+      android:src="@mipmap/camera_focus_outer"
+      />
+  </FrameLayout>
+
+  <!-- 曝光/ 闪光灯/预览比例/照片尺寸 -->
+  <LinearLayout
+    android:id="@+id/top_menu"
+    android:layout_width="0dp"
+    android:layout_height="48dp"
+    android:background="@android:color/black"
+    android:orientation="horizontal"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    >
+    <!-- 设置 -->
+    <ImageView
+      android:id="@+id/btn_settings"
+      android:layout_width="48dp"
+      android:layout_height="48dp"
+      android:src="@drawable/mx_btn_setting"
+      />
+
+    <!-- 闪光模式 -->
+    <TextView
+      android:id="@+id/btn_flash_mode"
+      android:layout_width="wrap_content"
+      android:layout_height="48dp"
+      android:layout_weight="1"
+      android:gravity="center"
+      android:text="闪光模式"
+      android:textColor="@android:color/white"
+      />
+
+    <!-- 曝光 -->
+    <TextView
+      android:id="@+id/btn_exposure"
+      android:layout_width="wrap_content"
+      android:layout_height="48dp"
+      android:layout_weight="1"
+      android:gravity="center"
+      android:text="曝光"
+      android:textColor="@android:color/white"
+      />
+
+    <!-- 白平衡 -->
+    <TextView
+      android:id="@+id/btn_white_balance"
+      android:layout_width="wrap_content"
+      android:layout_height="48dp"
+      android:layout_weight="1"
+      android:gravity="center"
+      android:text="白平衡"
+      android:textColor="@android:color/white"
+      />
+
+    <!-- 比例 -->
+    <TextView
+      android:id="@+id/btn_ratio"
+      android:layout_width="48dp"
+      android:layout_height="48dp"
+      android:layout_weight="1"
+      android:gravity="center"
+      android:text="比例"
+      android:textColor="@android:color/white"
+      />
+  </LinearLayout>
+
+  <View
+    android:id="@+id/bottom_cover"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:background="@android:color/darker_gray"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintTop_toTopOf="@+id/tab_scenes"
+    app:layout_constraintBottom_toBottomOf="parent"
+    />
+
+  <!-- 场景模式：运动、全景、美食、延时 -->
+  <com.google.android.material.tabs.TabLayout
+    android:id="@+id/tab_scenes"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintBottom_toTopOf="@+id/btn_thumbnail"
+    >
+
+    <com.google.android.material.tabs.TabItem
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:padding="4dp"
+      android:text="人像"
+      />
+
+    <com.google.android.material.tabs.TabItem
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:padding="4dp"
+      android:text="照片"
+      />
+
+    <com.google.android.material.tabs.TabItem
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:padding="4dp"
+      android:text="视频"
+      />
+
+    <com.google.android.material.tabs.TabItem
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:padding="4dp"
+      android:text="运动"
+      />
+
+    <com.google.android.material.tabs.TabItem
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:padding="4dp"
+      android:text="美食"
+      />
+  </com.google.android.material.tabs.TabLayout>
+
+  <!-- 缩略图、拍照、切换相机-->
+  <ImageView
+    android:id="@+id/btn_thumbnail"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:src="@mipmap/ic_launcher"
+    android:padding="8dp"
+    app:layout_constraintLeft_toLeftOf="parent"
+    app:layout_constraintRight_toLeftOf="@+id/btn_take_pic"
+    app:layout_constraintBottom_toBottomOf="parent"
+    />
+
+  <ImageView
+    android:id="@+id/btn_take_pic"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:padding="8dp"
+    android:src="@drawable/take_pic_bg"
+    app:layout_constraintLeft_toRightOf="@+id/btn_thumbnail"
+    app:layout_constraintRight_toLeftOf="@+id/btn_switch_camera"
+    app:layout_constraintBottom_toBottomOf="parent"
+    />
+
+  <ImageView
+    android:id="@+id/btn_switch_camera"
+    android:layout_width="80dp"
+    android:layout_height="80dp"
+    android:padding="8dp"
+    android:src="@mipmap/camera_setting_switch_front"
+    app:layout_constraintLeft_toRightOf="@+id/btn_take_pic"
+    app:layout_constraintRight_toRightOf="parent"
+    app:layout_constraintBottom_toBottomOf="parent"
+    />
+</androidx.constraintlayout.widget.ConstraintLayout>

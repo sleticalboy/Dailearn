@@ -7,7 +7,7 @@ import com.binlee.learning.anims.JsonAnimUI
 import com.binlee.learning.anims.TransitionUI
 import com.binlee.learning.bean.ModuleItem
 import com.binlee.learning.bt.BluetoothUI
-import com.binlee.learning.camera.v1.LiveCameraActivity
+import com.binlee.learning.camera.v1.CameraActivity
 import com.binlee.learning.components.ProviderPractise
 import com.binlee.learning.components.ServicePractise
 import com.binlee.learning.csv.AlphaActivity
@@ -49,7 +49,7 @@ class IndexModel internal constructor() {
       // 插件管理
       ModuleItem("插件管理", PluginManageActivity::class.java),
       // 音视频实战
-      ModuleItem("相机预览（TextureView）", LiveCameraActivity::class.java),
+      ModuleItem("相机预览（TextureView）", CameraActivity::class.java),
       ModuleItem("音视频实战", FfmpegPractise::class.java),
       // 突破系统 hidden API
       ModuleItem("突破 hidden API", "crack_hidden_api"),

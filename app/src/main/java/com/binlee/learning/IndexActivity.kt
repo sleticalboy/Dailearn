@@ -70,7 +70,7 @@ class IndexActivity : BaseActivity() {
           Log.d(TAG, "initView() load data error: $it")
         }
         else -> {
-          Log.d(TAG, "initView() load data success: $it")
+          // Log.d(TAG, "initView() load data success: $it")
           dataSet.clear()
           dataSet.addAll((it as Result.Success).getData())
           mBind!!.recyclerView.adapter?.notifyItemRangeChanged(0, dataSet.size - 1)
