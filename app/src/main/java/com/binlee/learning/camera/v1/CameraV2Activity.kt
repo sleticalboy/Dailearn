@@ -3,7 +3,7 @@ package com.binlee.learning.camera.v1
 import android.Manifest
 import android.view.View
 import com.binlee.learning.base.BaseActivity
-import com.binlee.learning.camera.CameraCompat
+import com.binlee.learning.camera.CameraV2
 import com.binlee.learning.databinding.ActivityEmptyBinding
 
 /**
@@ -13,12 +13,12 @@ import com.binlee.learning.databinding.ActivityEmptyBinding
  * @version 1.0
  * @description
  */
-class NewCameraActivity : BaseActivity() {
+class CameraV2Activity : BaseActivity() {
 
-  private lateinit var mCameraCompat: CameraCompat
+  private lateinit var mCamera: CameraV2
 
   override fun initData() {
-    mCameraCompat = CameraCompat(this)
+    mCamera = CameraV2(this)
   }
 
   override fun initView() {}
@@ -34,7 +34,6 @@ class NewCameraActivity : BaseActivity() {
   }
 
   override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
-    if (grantResults[0])
-    mCameraCompat.openCamera()
+    if (grantResults[0]) mCamera.openCamera()
   }
 }

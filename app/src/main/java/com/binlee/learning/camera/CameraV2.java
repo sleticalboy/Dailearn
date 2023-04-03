@@ -35,7 +35,7 @@ import java.util.List;
  *
  * @author binli
  */
-public final class CameraCompat {
+public final class CameraV2 {
 
   /**
    * The facing of the camera is opposite to that of the screen.
@@ -49,7 +49,7 @@ public final class CameraCompat {
 
   private final Context mContext;
 
-  public CameraCompat(Context context) {
+  public CameraV2(Context context) {
     mContext = context;
   }
 

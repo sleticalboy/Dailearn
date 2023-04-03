@@ -35,6 +35,10 @@ public class CameraX {
   private static final String KEY_PICTURE_SIZE = "camera_sp_key_picture_size_"/*cameraId*/;
   private static final String KEY_LAST_THUMBNAIL = "camera_sp_key_last_thumbnail";
 
+  private CameraX() {
+    //no instance
+  }
+
   public static void prepareMatrix(Matrix matrix, boolean mirror, int displayOrientation, Point spec) {
     // Need mirror for front camera.
     matrix.setScale(mirror ? -1 : 1, 1);
@@ -253,9 +257,13 @@ public class CameraX {
     return uri;
   }
 
-  public static void setThumbnail(String path) {}
+  public static void setThumbnail(Context context, String path) {
+    final SharedPreferences sp = context.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
+    sp.edit().putString(KEY_LAST_THUMBNAIL, path).apply();
+  }
 
-  public static String getLastThumbnail() {
-    return null;
+  public static String getLastThumbnail(Context context) {
+    final SharedPreferences sp = context.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
+    return sp.getString(KEY_LAST_THUMBNAIL, null);
   }
 }

@@ -31,7 +31,7 @@ import kotlin.math.roundToInt
  * @version 1.0
  */
 @Suppress("DEPRECATION")
-class CameraWrapper(private val activity: Activity, private val callback: Callback?) {
+class CameraV1(private val activity: Activity, private val callback: Callback?) {
 
   /* // 相机整体流程：
   // 1、获取相机信息：id、orientation、
@@ -176,7 +176,7 @@ class CameraWrapper(private val activity: Activity, private val callback: Callba
      *
      * @param [preferredPreviewSize] 首选预览大小
      */
-    fun onOpened(preferredPreviewSize: Size?, camera: CameraWrapper?)
+    fun onOpened(preferredPreviewSize: Size?, camera: CameraV1?)
 
     /**
      * 上一个相机关闭回调

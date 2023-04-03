@@ -82,20 +82,20 @@
   <!--自动，风景，雪，海滩，日落，夜晚，人像，运动，稳定照片，烛光，烟花，派对，夜间人像，剧院，动作-->
   <string name="camera_scn_mode">取景模式</string>
   <string-array name="camera_scn_modes">
-    <item>camera_scn_auto">自动,auto</item>
-    <item>camera_scn_landscape">风景,landscape</item>
-    <item>camera_scn_snow">雪景,snow</item>
-    <item>camera_scn_beach">海滩,beach</item>
-    <item>camera_scn_sunset">日落,sunset</item>
-    <item>camera_scn_night">夜景,night</item>
-    <item>camera_scn_portrait">人像,portrait</item>
-    <item>camera_scn_sports">运动,sports</item>
-    <item>camera_scn_steady">稳定,steadyphoto</item>
-    <item>camera_scn_candlelight">烛光,candlelight</item>
-    <item>camera_scn_fireworks">烟花,fireworks</item>
-    <item>camera_scn_party">派对,party</item>
-    <item>camera_scn_night_portrait">夜间人像,night-portrait</item>
-    <item>camera_scn_theatre">剧院,theatre</item>
-    <item>camera_scn_action">动作,action</item>
+    <item>自动,auto</item>
+    <item>风景,landscape</item>
+    <item>雪景,snow</item>
+    <item>海滩,beach</item>
+    <item>日落,sunset</item>
+    <item>夜景,night</item>
+    <item>人像,portrait</item>
+    <item>运动,sports</item>
+    <item>稳定,steadyphoto</item>
+    <item>烛光,candlelight</item>
+    <item>烟花,fireworks</item>
+    <item>派对,party</item>
+    <item>夜间人像,night-portrait</item>
+    <item>剧院,theatre</item>
+    <item>动作,action</item>
   </string-array>
 </resources>

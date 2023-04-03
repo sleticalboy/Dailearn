@@ -10,11 +10,14 @@ import android.view.TextureView.SurfaceTextureListener
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
-import com.binlee.learning.camera.CameraWrapper
-import com.binlee.learning.camera.CameraWrapper.Callback
+import com.binlee.learning.camera.CameraV1
+import com.binlee.learning.camera.CameraV1.Callback
 import com.binlee.learning.camera.Face
 import com.binlee.learning.databinding.ActivityCameraBinding
+import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
+import com.google.android.material.tabs.TabLayout.Tab
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -28,8 +31,8 @@ class CameraActivity : BaseActivity() {
 
   private lateinit var binding: ActivityCameraBinding
   private var mSurface: SurfaceTexture? = null
-  private var mCamera: CameraWrapper = CameraWrapper(this, object : Callback {
-    override fun onOpened(preferredPreviewSize: Size?, camera: CameraWrapper?) {
+  private var mCamera: CameraV1 = CameraV1(this, object : Callback {
+    override fun onOpened(preferredPreviewSize: Size?, camera: CameraV1?) {
       if (preferredPreviewSize == null) {
         Toast.makeText(this@CameraActivity, "相机打开失败！", Toast.LENGTH_SHORT).show()
         finish()
@@ -122,11 +125,11 @@ class CameraActivity : BaseActivity() {
     binding.btnSwitchCamera.setOnClickListener {
       mFront = if (mFront) {
         binding.faceView.clearFaces()
-        mCamera.open(CameraWrapper.ID_BACK)
+        mCamera.open(CameraV1.ID_BACK)
         false
       } else {
         binding.faceView.clearFaces()
-        mCamera.open(CameraWrapper.ID_FRONT)
+        mCamera.open(CameraV1.ID_FRONT)
         true
       }
       it.animate()
@@ -153,6 +156,30 @@ class CameraActivity : BaseActivity() {
     binding.btnRatio.setOnClickListener {
       Toast.makeText(this, "Open Ratio!", Toast.LENGTH_SHORT).show()
     }
+
+    // 场景模式
+    binding.tabScenes.removeAllTabs()
+    for (item in resources.getStringArray(R.array.camera_scn_modes)) {
+      val index = item.indexOf(',')
+      binding.tabScenes.addTab(binding.tabScenes.newTab()
+          .setText(item.substring(0, index))
+          .setTag(item.substring(index + 1))
+      )
+    }
+    binding.tabScenes.addOnTabSelectedListener(object : OnTabSelectedListener {
+      override fun onTabSelected(tab: Tab?) {
+        Log.d(TAG, "onTabSelected() tab.tag: ${tab?.tag}")
+      }
+
+      override fun onTabUnselected(tab: Tab?) {
+      }
+
+      override fun onTabReselected(tab: Tab?) {
+      }
+    })
+    // 默认选中 0
+    binding.tabScenes.selectTab(binding.tabScenes.getTabAt(0))
+    // 通过监听 surface 的左右滑动事件来决定选中哪一个 tab
   }
 
   private fun tryStartPreview() {
@@ -161,7 +188,7 @@ class CameraActivity : BaseActivity() {
       return
     }
     binding.faceView.clearFaces()
-    mCamera.open(CameraWrapper.ID_BACK)
+    mCamera.open(CameraV1.ID_BACK)
   }
 
   override fun onPause() {
