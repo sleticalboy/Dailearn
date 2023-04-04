@@ -21,10 +21,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 
 public class FaceView extends View {
@@ -67,6 +68,20 @@ public class FaceView extends View {
   public void clearFaces() {
     mFaces = null;
     invalidate();
+  }
+
+  @Override public boolean dispatchTouchEvent(MotionEvent event) {
+    return false;
+  }
+
+  @Override public boolean onTouchEvent(MotionEvent event) {
+    Log.d(TAG, "onTouchEvent() called with: event = [" + event + "]");
+    return performClick();
+  }
+
+  @Override public boolean performClick() {
+    if (Boolean.TRUE) return false;
+    return super.performClick();
   }
 
   @Override protected void onDraw(Canvas canvas) {

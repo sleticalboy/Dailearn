@@ -31,7 +31,7 @@
 
   <!-- 对焦 view -->
   <FrameLayout
-    android:id="@+id/focus_Icon"
+    android:id="@+id/focus_view"
     android:layout_width="120dp"
     android:layout_height="120dp"
     android:visibility="gone"

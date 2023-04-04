@@ -356,15 +356,16 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
    *
    * @param [focusView] 焦点 view
    * @param [surfaceView] 预览 view
-   * @param [event] 事件
    */
-  fun autoFocus(focusView: View, surfaceView: View, event: MotionEvent) {
+  fun autoFocus(focusView: View, surfaceView: View, x: Float, y: Float) {
     // 先设置聚焦区域，再调用 autoFocus() 接口
 
-    val point = PointF(round(event.x), round(event.y))
+    val width = (focusView.context as Activity).windowManager.defaultDisplay.width / 4
+    val point = PointF(round(x), round(y))
     val surfaceSpec = Point(surfaceView.width, surfaceView.height)
-    val focusSpec = Point(surfaceSpec.x / 4, surfaceSpec.x / 4)
-    Log.d(TAG, "autoFocus() pos: $point, surface: $surfaceSpec, focus: $focusSpec")
+    val focusSpec = Point(width, width)
+    Log.d(TAG, "autoFocus() pos: $point, surface: $surfaceSpec, focus: $focusSpec" +
+        ", region: [${surfaceView.left}, ${surfaceView.top}, ${surfaceView.right}, ${surfaceView.bottom}]")
     if (mMatrix == null) {
       mMatrix = Matrix()
       val matrix = Matrix()
@@ -417,7 +418,13 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
     val top = CameraX.clamp(point.y - focusSpec.y / 2 + 0.5f, 0f, surfaceSpec.y - focusSpec.y + 0f)
     lp.setMargins(left.roundToInt(), top.roundToInt(), 0, 0)
     focusView.visibility = View.VISIBLE
-    focusView.postDelayed({ hideFocusIcon(focusView) }, 500L)
+    focusView.postDelayed(
+      {
+        lp.setMargins(0, 0, 0, 0)
+        focusView.visibility = View.GONE
+      },
+      500L
+    )
   }
 
   fun updateSurface(surface: SurfaceTexture) {
@@ -465,11 +472,15 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
     }
   }
 
-  private fun hideFocusIcon(focusView: View) {
-    val lp = focusView.layoutParams as MarginLayoutParams
-    lp.leftMargin = 0
-    lp.topMargin = 0
-    focusView.visibility = View.GONE
+  fun filterSceneModes(map: Map<String, String>): Map<String, String> {
+    val supported = mInitParams!!.supportedSceneModes
+    return map.filter { supported.contains(it.key) }
+  }
+
+  fun setSceneMode(mode: String?) {
+    val params = mCamera!!.parameters
+    params.sceneMode = mode
+    Log.d(TAG, "setSceneMode() mode: $mode")
   }
 
   companion object {

@@ -182,8 +182,8 @@ public class CameraX {
     float areaWidth = focusSpec.x * scale;
     float areaHeight = focusSpec.y * scale;
 
-    float left = clamp(point.x - areaWidth / 2f, 0, surfaceSpec.x - focusSpec.x);
-    float top = clamp(point.y - areaHeight / 2f, 0, surfaceSpec.y - focusSpec.y);
+    float left = clamp(point.x - areaWidth / 2f, 0, surfaceSpec.x - areaWidth);
+    float top = clamp(point.y - areaHeight / 2f, 0, surfaceSpec.y - areaHeight);
     RectF rectF = new RectF(left, top, left + areaWidth, top + areaHeight);
     matrix.mapRect(rectF);
 

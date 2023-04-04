@@ -6,8 +6,10 @@ import android.graphics.Color
 import android.graphics.SurfaceTexture
 import android.util.Log
 import android.util.Size
+import android.view.MotionEvent
 import android.view.TextureView.SurfaceTextureListener
 import android.view.View
+import android.view.View.OnTouchListener
 import android.view.ViewGroup
 import android.widget.Toast
 import com.binlee.learning.R
@@ -19,6 +21,7 @@ import com.binlee.learning.databinding.ActivityCameraBinding
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayout.Tab
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -47,8 +50,14 @@ class CameraActivity : BaseActivity() {
       params.width = width
       params.height = height.roundToInt()
       binding.surfaceView.layoutParams = params
+      // 更新场景模式
+      updateSceneModes()
       // 开始预览
       camera?.startPreview(mSurface)
+    }
+
+    override fun onLastClosed(cameraId: Int) {
+      Log.d(TAG, "onLastClosed() cameraId = $cameraId")
     }
 
     override fun onFaceDetected(faces: Array<Face>, displayOrientation: Int) {
@@ -74,22 +83,11 @@ class CameraActivity : BaseActivity() {
 
   @SuppressLint("ClickableViewAccessibility")
   override fun initView() {
-    // 状态栏
+    // setup status bar
     val attr = window.attributes
     attr.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_LOW_PROFILE
     window.attributes = attr
-
-    // 点击对焦、上下滑动切换相机
-    // val gesture = GestureDetector(this, object: SimpleOnGestureListener() {
-    //   override fun onSingleTapUp(e: MotionEvent?): Boolean {
-    //     mCamera.autoFocus(this@LiveCameraActivity, binding.focusIcon, e!!)
-    //     return true
-    //   }
-    // })
-    binding.surfaceView.setOnTouchListener { _, event ->
-      mCamera.autoFocus(binding.focusIcon, binding.surfaceView, event)
-      false
-    }
+    // setup texture listener
     binding.surfaceView.surfaceTextureListener = object : SurfaceTextureListener {
       override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
         Log.d(TAG, "onSurfaceTextureAvailable() width = $width, height = $height")
@@ -122,21 +120,7 @@ class CameraActivity : BaseActivity() {
       mCamera.takePicture(getExternalFilesDir("picture")?.absolutePath!!)
     }
     // 切换摄像头
-    binding.btnSwitchCamera.setOnClickListener {
-      mFront = if (mFront) {
-        binding.faceView.clearFaces()
-        mCamera.open(CameraV1.ID_BACK)
-        false
-      } else {
-        binding.faceView.clearFaces()
-        mCamera.open(CameraV1.ID_FRONT)
-        true
-      }
-      it.animate()
-        .rotation(it.rotation + 180)
-        .setDuration(500L)
-        .start()
-    }
+    binding.btnSwitchCamera.setOnClickListener { switchCamera(it) }
     binding.bottomCover.setBackgroundColor(Color.GRAY)
     // 事件拦截掉，不能传给 camera surface
     binding.bottomCover.setOnClickListener { }
@@ -157,18 +141,81 @@ class CameraActivity : BaseActivity() {
       Toast.makeText(this, "Open Ratio!", Toast.LENGTH_SHORT).show()
     }
 
-    // 场景模式
+    // 点击对焦、上下滑动切换相机、左右滑动切换场景模式
+    binding.surfaceView.setOnTouchListener(object : OnTouchListener {
+      private var downX = 0f
+      private var downY = 0f
+      // 最小滑动距离
+      private val minDistance = 120f
+
+      override fun onTouch(v: View?, event: MotionEvent): Boolean {
+        // Log.d(TAG, "onTouch() event = $event")
+        when (event.action) {
+          MotionEvent.ACTION_DOWN -> {
+            downX = event.x
+            downY = event.y
+          }
+          MotionEvent.ACTION_UP -> {
+            val diffX = event.x - downX
+            val diffY = event.y - downY
+            Log.d(TAG, "onTouch() up -> dx: $diffX, dy: $diffY")
+
+            // 对焦
+            if (abs(diffX) < minDistance && abs(diffY) < minDistance) {
+              mCamera.autoFocus(binding.focusView, binding.surfaceView, event.x, event.y)
+              return true
+            }
+
+            // 左右滑动切换场景模式
+            if (abs(diffX) >= minDistance && abs(diffX) > abs(diffY)) {
+              var pos = binding.tabScenes.selectedTabPosition
+              pos = if (diffX > 0) {
+                // 向右滑动
+                (pos + 1) % binding.tabScenes.tabCount
+              } else {
+                // 向左滑动
+                if (pos - 1 < 0) {
+                  pos = binding.tabScenes.tabCount - 1
+                } else {
+                  pos -= 1
+                }
+                pos
+              }
+              binding.tabScenes.selectTab(binding.tabScenes.getTabAt(pos))
+              return true
+            }
+
+            // 上下滑动切换相机
+            if (abs(diffY) >= minDistance && abs(diffY) > abs(diffX)) {
+              switchCamera(binding.btnSwitchCamera)
+              return true
+            }
+          }
+          else -> {}
+        }
+        return true
+      }
+    })
+  }
+
+  private fun updateSceneModes() {
     binding.tabScenes.removeAllTabs()
-    for (item in resources.getStringArray(R.array.camera_scn_modes)) {
-      val index = item.indexOf(',')
+    // mode -> mode name
+    val items: List<Pair<String, String>> = resources.getStringArray(R.array.camera_scn_modes).map {
+      val index = it.indexOf(',')
+      Pair(it.substring(index + 1), it.substring(0, index))
+    }
+    for (entry in mCamera.filterSceneModes(linkedMapOf(*items.toTypedArray()))) {
       binding.tabScenes.addTab(binding.tabScenes.newTab()
-          .setText(item.substring(0, index))
-          .setTag(item.substring(index + 1))
+        .setText(entry.value)
+        .setTag(entry.key)
       )
     }
     binding.tabScenes.addOnTabSelectedListener(object : OnTabSelectedListener {
       override fun onTabSelected(tab: Tab?) {
         Log.d(TAG, "onTabSelected() tab.tag: ${tab?.tag}")
+        // 更新相机场景参数
+        mCamera.setSceneMode(tab?.tag as String?)
       }
 
       override fun onTabUnselected(tab: Tab?) {
@@ -179,7 +226,23 @@ class CameraActivity : BaseActivity() {
     })
     // 默认选中 0
     binding.tabScenes.selectTab(binding.tabScenes.getTabAt(0))
-    // 通过监听 surface 的左右滑动事件来决定选中哪一个 tab
+  }
+
+  private fun switchCamera(view: View?) {
+    mFront = if (mFront || view == null) {
+      mCamera.open(CameraV1.ID_BACK)
+      false
+    } else {
+      mCamera.open(CameraV1.ID_FRONT)
+      true
+    }
+    binding.faceView.clearFaces()
+    view?.let {
+      it.animate()
+        .rotation(it.rotation + 180)
+        .setDuration(500L)
+        .start()
+    }
   }
 
   private fun tryStartPreview() {
@@ -187,8 +250,7 @@ class CameraActivity : BaseActivity() {
       askPermission(arrayOf(Manifest.permission.CAMERA))
       return
     }
-    binding.faceView.clearFaces()
-    mCamera.open(CameraV1.ID_BACK)
+    switchCamera(null)
   }
 
   override fun onPause() {
