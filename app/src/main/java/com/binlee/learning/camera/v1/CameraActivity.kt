@@ -1,6 +1,8 @@
 package com.binlee.learning.camera.v1
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.SurfaceTexture
@@ -196,24 +198,8 @@ class CameraActivity : BaseActivity() {
         return true
       }
     })
-  }
-
-  private fun updateSceneModes() {
-    binding.tabScenes.removeAllTabs()
-    // mode -> mode name
-    val items: List<Pair<String, String>> = resources.getStringArray(R.array.camera_scn_modes).map {
-      val index = it.indexOf(',')
-      Pair(it.substring(index + 1), it.substring(0, index))
-    }
-    for (entry in mCamera.filterSceneModes(linkedMapOf(*items.toTypedArray()))) {
-      binding.tabScenes.addTab(binding.tabScenes.newTab()
-        .setText(entry.value)
-        .setTag(entry.key)
-      )
-    }
-    binding.tabScenes.addOnTabSelectedListener(object : OnTabSelectedListener {
+    binding.tabScenes.setOnTabSelectedListener(object : OnTabSelectedListener {
       override fun onTabSelected(tab: Tab?) {
-        Log.d(TAG, "onTabSelected() tab.tag: ${tab?.tag}")
         // 更新相机场景参数
         mCamera.setSceneMode(tab?.tag as String?)
       }
@@ -224,6 +210,18 @@ class CameraActivity : BaseActivity() {
       override fun onTabReselected(tab: Tab?) {
       }
     })
+  }
+
+  private fun updateSceneModes() {
+    binding.tabScenes.removeAllTabs()
+    // mode -> mode name
+    val items: List<Pair<String, String>> = resources.getStringArray(R.array.camera_scn_modes).map {
+      val index = it.indexOf(',')
+      Pair(it.substring(index + 1), it.substring(0, index))
+    }
+    for (entry in mCamera.filterSceneModes(linkedMapOf(*items.toTypedArray()))) {
+      binding.tabScenes.addTab(binding.tabScenes.newTab().setText(entry.value).setTag(entry.key), false)
+    }
     // 默认选中 0
     binding.tabScenes.selectTab(binding.tabScenes.getTabAt(0))
   }
@@ -242,6 +240,21 @@ class CameraActivity : BaseActivity() {
         .rotation(it.rotation + 180)
         .setDuration(500L)
         .start()
+      with(binding.surfaceView) {
+        animate().alpha(0.8f)
+          .setDuration(500L)
+          .setListener(object : AnimatorListenerAdapter() {
+
+            override fun onAnimationStart(animation: Animator?) {
+              // 设置模糊背景
+            }
+
+            override fun onAnimationEnd(animation: Animator?) {
+              alpha = 1f
+            }
+          })
+          .start()
+      }
     }
   }
 

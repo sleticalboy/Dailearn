@@ -81,6 +81,8 @@ def skip_test_folders(root: str):
             if line.__contains__('isTestSource="true"') \
                     or line.__contains__('/cts/') \
                     or line.__contains__('/testapps/') \
+                    or line.__contains__('/developers/') \
+                    or line.__contains__('/development/') \
                     or line.__contains__('/test/'):
                 print(line.strip())
                 continue
@@ -166,20 +168,22 @@ def skip_analyze_files(root: str, path: str):
 
 def usage() -> int:
     print(f"usage: {sys.argv[0]} [aosp project root path] [options] [file path]", file=sys.stderr)
-    print("options are: skip-test-folders", file=sys.stderr)
-    print("             exclude-folders [exclude folders file path]", file=sys.stderr)
+    print("options are: exclude-folders [exclude folders file path]", file=sys.stderr)
     print("             skip-analyze-files [skip files file path]", file=sys.stderr)
     return 1
 
 
 if __name__ == '__main__':
     print(f"args: {sys.argv}, len: {len(sys.argv)}", flush=True)
-    if len(sys.argv) < 1:
+    if len(sys.argv) <= 1:
         exit(usage())
-
-    if sys.argv[2] == 'exclude-folders':
-        exclude_folders(sys.argv[1], sys.argv[3])
-    elif sys.argv[2] == 'skip-analyze-files':
-        skip_analyze_files(sys.argv[1], sys.argv[3])
-    else:
+    
+    if len(sys.argv) == 2:
         skip_test_folders(sys.argv[1])
+    else:
+        if sys.argv[2] == 'exclude-folders':
+            exclude_folders(sys.argv[1], sys.argv[3])
+        elif sys.argv[2] == 'skip-analyze-files':
+            skip_analyze_files(sys.argv[1], sys.argv[3])
+        else:
+            skip_test_folders(sys.argv[1])
