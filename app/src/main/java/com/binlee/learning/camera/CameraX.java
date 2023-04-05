@@ -34,6 +34,7 @@ public class CameraX {
   private static final int NOT_FOUND = -1;
   private static final String KEY_PICTURE_SIZE = "camera_sp_key_picture_size_"/*cameraId*/;
   private static final String KEY_LAST_THUMBNAIL = "camera_sp_key_last_thumbnail";
+  private static final String KEY_LAST_CAMERA = "camera_sp_key_last_camera";
 
   private CameraX() {
     //no instance
@@ -265,5 +266,15 @@ public class CameraX {
   public static String getLastThumbnail(Context context) {
     final SharedPreferences sp = context.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
     return sp.getString(KEY_LAST_THUMBNAIL, null);
+  }
+
+  public static int getCameraId(Context context) {
+    final SharedPreferences sp = context.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
+    return sp.getInt(KEY_LAST_CAMERA, CameraV1.ID_BACK);
+  }
+
+  public static void setCameraId(Context context, int cameraId) {
+    final SharedPreferences sp = context.getSharedPreferences("camera_settings", Context.MODE_PRIVATE);
+    sp.edit().putInt(KEY_LAST_CAMERA, cameraId).apply();
   }
 }

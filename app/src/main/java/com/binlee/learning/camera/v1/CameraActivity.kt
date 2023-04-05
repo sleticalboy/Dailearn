@@ -18,6 +18,7 @@ import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
 import com.binlee.learning.camera.CameraV1
 import com.binlee.learning.camera.CameraV1.Callback
+import com.binlee.learning.camera.CameraX
 import com.binlee.learning.camera.Face
 import com.binlee.learning.databinding.ActivityCameraBinding
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
@@ -56,6 +57,8 @@ class CameraActivity : BaseActivity() {
       updateSceneModes()
       // 开始预览
       camera?.startPreview(mSurface)
+      
+      CameraX.setCameraId(this@CameraActivity, camera!!.getId())
     }
 
     override fun onLastClosed(cameraId: Int) {
@@ -64,14 +67,17 @@ class CameraActivity : BaseActivity() {
 
     override fun onFaceDetected(faces: Array<Face>, displayOrientation: Int) {
       // 更新人脸位置
-      binding.faceView.setFaces(faces, displayOrientation, mFront)
+      updateFaceView(faces, displayOrientation)
     }
 
     override fun onTakePictureDone(path: File?) {
       // 拍照完成回调
     }
   })
-  private var mFront = false
+
+  private fun updateFaceView(faces: Array<Face>, displayOrientation: Int) {
+    binding.faceView.setFaces(faces, displayOrientation, mCamera.getId() == CameraV1.ID_FRONT)
+  }
 
   override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
     if (grantResults[0]) tryStartPreview()
@@ -227,13 +233,16 @@ class CameraActivity : BaseActivity() {
   }
 
   private fun switchCamera(view: View?) {
-    mFront = if (mFront || view == null) {
-      mCamera.open(CameraV1.ID_BACK)
-      false
+    val cameraId = if (view == null) {
+      CameraX.getCameraId(this)
     } else {
-      mCamera.open(CameraV1.ID_FRONT)
-      true
+      if (mCamera.getId() == CameraV1.ID_FRONT) {
+        CameraV1.ID_BACK
+      } else {
+        CameraV1.ID_FRONT
+      }
     }
+    mCamera.open(cameraId)
     binding.faceView.clearFaces()
     view?.let {
       it.animate()

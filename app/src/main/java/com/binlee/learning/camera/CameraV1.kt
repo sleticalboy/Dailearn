@@ -141,6 +141,9 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
   private var mCamera: Camera? = null
   private var mOpened = false
   private var mCameraId = ID_BACK
+  
+  fun getId() = mCameraId
+
   private var mInitParams: Parameters? = null
 
   private var mDisplayOrientation = 0
