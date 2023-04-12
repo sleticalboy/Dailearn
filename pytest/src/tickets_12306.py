@@ -1,5 +1,7 @@
 import re
 import sys
+import time
+import urllib.parse
 
 import requests
 import urllib3
@@ -37,30 +39,43 @@ def get_stations() -> dict:
 
 
 def get_ticket_info(args: QueryArgs, stations: dict):
-    cookies = requests.cookies.RequestsCookieJar()
     # 通过访问url_init，存储cookie信息
     url_init = 'https://kyfw.12306.cn/otn/leftTicket/init'
     urllib3.disable_warnings()
     response = requests.request(method="GET", url=url_init, verify=False)
-    print(f"get_ticket_info() init headers: {response.headers}")
-    print(f"get_ticket_info() init cookies: {response.cookies}")
-    if len(response.cookies) != 0:
-        cookies.update(response.cookies)
+    print(f"init set-cookie: {response.headers['Set-Cookie']}")
+    session_id = response.cookies.__getitem__("JSESSIONID")
+    print(f"init session id: {session_id}")
     response.close()
     # 开始查询车票信息，需要携带cookie及header信息，否则访问失败
-    url_query = f"https://kyfw.12306.cn/otn/leftTicket/query?" \
+    # https://kyfw.12306.cn/otn/leftTicket/queryZ?leftTicketDTO.train_date=2023-04-15&leftTicketDTO.from_station=BJP&leftTicketDTO.to_station=TJP&purpose_codes=ADULT
+    url_query = f"https://kyfw.12306.cn/otn/leftTicket/queryZ?" \
                 f"leftTicketDTO.train_date={args.date_str}&" \
                 f"leftTicketDTO.from_station={stations.get(args.from_city)}&" \
                 f"leftTicketDTO.to_station={stations.get(args.to_city)}&purpose_codes=ADULT"
     print(f"get_ticket_info() query url: {url_query}")
+    from_str = args.from_city + ',' + stations.get(args.from_city)
+    to_str = args.to_city + ',' + stations.get(args.to_city)
+    today = time.strftime("%Y-%m-%d", time.localtime())
+    print(f"get_ticket_info() from {from_str}, to {to_str}, today: {today}, expected: {args.date_str}")
     headers = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/112.0.0.0 Safari/537.36"
+                      "Chrome/112.0.0.0 Safari/537.36",
+        "Cookie": f"JSESSIONID={session_id}; "
+                  # "_jc_save_toDate=2023-04-12; " # 当前日期
+                  f"_jc_save_toDate={today}; "
+                  # "_jc_save_fromStation=%u5317%u4EAC%2CBJP; " # 北京,BJP
+                  f"_jc_save_fromStation={urllib.parse.quote(from_str)}; "
+                  # "_jc_save_toStation=%u5929%u6D25%2CTJP; " # 天津,TJP
+                  f"_jc_save_toStation={urllib.parse.quote(to_str)}; "
+                  # "_jc_save_fromDate=2023-04-20 " # 要查询的日期
+                  f"_jc_save_fromDate={args.date_str}"
     }
-    response = requests.request(method="GET", url=url_query, verify=False,
-                                headers=headers, cookies=cookies)
-    print(f"get_ticket_info() query: {response.headers}")
+    print(f"get_ticket_info() request header: {headers}")
+    response = requests.request(method="GET", url=url_query, verify=False, headers=headers)
+    print(f"get_ticket_info() response header: {response.headers}")
     response.close()
+    # 解析返回的 json 数据
 
 
 def query_tickets(arr: list):
@@ -85,8 +100,8 @@ Options:
     -k          快速
     -z          直达
 Example:
-    {sys.argv[0]} 北京 上海 2016-10-10
-    {sys.argv[0]} -dg 成都 南京 2016-10-10
+    {sys.argv[0]} 北京 上海 2023-04-20
+    {sys.argv[0]} -dg 成都 南京 2023-04-20
 """)
 
 
