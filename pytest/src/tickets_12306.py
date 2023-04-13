@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 import random
@@ -7,6 +6,7 @@ import sys
 import time
 import urllib.parse
 
+import prettytable
 import requests
 import urllib3
 from colorama import Fore
@@ -83,21 +83,29 @@ class Rows:
         for raw in row_data:
             # 字符串以 '|' 分割后数组长度为 52
             # 0    1  2            3     4   5   6   7    8     9    10      12
-            # xx|预订|24000C255102|C2551|VNP|YKP|VNP|YKP|06:00|06:56|00:56|Y|RJQCQocHBlro1g%2FCyXsHkAP1N16TnJviGWEulcmsdC3fGcRt
-            # 3车次 8发车 9到达 10时长
+            # ...|预订|24000C255102|C2551|VNP|YKP|VNP|YKP|06:00|06:56|00:56|Y|...
+            # 3车次 4始发站 5终点站 6经过站 7经过站 8发车 9到达 10时长
             #  13      14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32  34     35  36 37
             # |20230422|3|P2|01|03|-1| 0|--|--|--|--|--|--|--|--|--|--|有|无|-5||90M0O0|9MO| 1| 1|
-            # 13 日期 23软卧 26无座 28硬卧 29硬座 30二等座 31一等座 36高级软卧
+            # 13日期 23软卧 26无座 28硬卧 29硬座 30二等座 31一等座 36高级软卧
 
             segments: list[str] = raw.split('|')
             # print(f"{len(segments)} -> {raw[raw.index('|') + 1:]}")
+            # t_map: dict[str, str] = {}
+            # for s in segments[4:8]:
+            #     t_map[s] = station_map.get(s)
+            # print(f"mapped: {t_map}")
 
             self.__rows.append(Row([
                 # 车次
                 segments[3],
-                # 始发-终点
+                # 始发
+                station_map[segments[4]],
+                # 出发-到达
                 Fore.LIGHTGREEN_EX + station_map[segments[6]] + Fore.RESET,
                 Fore.LIGHTRED_EX + station_map[segments[7]] + Fore.RESET,
+                # 终点
+                station_map[segments[5]],
                 # 出发-到达
                 Fore.LIGHTGREEN_EX + segments[8] + Fore.RESET,
                 Fore.LIGHTRED_EX + segments[9] + Fore.RESET,
@@ -149,12 +157,10 @@ class Rows:
 
 
 class TicketTask:
-    stations_: dict[str, str] | None
     station_map_: dict[str, str] | None
     pt_rows_: Rows | None
 
     def __init__(self) -> None:
-        self.stations_ = None
         self.station_map_ = None
         self.train_list_ = None
         self.pt_rows_ = None
@@ -162,25 +168,24 @@ class TicketTask:
     def execute(self, args: QueryArgs):
         print(f"execute() {args.dump()}")
 
-        if self.stations_ is None or len(self.stations_) == 0:
-            self.stations_ = get_stations()
-            print(f"execute() stations: {len(self.stations_)}")
+        if self.station_map_ is None or len(self.station_map_) == 0:
+            self.station_map_ = get_stations()
+            print(f"execute() stations: {len(self.station_map_)}")
 
         if args.force_refresh_ or self.pt_rows_ is None or self.pt_rows_.size() == 0:
             # 根据参数查询具体车站信息
-            text, is_json = get_ticket_info(args, self.stations_)
-            print(f"execute() json: {is_json}")
+            text, is_json = get_ticket_info(args, self.station_map_)
             if not is_json:
+                print("execute() response content is not json!")
                 return
-            data: dict = json.loads(text)["data"]
             # python 3.9+ 中的泛型
-            self.station_map_: dict[str, str] = data["map"]
-            print(f"query() station map: {self.station_map_}")
-            self.pt_rows_ = Rows(data["result"], self.station_map_)
+            result: list[str] = json.loads(text)["data"]["result"]
+            self.pt_rows_ = Rows(result, self.station_map_)
 
         # 解析数据并填充表格
-        header = '车次 始发 终点 发车 到达 历时 一等座 二等座 高级软卧 软卧 硬卧 硬座 无座'.split()
-        pt = PrettyTable(field_names=header)
+        header = '车次 始发站 出发站 到达站 终点站 发车时间 到达时间 历时 一等座 二等座 高级软卧 软卧 硬卧 硬座 无座'.split()
+        pt = PrettyTable(field_names=header, min_width=6, align='c', valign='b', border=True, header_style='cap')
+        # pt.set_style(prettytable.DEFAULT)
         # 根据参数对数据进行排序
         pt.add_rows(self.pt_rows_.sort(args))
         print(pt)
@@ -198,9 +203,12 @@ def get_cached_stations() -> dict:
 
 
 def set_cached_stations(stations: dict):
-    path = f"{os.getcwd()}/../out/stations.json"
+    path = f"{os.getcwd()}/../out"
+    if not os.path.exists(path):
+        os.mkdir(path)
+    path = f"{path}/stations.json"
     print(f"set_cached_stations() cache: {path}")
-    with open(file=path, mode='w', encoding='utf-8') as f:
+    with open(file=path, mode='x', encoding='utf-8') as f:
         f.write(json.dumps(stations, ensure_ascii=False))
         f.close()
 
@@ -216,8 +224,12 @@ def get_stations() -> dict[str, str]:
     response = requests.request(method="GET", url=url, verify=False)
     pattern = u"([\u4e00-\u9fa5]+)\|([A-Z]+)"
     # 结果映射到 map 中
-    stations = dict(re.findall(pattern=pattern, string=response.text))
+    pairs = re.findall(pattern=pattern, string=response.text)
     response.close()
+    stations: dict[str, str] = {}
+    for k, v in pairs:
+        stations[k] = v
+        stations[v] = k
     set_cached_stations(stations)
     return stations
 
@@ -268,7 +280,7 @@ def pretty_text(text: str) -> str:
     if text == '有':
         return f"{Fore.BLUE}{text}{Fore.RESET}"
     if text == '0' or text == '无' or text.strip() == '':
-        return "--"
+        return "-"
     return text
 
 
