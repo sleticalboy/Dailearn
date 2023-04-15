@@ -5,20 +5,7 @@ import urllib.parse
 import jsonpath
 import requests
 
-
-def save_images(urls: list[str]):
-    path = f"{os.getcwd()}/../out/images"
-    if not os.path.exists(path):
-        os.mkdir(path)
-    for url in urls:
-        # 文件名
-        file = f"{path}/{url[url.rindex('/') + 1:]}"
-        r = requests.get(url)
-        with open(file=file, mode='wb') as f:
-            f.write(r.content)
-            f.close()
-        print(f"save to '{file}', size: {r.headers['Content-Length']}")
-        r.close()
+from util import img_util
 
 
 def get_images(args: list[str]):
@@ -30,10 +17,17 @@ def get_images(args: list[str]):
 
     response = requests.get(url=url)
     print(f"get_images() response header: {response.headers}")
-    if response.headers["Content-Type"].__contains__("application/json"):
-        image_urls: list[str] = jsonpath.jsonpath(response.json(), "$..path")
+    if not response.headers["Content-Type"].__contains__("application/json"):
         response.close()
-        save_images(image_urls)
+        return
+    image_urls: list[str] = jsonpath.jsonpath(response.json(), "$..path")
+    response.close()
+
+    filename: str = os.path.basename(__file__)
+    target_dir = f"{os.getcwd()}/../out/images/{filename[:filename.rfind('.')]}"
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+    img_util.save_images(image_urls, target_dir)
 
 
 if __name__ == '__main__':
