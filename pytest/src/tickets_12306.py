@@ -1,4 +1,5 @@
 import json
+import operator
 import os
 import random
 import re
@@ -23,13 +24,16 @@ class QueryArgs:
         self.date_ = ''
         self.__random_init__()
         self.type_ = 'GCDZTK'
+        # 出发时间和行程历时是互斥的
+        self.leave_first_ = True
         self.leave_last_ = False
-        self.leave_first_ = False
         self.time_least_ = False
+        # 是否退出
         self.quit_ = False
+        # 是否忽略
         self.ignore_ = False
+        # 强制刷新
         self.force_refresh_ = False
-        self.__random_init__()
 
     def __random_init__(self):
         self.from_ = self.__from_stations[random.randint(0, len(self.__from_stations) - 1)]
@@ -51,24 +55,49 @@ class QueryArgs:
         self.force_refresh_ |= date_ != self.date_
         self.date_ = date_
 
+    def set_leave_first(self):
+        self.leave_first_ = True
+        self.leave_last_ = False
+        self.time_least_ = False
+
+    def set_leave_last(self):
+        self.leave_last_ = True
+        self.leave_first_ = False
+        self.time_least_ = False
+
+    def set_time_least(self):
+        self.time_least_ = True
+        self.leave_first_ = False
+        self.leave_last_ = False
+
+    def reset(self):
+        self.ignore_ = False
+        self.force_refresh_ = False
+
     def dump(self) -> str:
-        return f"'{self.from_}' -> '{self.to_}' on '{self.date_}'"
+        options = f"'{self.from_}' -> '{self.to_}' on '{self.date_}'"
+        if self.leave_first_ and self.time_least_:
+            options += ' 最早出发 历时最短'
+        elif self.leave_last_ and self.time_least_:
+            options += ' 最晚出发 历时最短'
+        elif self.time_least_:
+            options += ' 历时最短'
+        return options
 
 
 class Row:
     __raw: list[str] | None
-    # 车次类型：D动车，G高铁，T特快，C城际
-    type_: str | None
-    start_: str | None
-    cost_: str | None
 
     def __init__(self, raw: list[str]) -> None:
         self.__raw = raw
+        # 车次类型：D动车，G高铁，T特快，C城际
         self.type_ = raw[0][0]
-        self.start_ = raw[3]
-        self.cost_ = raw[5]
+        # 发车时间
+        self.start_ = raw[5]
+        # 行程历时
+        self.cost_ = raw[7]
 
-    def raw(self):
+    def data(self):
         return self.__raw
 
 
@@ -101,14 +130,16 @@ class Rows:
                 segments[3],
                 # 始发
                 station_map[segments[4]],
-                # 出发-到达
+                # 出发站
                 Fore.LIGHTGREEN_EX + station_map[segments[6]] + Fore.RESET,
+                # 出发时间
+                Fore.LIGHTGREEN_EX + segments[8] + Fore.RESET,
+                # 到达站
                 Fore.LIGHTRED_EX + station_map[segments[7]] + Fore.RESET,
+                # 到达时间
+                Fore.LIGHTRED_EX + segments[9] + Fore.RESET,
                 # 终点
                 station_map[segments[5]],
-                # 出发-到达
-                Fore.LIGHTGREEN_EX + segments[8] + Fore.RESET,
-                Fore.LIGHTRED_EX + segments[9] + Fore.RESET,
                 # 历时
                 segments[10],
                 # 一等座
@@ -132,62 +163,58 @@ class Rows:
 
     def sort(self, args: QueryArgs) -> list[list[str]]:
         temp: list[Row] = []
-
+        # 解析发车类型
         if args.type_ != '':
             for row in self.__rows:
                 # print(f"sort() r.t: {row.type_}, a.t: {args.type_}")
                 for t in row.type_:
                     if t in args.type_:
                         temp.append(row)
-
-        # 耗时最短
-        if args.time_least_:
-            temp.sort(key=lambda r: r.cost_, reverse=False)
         # 最早出发
         if args.leave_first_:
             temp.sort(key=lambda r: r.start_, reverse=False)
         # 最晚出发
-        if args.leave_last_:
+        elif args.leave_last_:
             temp.sort(key=lambda r: r.start_, reverse=True)
+        # 历时最短
+        elif args.time_least_:
+            temp.sort(key=lambda r: r.cost_, reverse=False)
 
         output: list[list[str]] = []
         for row in temp:
-            output.append(row.raw())
+            output.append(row.data())
         return output
 
 
 class TicketTask:
-    station_map_: dict[str, str] | None
-    pt_rows_: Rows | None
 
     def __init__(self) -> None:
-        self.station_map_ = None
-        self.train_list_ = None
-        self.pt_rows_ = None
+        self.__station_map = dict[str, str]
+        self.__pt_rows = Rows
 
     def execute(self, args: QueryArgs):
         print(f"execute() {args.dump()}")
 
-        if self.station_map_ is None or len(self.station_map_) == 0:
-            self.station_map_ = get_stations()
-            print(f"execute() stations: {len(self.station_map_)}")
+        if self.__station_map is None or len(self.__station_map) == 0:
+            self.__station_map = get_stations()
+            print(f"execute() stations: {len(self.__station_map)}")
 
-        if args.force_refresh_ or self.pt_rows_ is None or self.pt_rows_.size() == 0:
+        if args.force_refresh_ or self.__pt_rows is None or self.__pt_rows.size() == 0:
             # 根据参数查询具体车站信息
-            text, is_json = get_ticket_info(args, self.station_map_)
+            text, is_json = get_ticket_info(args, self.__station_map)
             if not is_json:
                 print("execute() response content is not json!")
                 return
             # python 3.9+ 中的泛型
             result: list[str] = json.loads(text)["data"]["result"]
-            self.pt_rows_ = Rows(result, self.station_map_)
+            self.__pt_rows = Rows(result, self.__station_map)
 
         # 解析数据并填充表格
-        header = '车次 始发站 出发站 到达站 终点站 发车时间 到达时间 历时 一等座 二等座 高级软卧 软卧 硬卧 硬座 无座'.split()
+        header = '车次 始发站 出发站 出发时间 到达站 到达时间 终点站 行程历时 一等座 二等座 高级软卧 软卧 硬卧 硬座 无座'.split()
         pt = PrettyTable(field_names=header, min_width=6, align='c', valign='b', border=True, header_style='cap')
         # pt.set_style(prettytable.DEFAULT)
         # 根据参数对数据进行排序
-        pt.add_rows(self.pt_rows_.sort(args))
+        pt.add_rows(self.__pt_rows.sort(args))
         print(pt)
 
 
@@ -288,13 +315,11 @@ def parse_option(opt, args: QueryArgs):
     match opt:
         # 排序
         case 'LL':
-            args.leave_last_ = True
-            args.leave_first_ = False
+            args.set_leave_last()
         case 'LF':
-            args.leave_last_ = False
-            args.leave_first_ = True
+            args.set_leave_first()
         case 'TL':
-            args.time_least_ = True
+            args.set_time_least()
         # 更新参数，重新请求
         case 'LS':
             args.set_from(input("请输入出发站："))
@@ -320,7 +345,7 @@ def parse_option(opt, args: QueryArgs):
                     break
             if illegal:
                 args.ignore_ = True
-                print(f"非法标识，请根据菜单重新输入")
+                print(f"非法标识'{opt}'，请根据菜单重新输入")
                 show_menu()
             else:
                 args.type_ = type_
@@ -347,8 +372,7 @@ def loop_once(task: TicketTask, args: QueryArgs):
         return
 
     # 重置参数
-    args.ignore_ = False
-    args.force_refresh_ = False
+    args.reset()
     # 读取指令
     opt: str = input("请输入菜单选项或直接回车进行查询（不区分大小写）：").upper()
     # print(f"loop_once() read opt: {opt}")
@@ -356,7 +380,6 @@ def loop_once(task: TicketTask, args: QueryArgs):
     if opt != 'E' and opt != '':
         parse_option(opt, args)
     handle_option(task, args)
-    return args.quit_
 
 
 def show_menu():
@@ -364,7 +387,7 @@ def show_menu():
     print("===  1、车次类型（可组合使用）：高铁（G）、城际（C）、动车（D）       ===")
     print("===                             直达（Z）、特快（T）、普快（K）       ===")
     print("===  2、出发站                ：（LS）                                ===")
-    print("===  3、终点站                ：（AS）                                ===")
+    print("===  3、到达站                ：（AS）                                ===")
     print("===  4、出发日期              ：（LD）                                ===")
     print("===  5、历时最短              ：（TL）                                ===")
     print("===  6、最早出发              ：（LF）                                ===")
