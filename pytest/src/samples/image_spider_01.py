@@ -5,7 +5,8 @@ import urllib.parse
 import jsonpath
 import requests
 
-from util import img_util
+from src.com.binlee.python.util import img_util
+from src.com.binlee.python.util import file_util
 
 
 def get_images(args: list[str]):
@@ -23,11 +24,7 @@ def get_images(args: list[str]):
     image_urls: list[str] = jsonpath.jsonpath(response.json(), "$..path")
     response.close()
 
-    filename: str = os.path.basename(__file__)
-    target_dir = f"{os.getcwd()}/../out/images/{filename[:filename.rfind('.')]}"
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-    img_util.save_images(image_urls, target_dir)
+    img_util.save_images(image_urls, file_util.create_dir(f"{os.getcwd()}/../out/images", __file__))
 
 
 if __name__ == '__main__':
