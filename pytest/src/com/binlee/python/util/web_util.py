@@ -17,9 +17,7 @@ def get_cookie(url: str, name: str) -> str:
     @return: name 对应 cookie 的 value
     """
     with requests.get(url, verify=False) as r:
-        value = r.cookies.__getitem__(name)
-        r.close()
-        return value
+        return r.cookies.__getitem__(name)
 
 
 def get_page_content(url: str, headers: dict[str, str] = None) -> str:

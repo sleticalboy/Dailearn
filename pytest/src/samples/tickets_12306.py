@@ -223,9 +223,7 @@ def get_cached_stations() -> dict:
     print(f"get_cached_stations() cache: {path}")
     if os.path.exists(path) and os.path.isfile(path):
         with open(file=path, mode='r', encoding='utf-8') as f:
-            stations = json.load(f)
-            f.close()
-            return stations
+            return json.load(f)
     return dict()
 
 
@@ -237,7 +235,6 @@ def set_cached_stations(stations: dict):
     print(f"set_cached_stations() cache: {path}")
     with open(file=path, mode='x', encoding='utf-8') as f:
         f.write(json.dumps(stations, ensure_ascii=False))
-        f.close()
 
 
 def get_stations() -> dict[str, str]:

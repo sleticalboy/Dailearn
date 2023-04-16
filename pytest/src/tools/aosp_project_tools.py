@@ -38,7 +38,6 @@ def read_input_file_lines(path: str) -> list:
                 out_lines.append(line[2:])
             elif line.startswith('.'):
                 out_lines.append(line[1:])
-        f.close()
     return out_lines
 
 
@@ -64,7 +63,6 @@ def read_and_insert(path: str, line_prefix, line_format, line_args: list) -> lis
                 for arg in line_args:
                     new_lines.append(line_format.format(arg))
                 line_args.clear()
-        f.close()
     return new_lines
 
 
@@ -87,12 +85,10 @@ def skip_test_folders(root: str):
                 print(line.strip())
                 continue
             new_lines.append(line)
-        prj.close()
         print(f"total lines: {len(new_lines)}")
         print(f"time: {time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime())}")
     with open(file=target_file, mode='w', encoding='utf-8') as prj:
         prj.writelines(new_lines)
-        prj.close()
 
 
 def exclude_folders(root: str, path: str):
@@ -139,7 +135,6 @@ def exclude_folders(root: str, path: str):
     # 写入文件
     with open(file=target_file, mode='w', encoding='utf-8') as f:
         f.writelines(new_lines)
-        f.close()
 
 
 def skip_analyze_files(root: str, path: str):
@@ -163,7 +158,6 @@ def skip_analyze_files(root: str, path: str):
     # 写入文件
     with open(file=target_file, mode='w', encoding='utf-8') as f:
         f.writelines(new_lines)
-        f.close()
 
 
 def usage() -> int:

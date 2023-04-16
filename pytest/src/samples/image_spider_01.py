@@ -16,15 +16,12 @@ def get_images(args: list[str]):
     url = url.format(kw, start)
     print(f"get_images() url: {url}")
 
-    response = requests.get(url=url)
-    print(f"get_images() response header: {response.headers}")
-    if not response.headers["Content-Type"].__contains__("application/json"):
-        response.close()
-        return
-    image_urls: list[str] = jsonpath.jsonpath(response.json(), "$..path")
-    response.close()
-
-    img_util.save_images(image_urls, file_util.create_dir(f"{os.getcwd()}/../out/images", __file__))
+    with requests.get(url=url) as r:
+        if r.headers["Content-Type"].find("application/json") > 0:
+            image_urls: list[str] = jsonpath.jsonpath(r.json(), "$..path")
+            saver = img_util.ImageSaver(originals=image_urls,
+                                        output_dir=file_util.create_dir(f"{os.getcwd()}/../out/images", __file__))
+            saver.save()
 
 
 if __name__ == '__main__':
