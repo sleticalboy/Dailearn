@@ -39,6 +39,9 @@ def parse_one_page(kw: str, page_num: int, baiduid: str, saver: img_util.ImageSa
     elif mime.find('json') >= 0:
         data = json.loads(content)['data']
 
+    if len(data) == 0:
+        return
+
     before = saver.size()
     for item in data:
         if len(item) == 0:
@@ -48,7 +51,6 @@ def parse_one_page(kw: str, page_num: int, baiduid: str, saver: img_util.ImageSa
                                source=item['replaceUrl'][0]['FromURL'])
         saver.add_image(image)
         # print(f"add: \n{image}\n")
-
     print(f"parse_one_page() pn({page_num}), data({len(data)}), saver({before}, {saver.size()})")
 
 
@@ -62,28 +64,24 @@ def get_images(keyword: str, total: int):
 
     # https://image.baidu.com/search/index?word={encKw}&oq={encKw}&tn=baiduimage&ct=201326592&pn={pn}
     keyword = urllib.parse.quote(keyword)
-    # 分页标识
+    # 分页标识，每次以 30 为等差数列
     page_num = 0
-    missed = total
+    # 请求次数
+    index = 0
 
     saver = img_util.ImageSaver(file_util.create_dir(f"{os.getcwd()}/../out/images", __file__))
-    while True:
-        saver.reset()
-        while True:
-            parse_one_page(keyword, page_num, baiduid, saver)
-            page_num += 1
-            if saver.size() >= missed:
-                break
-        saved = saver.save(counter=missed)
-        if saved == missed:
-            break
-        missed = missed - saved
-        print(f"get_images() saved: {saved}, missed: {missed}, pn: {page_num}")
+    while index < total:
+        parse_one_page(keyword, page_num, baiduid, saver)
+        page_num = page_num + 30
+        index = index + 1
+    saved = saver.save()
+    print(f"get_images() saved: {saved}, total: {total * 30}")
 
 
 if __name__ == '__main__':
+    print("爬取百度图片，理论上每页（每次请求）返回 30 张图片，但测试发现会有重复图片")
     key_word_ = input("请输入关键词：")
-    total_ = input("请输入图片张数：")
+    total_ = input("请输入页数：")
     if not total_.isdigit():
         print(f"格式异常，请输入合法数字：{total_}", file=sys.stderr)
         exit(1)

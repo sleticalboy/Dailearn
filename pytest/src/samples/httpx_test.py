@@ -4,7 +4,7 @@ import subprocess
 import httpx
 
 
-def run_test():
+def run_http2_test():
     # url = 'https://up.enterdesk.com/edpic/35/b9/c0/35b9c067ff54d43a1956c3e0661f22f2.jpg'
     # url = 'http://pic1.win4000.com/mobile/2019-09-17/5d80a795d62a2.jpg'
     url = 'https://up.enterdesk.com/edpic_source/99/d8/7d/99d87d992ff02a72e2fdda69d18d6dd0.jpg'
@@ -38,4 +38,4 @@ def run_test():
 
 
 if __name__ == '__main__':
-    run_test()
+    run_http2_test()
