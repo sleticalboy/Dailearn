@@ -21,7 +21,7 @@ def parse_image_urls(html: str) -> list[str]:
 
 def get_images(root_url: str):
     # 获取网页内容
-    html = web_util.get_page_content(root_url)
+    html = web_util.get_content(root_url)
     # print(f"get_images() {html}")
     # 解析 src 标签获取所有图片 url
     image_urls: list[str] = parse_image_urls(html)

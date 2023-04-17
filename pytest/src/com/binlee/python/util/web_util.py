@@ -20,16 +20,15 @@ def get_cookie(url: str, name: str) -> str:
         return r.cookies.__getitem__(name)
 
 
-def get_page_content(url: str, headers: dict[str, str] = None) -> str:
+def get_content(url: str, headers: dict[str, str] = None) -> (str, str):
     """
-    获取网页内容
+    获取 url 响应体内容
     @param url: 目标 url
     @param headers: 请求头
-    @return: 网页内容
+    @return: 网页内容和内容格式
     """
     with requests.request(method="GET", url=url, headers=headers, verify=False) as r:
-        if r.status_code != 200:
-            return ''
-        if r.headers['Content-Type'].__contains__("text/"):
-            return r.text
-    return ''
+        mime = r.headers.get('Content-Type')
+        if r.status_code == 200 and (mime.find("text/") >= 0 or mime.find('/json')):
+            return r.text, mime
+    return '', ''
