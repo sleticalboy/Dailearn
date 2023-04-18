@@ -1,0 +1,66 @@
+apply plugin: 'com.android.library'
+
+android {
+  compileSdkVersion rootProject.ext.android.compileSdkVersion
+
+  defaultConfig {
+    minSdkVersion rootProject.ext.android.minSdkVersion
+    targetSdkVersion rootProject.ext.android.targetSdkVersion
+    versionCode 1
+    versionName "1.0"
+
+    consumerProguardFiles 'consumer-rules.pro'
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-std=c++11 -fno-rtti -fno-exceptions -O3 -ffast-math"
+      }
+      ndk {
+        moduleName "XY{module-name}" //生成的so名字
+        abiFilters "armeabi-v7a", "arm64-v8a"
+        stl "c++_static"
+      }
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+}
+
+dependencies {
+  api fileTree(dir: 'libs', include: ['*.jar'])
+  // 基础库
+  compileOnly project(':Component-AI:AlgoBase:BaseLib-FastCV')
+  compileOnly project(':Component-AI:AlgoBase:BaseLib-Bridge')
+  compileOnly project(":Component-AI:AlgoBase:commonAI")
+}
+
+ext {
+  //公共组件库
+  PROJECT_NAME = rootProject.ext.mvnProjectName
+  GROUP = rootProject.ext.groupName
+  POM_ARTIFACT_ID = rootProject.ext.lib{module-name}.artifact //构建 ID
+  VERSION_NAME = rootProject.ext.gVersion // aar 的版本号
+
+  // 算法类型，一定要和 AIConstants#AI_TYPE_{upper-name} = {ai-type}; 保持一致
+  AI_TYPE = {ai-type}
+
+  POM_PACKAGING = "aar" //打包方式
+  POM_DEVELOPER_ID = "joy"
+  POM_DEVELOPER_NAME = "joy"
+}
+
+apply from: "../../uploadMvn.gradle"
