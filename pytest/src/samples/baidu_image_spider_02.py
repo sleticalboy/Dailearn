@@ -66,16 +66,14 @@ def get_images(keyword: str, total: int):
     keyword = urllib.parse.quote(keyword)
     # 分页标识，每次以 30 为等差数列
     page_num = 0
-    # 请求次数
-    index = 0
 
-    saver = img_util.ImageSaver(file_util.create_dir(f"{os.getcwd()}/../out/images", __file__))
-    while index < total:
+    saver = img_util.ImageSaver(file_util.create_dir(f"{os.getcwd()}/../../out/images", __file__))
+    while page_num < total:
         parse_one_page(keyword, page_num, baiduid, saver)
         page_num = page_num + 30
-        index = index + 1
-    saved = saver.save()
-    print(f"get_images() saved: {saved}, total: {total * 30}")
+    saved, failed = saver.save()
+    saver.release()
+    print(f"get_images() total: {total}, saved: {saved}, failed: {failed}, duplicated: {total - saved - failed}")
 
 
 if __name__ == '__main__':
@@ -86,4 +84,4 @@ if __name__ == '__main__':
         print(f"格式异常，请输入合法数字：{total_}", file=sys.stderr)
         exit(1)
     # 获取图片
-    get_images(key_word_, int(total_))
+    get_images(key_word_, int(total_) * 30)

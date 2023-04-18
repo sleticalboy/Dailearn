@@ -1,5 +1,4 @@
 import json
-import operator
 import os
 import random
 import re
@@ -7,7 +6,6 @@ import sys
 import time
 import urllib.parse
 
-import prettytable
 import requests
 import urllib3
 from colorama import Fore
@@ -219,7 +217,7 @@ class TicketTask:
 
 
 def get_cached_stations() -> dict:
-    path = f"{os.getcwd()}/../out/stations.json"
+    path = f"{os.getcwd()}/../../out/stations.json"
     print(f"get_cached_stations() cache: {path}")
     if os.path.exists(path) and os.path.isfile(path):
         with open(file=path, mode='r', encoding='utf-8') as f:

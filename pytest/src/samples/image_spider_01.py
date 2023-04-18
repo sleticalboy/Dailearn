@@ -20,7 +20,7 @@ def get_images(args: list[str]):
         if r.headers["Content-Type"].find("application/json") > 0:
             image_urls: list[str] = jsonpath.jsonpath(r.json(), "$..path")
             saver = img_util.ImageSaver(originals=image_urls,
-                                        output_dir=file_util.create_dir(f"{os.getcwd()}/../out/images", __file__))
+                                        output_dir=file_util.create_dir(f"{os.getcwd()}/../../out/images", __file__))
             saver.save()
 
 

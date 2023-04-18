@@ -118,10 +118,10 @@ def exclude_folders(root: str, path: str):
         "build",
         "frameworks/base/api",
         "out/target/common/obj/PACKAGING",
-        "tools/dexter/testdata",
+        "etools/dexter/testdata",
         "platform_testing",
         "prebuilts",
-        "frameworks/opt/setupwizard/tools",
+        "frameworks/opt/setupwizard/etools",
         "packages/apps/Music/tests",
         "packages/apps/LegacyCamera/tests",
     ])
