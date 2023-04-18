@@ -6,7 +6,7 @@ import sys
 import requests
 
 
-def formatted_list(prefix: str, items: list) -> str:
+def format_list(prefix: str, items: list) -> str:
     """
     格式化列表为字符串
     :param prefix: 前缀
@@ -24,6 +24,26 @@ def formatted_list(prefix: str, items: list) -> str:
     return out_str
 
 
+def find_git_work_dir(file: str) -> str:
+    """
+    找到 .git 所在的目录作
+    :param file: 文件绝对路径
+    :return: .git 所在的目录
+    :rtype str
+    """
+    print(f"find_git_work_dir() input '{file}'")
+
+    # 取文件所在目录
+    temp = os.path.dirname(file)
+    while not os.path.exists("{}/.git".format(temp)):
+        if temp == '/':
+            # 递归到根目录了，还没找到 .git 目录
+            return ''
+        # 目录向上一级
+        temp = os.path.dirname(temp)
+    return temp
+
+
 def is_clean_git_repo(cwd: str) -> bool:
     """
     检测当前 git 工程是否所有文件已提交
@@ -37,11 +57,11 @@ def is_clean_git_repo(cwd: str) -> bool:
         line = line.replace('\n', '').strip()
         if line.isspace() or len(line) == 0:
             continue
-        if line.__contains__('Changes not staged for commit') \
-                or line.__contains__('Changes to be committed'):
+        if line.find('Changes not staged for commit') >= 0 \
+                or line.find('Changes to be committed') >= 0:
             is_clean = False
             break
-        elif line.__contains__('nothing to commit'):
+        elif line.find('nothing to commit') >= 0:
             is_clean = True
             break
     proc.terminate()
@@ -66,6 +86,11 @@ def find_latest_git_tag_and_last_tag_hash(cwd: str) -> tuple[str, str]:
         if num > max_:
             max_ = num
     proc.terminate()
+    # 没有任何 tag，需要先打 tag
+    if len(tags) == 0:
+        print("没有检测到任何 tag，请先打 tag！", file=sys.stderr)
+        exit(1)
+
     print(f"all tags: {tags}, max: {max_}, last tag: {tags[max_ - 1]}")
 
     # 找到上一个 tag 的 commit id
@@ -155,10 +180,10 @@ def notify_to_feishu(latest_tag: str, note: ReleaseNote):
             "text": {
                 "tag": "lark_md",
                 "content": f"<at id=all></at> 本次更新包含以下内容："
-                           f"{formatted_list('new features', note.features)}"
-                           f"{formatted_list('fixed issues', note.issues)}"
-                           f"{formatted_list('引擎相关', note.test_notes)}"
-                           f"{formatted_list('测试注意', note.engine_notes)}"
+                           f"{format_list('new features', note.features)}"
+                           f"{format_list('fixed issues', note.issues)}"
+                           f"{format_list('引擎相关', note.test_notes)}"
+                           f"{format_list('测试注意', note.engine_notes)}"
             }
         },
         {
@@ -195,8 +220,8 @@ def notify_to_feishu(latest_tag: str, note: ReleaseNote):
     url = 'https://open.feishu.cn/open-apis/bot/v2/hook/7ce4993b-afbc-46cf-b1b5-de966ac3de5b'
     method = 'post'
     headers = {"Content-Type": "application/json"}
-    resp = requests.request(method=method, url=url, headers=headers, json=data)
-    print(f"content: {resp.text}")
+    with requests.request(method=method, url=url, headers=headers, json=data) as r:
+        print(f"content: {r.text}")
 
 
 def exec_task(cwd: str, task_type='debug') -> int:
@@ -208,7 +233,7 @@ def exec_task(cwd: str, task_type='debug') -> int:
     """
     proc = subprocess.Popen(f"bash upload-to-maven.sh {task_type}", shell=True, text=True,
                             stdout=subprocess.PIPE, cwd=cwd)
-    if proc.returncode is not None and proc.returncode != 0:
+    if not proc.returncode and proc.returncode != 0:
         print(f"upload-to-maven.sh failed with {proc.returncode}")
         for line in proc.stdout.readlines():
             line = line.replace('\n', '').strip()
@@ -223,13 +248,15 @@ def run_main_work_flow(args: list):
     :param args: 参数列表，扩展用
     :return:
     """
-    # 校验当前工程是否合法
-    if not os.path.isdir(".git"):
-        print("当前目录不是一个 git 工程目录", file=sys.stderr)
-        # exit(1)
 
-    # 设置 git 工作目录
-    git_work_dir = '/home/binlee/code/open-source/quvideo/QuVideoEngineAI'
+    # git 工作目录
+    git_work_dir = find_git_work_dir(__file__)
+    print(f"git work dir: {git_work_dir}")
+
+    # 校验工作目录是否合法
+    if git_work_dir == '':
+        print("当前目录不是一个 git 工程目录！", file=sys.stderr)
+        exit(1)
 
     # 如果当前工程有没有提交的文件，中断流程
     if not is_clean_git_repo(cwd=git_work_dir):
