@@ -11,6 +11,8 @@ import urllib3
 from colorama import Fore
 from prettytable import PrettyTable
 
+from src.com.binlee.python.util import file_util
+
 
 class QueryArgs:
     __from_stations = "北京 天津 秦皇岛 石家庄 大连 长春 上海 青岛 日照".split()
@@ -185,39 +187,41 @@ class Rows:
 
 
 class TicketTask:
+    __station_map__: dict[str, str]
+    __pt_rows__: Rows | None
 
     def __init__(self) -> None:
-        self.__station_map = dict[str, str]
-        self.__pt_rows = Rows
+        self.__station_map__ = {}
+        self.__pt_rows__ = None
 
     def execute(self, args: QueryArgs):
         print(f"execute() {args.dump()}")
 
-        if self.__station_map is None or len(self.__station_map) == 0:
-            self.__station_map = get_stations()
-            print(f"execute() stations: {len(self.__station_map)}")
+        if self.__station_map__ is None or len(self.__station_map__) == 0:
+            self.__station_map__ = get_stations()
+            print(f"execute() stations: {len(self.__station_map__)}")
 
-        if args.force_refresh_ or self.__pt_rows is None or self.__pt_rows.size() == 0:
+        if args.force_refresh_ or self.__pt_rows__ is None or self.__pt_rows__.size() == 0:
             # 根据参数查询具体车站信息
-            text, is_json = get_ticket_info(args, self.__station_map)
+            text, is_json = get_ticket_info(args, self.__station_map__)
             if not is_json:
                 print("execute() response content is not json!")
                 return
             # python 3.9+ 中的泛型
             result: list[str] = json.loads(text)["data"]["result"]
-            self.__pt_rows = Rows(result, self.__station_map)
+            self.__pt_rows__ = Rows(result, self.__station_map__)
 
         # 解析数据并填充表格
         header = '车次 始发站 出发站 出发时间 到达站 到达时间 终点站 行程历时 一等座 二等座 高级软卧 软卧 硬卧 硬座 无座'.split()
         pt = PrettyTable(field_names=header, min_width=6, align='c', valign='b', border=True, header_style='cap')
         # pt.set_style(prettytable.DEFAULT)
         # 根据参数对数据进行排序
-        pt.add_rows(self.__pt_rows.sort(args))
+        pt.add_rows(self.__pt_rows__.sort(args))
         print(pt)
 
 
 def get_cached_stations() -> dict:
-    path = f"{os.getcwd()}/../../out/stations.json"
+    path = f"{file_util.create_out_dir(__file__)}/stations.json"
     print(f"get_cached_stations() cache: {path}")
     if os.path.exists(path) and os.path.isfile(path):
         with open(file=path, mode='r', encoding='utf-8') as f:
@@ -226,7 +230,7 @@ def get_cached_stations() -> dict:
 
 
 def set_cached_stations(stations: dict):
-    path = f"{os.getcwd()}/../out"
+    path = file_util.create_out_dir(__file__)
     if not os.path.exists(path):
         os.mkdir(path)
     path = f"{path}/stations.json"
@@ -243,11 +247,10 @@ def get_stations() -> dict[str, str]:
 
     # 从 12306 查询所有站点信息
     url = 'https://kyfw.12306.cn/otn/resources/js/framework/station_name.js?station_version=1.9119'
-    response = requests.request(method="GET", url=url, verify=False)
-    pattern = u"([\u4e00-\u9fa5]+)\|([A-Z]+)"
-    # 结果映射到 map 中
-    pairs = re.findall(pattern=pattern, string=response.text)
-    response.close()
+    with requests.request(method="GET", url=url, verify=False) as r:
+        pattern = u"([\u4e00-\u9fa5]+)\|([A-Z]+)"
+        # 结果映射到 map 中
+        pairs = re.findall(pattern=pattern, string=r.text)
     stations: dict[str, str] = {}
     for k, v in pairs:
         stations[k] = v
@@ -259,11 +262,10 @@ def get_stations() -> dict[str, str]:
 def get_ticket_info(args: QueryArgs, stations: dict) -> (str, bool):
     # 通过访问url_init，存储cookie信息
     url_init = 'https://kyfw.12306.cn/otn/leftTicket/init'
-    response = requests.request(method="GET", url=url_init, verify=False)
-    print(f"init set-cookie: {response.headers['Set-Cookie']}")
-    session_id = response.cookies.__getitem__("JSESSIONID")
-    print(f"init session id: {session_id}")
-    response.close()
+    with requests.request(method="GET", url=url_init, verify=False) as r:
+        print(f"init set-cookie: {r.headers['Set-Cookie']}")
+        session_id = r.cookies.__getitem__("JSESSIONID")
+        print(f"init session id: {session_id}")
     # 开始查询车票信息，必须携带 JSESSIONID 否则请求失败
     # https://kyfw.12306.cn/otn/leftTicket/queryZ?leftTicketDTO.train_date=2023-04-15&leftTicketDTO.from_station=BJP&leftTicketDTO.to_station=TJP&purpose_codes=ADULT
     url_query = f"https://kyfw.12306.cn/otn/leftTicket/queryZ?" \
@@ -291,11 +293,10 @@ def get_ticket_info(args: QueryArgs, stations: dict) -> (str, bool):
                   f"_jc_save_fromDate={args.date_}"
     }
     # print(f"get_ticket_info() request header: {headers}")
-    response = requests.request(method="GET", url=url_query, verify=False, headers=headers)
-    print(f"get_ticket_info() response header: {response.headers}")
-    response.close()
-    # 解析返回的 json 数据
-    return response.text, response.headers.get("Content-Type").__contains__("/json")
+    with requests.request(method="GET", url=url_query, verify=False, headers=headers) as r:
+        print(f"get_ticket_info() response header: {r.headers}")
+        # 解析返回的 json 数据
+        return r.text, r.headers.get("Content-Type").find("/json") >= 0
 
 
 def pretty_text(text: str) -> str:

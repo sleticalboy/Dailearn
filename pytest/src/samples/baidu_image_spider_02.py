@@ -67,7 +67,7 @@ def get_images(keyword: str, total: int):
     # 分页标识，每次以 30 为等差数列
     page_num = 0
 
-    saver = img_util.ImageSaver(file_util.create_dir(f"{os.getcwd()}/../../out/images", __file__))
+    saver = img_util.ImageSaver(file_util.create_out_dir(__file__, 'images'))
     while page_num < total:
         parse_one_page(keyword, page_num, baiduid, saver)
         page_num = page_num + 30

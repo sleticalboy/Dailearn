@@ -27,7 +27,7 @@ def get_images(root_url: str):
     image_urls: list[str] = parse_image_urls(html)
     # 保存图片
     saver = img_util.ImageSaver(originals=image_urls,
-                                output_dir=file_util.create_dir(f"{os.getcwd()}/../../out/images", __file__))
+                                output_dir=file_util.create_out_dir(__file__, 'images'))
     saver.save()
 
 
