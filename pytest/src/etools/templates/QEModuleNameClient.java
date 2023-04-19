@@ -1,4 +1,4 @@
-package com.quvideo.mobile.component.{pkg};
+package com.quvideo.mobile.component.{pkg-name};
 
 import android.content.Context;
 import com.quvideo.mobile.component.common.AIConstants;
@@ -14,7 +14,7 @@ import com.quvideo.mobile.component.common._QModelManager;
  */
 public class QE{module-name}Client {
 
-  private static final String CUR_MODEL_REL_DIR = "image_restore";
+  private static final String CUR_MODEL_REL_DIR = "{lower-name}";
   private volatile static boolean isInit = false;
 
   public static synchronized void init(Context context) {
@@ -48,7 +48,6 @@ public class QE{module-name}Client {
   }
 
   public static int getAiType() {
-    // return AIConstants.AI_TYPE_IMAGE_RESTORE;
-    return {ai-type};
+    return AIConstants.AI_TYPE_{upper-name}/* {ai-type} */;
   }
 }

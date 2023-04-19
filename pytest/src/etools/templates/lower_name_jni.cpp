@@ -7,11 +7,11 @@
 #include "../../../../AlgoBase/commonAI/src/main/jni/XYAIStructExchange.h"
 #include "../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"
 
-#define TAG "{model-name}"
+#define TAG "{module-name}"
 
 {algo-nss}
 
-jobject Q{model-name}_Init(JNIEnv *env, jclass clazz, jstring model_path) {
+jobject Q{module-name}_Init(JNIEnv *env, jclass clazz, jstring model_path) {
   ScopedString path(env, model_path);
   ALOGD(TAG, "%s model path: %s", __func__, path.c_str())
 
@@ -25,14 +25,14 @@ jobject Q{model-name}_Init(JNIEnv *env, jclass clazz, jstring model_path) {
   return XYAIInitResultC2J(env, res, res == XYAI_NO_ERROR ? (long) ir : 0);
 }
 
-jint Q{model-name}_SetProp(JNIEnv *env, jclass clazz, jlong handle, jint key, jlong value) {
+jint Q{module-name}_SetProp(JNIEnv *env, jclass clazz, jlong handle, jint key, jlong value) {
   auto ir = ({itf-name} *) handle;
   int res =  ir->SetProp(key, (void *) value);
-  ALOGD(TAG, "%s, res: 0x%x", __func__, , res)
+  ALOGD(TAG, "%s, res: 0x%x", __func__, res)
   return res;
 }
 
-jint Q{model-name}_ForwardProcess(JNIEnv *env, jclass clazz, jlong handle) {
+jint Q{module-name}_ForwardProcess(JNIEnv *env, jclass clazz, jlong handle) {
   auto ir = ({itf-name} *) handle;
   FUNC_ENTER(__func__ , handle)
   int res = ir->ForwardProcess();
@@ -40,24 +40,24 @@ jint Q{model-name}_ForwardProcess(JNIEnv *env, jclass clazz, jlong handle) {
   return res;
 }
 
-jint Q{model-name}_GetProp(JNIEnv *env, jclass clazz, jlong handle, jint key, jlong value) {
+jint Q{module-name}_GetProp(JNIEnv *env, jclass clazz, jlong handle, jint key, jlong value) {
   auto ir = ({itf-name} *) handle;
   int res = ir->GetProp(key, (void *) value);
   ALOGD(TAG, "%s, res: 0x%x", __func__, res)
   return res;
 }
 
-jstring Q{model-name}_GetVersion(JNIEnv *env, jclass clazz) {
+jstring Q{module-name}_GetVersion(JNIEnv *env, jclass clazz) {
   auto ir = std::unique_ptr<{itf-name}>(new {itf-name}());
   return env->NewStringUTF(ir->GetAISDKVersion());
 }
 
-void Q{model-name}_Release(JNIEnv *env, jclass clazz, jlong handle) {
+void Q{module-name}_Release(JNIEnv *env, jclass clazz, jlong handle) {
   auto ir = ({itf-name} *) handle;
   ir->Release();
 }
 
-jint Q{model-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject input, jint width, jint height, jobject output) {
+jint Q{module-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject input, jint width, jint height, jobject output) {
   ALOGE(TAG, "%s enter", __func__)
   auto ir = ({itf-name} *) handle;
   auto frame = std::unique_ptr<XYAIFrameInfo>(AIFrameInfoJ2C(env, input));
@@ -83,20 +83,19 @@ jint Q{model-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject in
     AIFrameInfoC2J(env, &result, output);
   }
   ALOGE(TAG, "%s exit: %d", __func__, res)
-  dumpResult(result);
   return res;
 }
 
-JNINativeMethod g{model-name}Methods[] = {
-  {"nativeInit", "(Ljava/lang/String;)Lcom/quvideo/mobile/component/common/AIInitResult;", (void *) Q{model-name}_Init},
-  {"nativeSetProp", "(JIJ)I", (void *) Q{model-name}_SetProp},
-  {"nativeForwardProcess", "(J)I", (void *) Q{model-name}_ForwardProcess},
-  {"nativeGetProp", "(JIJ)I", (void *) Q{model-name}_GetProp},
-  {"nativeGetVersion", "()Ljava/lang/String;", (void *) Q{model-name}_GetVersion},
-  {"nativeRelease", "(J)V", (void *) Q{model-name}_Release},
+JNINativeMethod g{module-name}Methods[] = {
+  {"nativeInit", "(Ljava/lang/String;)Lcom/quvideo/mobile/component/common/AIInitResult;", (void *) Q{module-name}_Init},
+  {"nativeSetProp", "(JIJ)I", (void *) Q{module-name}_SetProp},
+  {"nativeForwardProcess", "(J)I", (void *) Q{module-name}_ForwardProcess},
+  {"nativeGetProp", "(JIJ)I", (void *) Q{module-name}_GetProp},
+  {"nativeGetVersion", "()Ljava/lang/String;", (void *) Q{module-name}_GetVersion},
+  {"nativeRelease", "(J)V", (void *) Q{module-name}_Release},
   {"nativeForward4J",
     "(JLcom/quvideo/mobile/component/common/AIFrameInfo;IILcom/quvideo/mobile/component/common/AIFrameInfo;)I",
-   (void *) Q{model-name}_Forward4J},
+   (void *) Q{module-name}_Forward4J},
 };
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {
@@ -105,8 +104,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
   if (res != JNI_OK || env == nullptr) {
     return JNI_ERR;
   }
-  jclass clazz = env->FindClass("com/quvideo/mobile/component/{pkg}/Q{model-name}");
-  env->RegisterNatives(clazz, g{model-name}Methods, sizeof(g{model-name}Methods) / sizeof(JNINativeMethod));
+  jclass clazz = env->FindClass("com/quvideo/mobile/component/{pkg-name}/Q{module-name}");
+  env->RegisterNatives(clazz, g{module-name}Methods, sizeof(g{module-name}Methods) / sizeof(JNINativeMethod));
   env->DeleteLocalRef(clazz);
   return JNI_VERSION_1_6;
 }
@@ -117,7 +116,7 @@ void JNI_OnUnload(JavaVM* vm, void* reserved) {
   if (res != JNI_OK || env == nullptr) {
     return;
   }
-  jclass clazz = env->FindClass("com/quvideo/mobile/component/{pkg}/Q{model-name}");
+  jclass clazz = env->FindClass("com/quvideo/mobile/component/{pkg-name}/Q{module-name}");
   env->UnregisterNatives(clazz);
   env->DeleteLocalRef(clazz);
 }

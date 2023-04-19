@@ -1,14 +1,8 @@
 import os
 import re
 import shutil
+import sys
 
-hints: list[str] = [
-    "算法库目录（绝对路径）：",
-    "算法接口类型，（普通（0）、统一接口（1）：",
-    "算法类型（正整数）：",
-    "算法组件根目录（绝对路径）：",
-    "算法组件名（多个单词时以空格分割）：",
-]
 jni_header_map = {
     '"XYAICommon.h"': '"../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"',
     '<XYAICommon.h>': '"../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"',
@@ -19,12 +13,12 @@ jni_header_map = {
     '"method_tracer.h"': '"../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"',
     '<method_tracer.h>': '"../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"',
 }
-tmplt_map = {
+replace_map = {
     '{imported-headers}': '头文件',
     '{module-name}': '算法模块名',
     '{algo-nss}': '算法命名空间',
     '{itf-name}': '算法统一接口名字',
-    '{pkg}': '包名',
+    '{pkg-name}': '包名',
     '{ai-type}': '算法类型',
     '{lower-name}': '大写_模块名',
     '{upper-name}': '小写_模块名',
@@ -73,7 +67,7 @@ def read_content(path: str) -> list[str]:
         return f.readlines()
 
 
-class RawDir:
+class AlgoSpec:
     """
     算法库目录，一般结构如下
     include：头文件
@@ -82,10 +76,11 @@ class RawDir:
     lib：库文件
     """
 
-    def __init__(self, root: str):
+    def __init__(self, root: str, ai_type: str):
         if not os.path.exists(root):
             print(f"'{root}' 不存在！")
             exit(1)
+        self.ai_type = ai_type
         # tree_dir(root, root)
         # 更新日志: [README.md, releasenote.txt]
         self.release_notes = find_file(root, suffixes=['.md', '.txt'])
@@ -109,79 +104,166 @@ class RawDir:
 
 
 class PrjGenerator:
-    def __init__(self, path: str, name: str):
+    def __init__(self, path: str, name: str, name_zh: str):
         self.path = path
-        self.name = name.title().replace(' ', '')
+        # 驼峰
+        self.module_name = name.title().replace(' ', '')
+        # java package name 规则
+        self.pkg_name = name.lower().replace(' ', '')
+        # 全_小写
         self.lower_name = name.lower().replace(' ', '_')
-        self.pkg = self.lower_name.replace('_', '')
+        # 全_大写
+        self.upper_name = name.upper().replace(' ', '_')
+        # 中文名
+        self.name_zh = name_zh
 
     def __str__(self):
-        return f"path: {self.path}\nname: {self.name}, pkg: {self.pkg}, lower: {self.lower_name}"
+        return f"path: {self.path}\nname: {self.module_name}, pkg: {self.pkg_name}, lower: {self.lower_name}"
 
-    def make(self, raw_dir: RawDir, ai_type: int):
-        # {self.path}/src/main/assets/engine/ai/{self.lower_name}/{model_files}
-        # {self.path}/src/main/java/com/quvideo/mobile/component/{java_files}
-        # {self.path}/src/main/AndroidManifest.xml
-        # {self.path}/src/main/jni/arm64-v8a/{.a}
-        # {self.path}/src/main/jni/armeabi-v7a/{.a}
-        # {self.path}/src/main/jni/{release_notes}
-        # {self.path}/src/main/jni/{header_files}
-        # {self.path}/src/main/jni/{self.lower_name}_jni.cpp
+    def make(self, algo_spec: AlgoSpec):
+        # 测试代码
+        # if os.path.exists(self.path):
+        #     shutil.rmtree(self.path)
+        # 模板路径，在工程目录下
+        tmplt = '/home/binlee/code/Dailearn/pytest/src/etools/templates'
 
-        if os.path.exists(self.path):
-            shutil.rmtree(self.path)
+        # {self.path}/.gitignore
+        with open(f"{self.path}/.gitignore", mode='w') as f:
+            f.writelines('build\n.cxx\nlibs/arm*\n')
 
-        tmplt = '/home/binlee/code/android/Dailearn/pytest/src/etools/templates'
+        # 清单文件
+        with open(f"{self.path}/src/main/AndroidManifest.xml", mode='w') as f:
+            f.write(f'<?xml version="1.0" encoding="utf-8"?>\n')
+            f.write(f'  <manifest package="com.quvideo.mobile.component.ai.{self.pkg_name}" />')
 
         # 模型文件
         assets_dir = f"{self.path}/src/main/assets/engine/ai/{self.lower_name}"
         os.makedirs(assets_dir)
-        for item in raw_dir.model_files:
+        for item in algo_spec.model_files:
             shutil.copyfile(item, assets_dir + '/' + os.path.basename(item), follow_symlinks=False)
 
+        # native 相关
+        self.__generate_native__(algo_spec, tmplt)
+
         # java 文件
-        java_dir = f"{self.path}/src/main/java/com/quvideo/mobile/component/{self.pkg}"
+        self.__generate_java__(algo_spec, tmplt)
+
+        # 以上都没有出错，修改 settings.gradle、config.gradle、upload-to-maven.sh
+        self.__modify_compile_scripts__()
+
+    def __generate_java__(self, algo_spec: AlgoSpec, tmplt: str):
+        # AIConstants.java 中定义了算法模块常量，这里更新一下算法类型
+        ai_constants = f'{os.path.dirname(self.path)}/AlgoBase/commonAI/src/main/java/' \
+                       f'com/quvideo/mobile/component/common/AIConstants.java'
+        if not os.path.exists(ai_constants):
+            print(f"'{ai_constants}' 不存在！", file=sys.stderr)
+            exit(1)
+        raw_lines = read_content(ai_constants)
+        with open(ai_constants, mode='w') as f:
+            for line in raw_lines:
+                if line.find('{module-name-zh}') >= 0:
+                    line = line.replace('{module-name-zh}', self.name_zh).replace('//', '')
+                    f.write(line)
+                else:
+                    write_placeholder = False
+                    if line.find('{upper-name}') >= 0:
+                        line = line.replace('{upper-name}', self.upper_name)
+                        write_placeholder = True
+                    if line.find('{ai-type}') >= 0:
+                        line = line.replace('{ai-type}', algo_spec.ai_type).replace('//', '')
+                        write_placeholder = True
+                    f.write(line)
+                    if write_placeholder:
+                        f.write('  ///** 算法类型-{module-name-zh} */\n')
+                        f.write('  //public static final int AI_TYPE_{upper-name} = {ai-type};\n')
+
+        # java 文件
+        java_dir = f"{self.path}/src/main/java/com/quvideo/mobile/component/{self.pkg_name}"
         os.makedirs(java_dir)
         # 根据模板生成对应的 java 文件，一般来讲有三个文件
         # AI{self.name}.java 提供给业务使用
         # QE{self.name}Client.java 提供给业务使用（组件内部也会使用）
         # Q{self.name}.java 提供给引擎使用
-        with open(java_dir + f'/Q{self.name}.java', mode='w') as f:
-            pass
-        with open(java_dir + f'/QE{self.name}.java', mode='w') as f:
-            pass
-        with open(java_dir + f'/AI{self.name}.java', mode='w') as f:
-            pass
+        with open(java_dir + f'/Q{self.module_name}.java', mode='w') as f:
+            for line in read_content(tmplt + '/QModuleName.java'):
+                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
+                if line.find('{pkg-name}') >= 0:
+                    line = line.replace('{pkg-name}', self.pkg_name)
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                f.write(line)
+        with open(java_dir + f'/QE{self.module_name}Client.java', mode='w') as f:
+            for line in read_content(tmplt + '/QEModuleNameClient.java'):
+                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
+                if line.find('{pkg-name}') >= 0:
+                    line = line.replace('{pkg-name}', self.pkg_name)
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                if line.find('{lower-name}') >= 0:
+                    line = line.replace('{lower-name}', self.lower_name)
+                if line.find('{upper-name}') >= 0:
+                    line = line.replace('{upper-name}', self.upper_name)
+                if line.find('{ai-type}') >= 0:
+                    line = line.replace('{ai-type}', algo_spec.ai_type)
+                f.write(line)
+        with open(java_dir + f'/AI{self.module_name}.java', mode='w') as f:
+            for line in read_content(tmplt + '/AIModuleName.java'):
+                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
+                if line.find('{pkg-name}') >= 0:
+                    line = line.replace('{pkg-name}', self.pkg_name)
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                f.write(line)
 
-        # 清单文件
-        with open(f"{self.path}/src/main/AndroidManifest.xml", mode='w') as f:
-            f.write(f'<?xml version="1.0" encoding="utf-8"?>\n')
-            f.write(f'  <manifest package="com.quvideo.mobile.component.ai.{self.pkg}" />')
+        # 混淆规则
+        with open(f"{self.path}/consumer-rules.pro", mode='w') as f:
+            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg_name}.** " + "{*;}")
+        with open(f"{self.path}/proguard-rules.pro", mode='w') as f:
+            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg_name}.** " + "{*;}")
 
+        # {self.path}/build.gradle
+        with open(f"{self.path}/build.gradle", mode='w') as f:
+            # 通过模板读取
+            for line in read_content(tmplt + '/build.gradle'):
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                if line.find('{upper-name}') >= 0:
+                    line = line.replace('{upper-name}', self.upper_name)
+                if line.find('{ai-type}') >= 0:
+                    line = line.replace('{ai-type}', algo_spec.ai_type)
+                f.write(line)
+
+    def __generate_native__(self, algo_spec: AlgoSpec, tmplt: str):
         # jni 相关
         jni_dir = f"{self.path}/src/main/jni"
         os.makedirs(jni_dir)
+
         # 升级日志
-        if len(raw_dir.release_notes) > 0:
-            with open(jni_dir + '/' + os.path.basename(raw_dir.release_notes[0]), mode='w') as f:
-                f.writelines(read_content(raw_dir.release_notes[0]))
+        if len(algo_spec.release_notes) > 0:
+            with open(jni_dir + '/' + os.path.basename(algo_spec.release_notes[0]), mode='w') as f:
+                f.writelines(read_content(algo_spec.release_notes[0]))
+
         # 库文件 ['arm64-v8a', 'arm32-v8a', 'armeabi-v7a']
         v8a_dir = f"{jni_dir}/arm64-v8a"
         os.makedirs(v8a_dir)
         v7a_dir = f"{jni_dir}/armeabi-v7a"
         os.makedirs(v7a_dir)
-        for item in raw_dir.library_files:
+        libraries: list[str] = []
+        for item in algo_spec.library_files:
+            lib_name: str = os.path.basename(item)
+            if lib_name not in libraries:
+                libraries.append(lib_name.replace('lib', '').replace('.a', ''))
             shutil.copyfile(src=item,
                             dst=(v8a_dir if item.find('arm64') >= 0 else v7a_dir) + '/' + os.path.basename(item),
                             follow_symlinks=False)
-        # 头文件
-        # 顺便分析文件内容: 文件名、统一接口名、命名空间
+
+        # 拷贝头文件时顺便分析文件内容: 文件名、统一接口名、命名空间
         headers: list[str] = []
         itf_pattern = re.compile(r'class XYAI_PUBLIC (.+?) : public XYAISDK::AlgBase \{')
         itf_name = ''
         ns_pattern = re.compile(r"namespace (.+?) \{")
         algo_nss: set[str] = set()
-        for item in raw_dir.header_files:
+        for item in algo_spec.header_files:
             # 记录文件名
             headers.append(f'#include "{os.path.basename(item)}"')
             with open(jni_dir + '/' + os.path.basename(item), 'w') as f:
@@ -202,9 +284,8 @@ class PrjGenerator:
                                 line = line.replace(k, v)
                                 break
                     f.write(line)
-        # jni 实现
+        # jni 实现，通过模板生成 cpp 文件
         with open(f"{jni_dir}/{self.lower_name}_jni.cpp", mode='w') as f:
-            # 通过模板读取
             for line in read_content(tmplt + '/lower_name_jni.cpp'):
                 if line.find('{imported-headers}') >= 0:
                     # 从 header 中解析出来
@@ -216,92 +297,150 @@ class PrjGenerator:
                     # 从 header 中解析出来
                     line = line.replace('{itf-name}', itf_name)
                 elif line.find('{ai-type}') >= 0:
-                    line = line.replace('{ai-type}', str(ai_type))
+                    line = line.replace('{ai-type}', algo_spec.ai_type)
                 else:
-                    # '{module-name}' 和 '{pkg}' 可能出现在同一行
+                    # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
+                    if line.find('{pkg-name}') >= 0:
+                        line = line.replace('{pkg-name}', self.pkg_name)
                     if line.find('{module-name}') >= 0:
-                        line = line.replace('{module-name}', self.name)
-                    if line.find('{pkg}') >= 0:
-                        line = line.replace('{pkg}', self.pkg)
+                        line = line.replace('{module-name}', self.module_name)
                 f.write(line)
-
-        # {self.path}/.gitignore
-        with open(f"{self.path}/.gitignore", mode='w') as f:
-            f.writelines('build\n.cxx\nlibs/arm*\n')
-
-        # {self.path}/build.gradle
-        with open(f"{self.path}/build.gradle", mode='w') as f:
-            # 通过模板读取
-            pass
 
         # {self.path}/CMakeLists.txt
         with open(f"{self.path}/CMakeLists.txt", mode='w') as f:
             # 通过模板读取
-            pass
+            for line in read_content(tmplt + '/CMakeLists.txt'):
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                if line.find('{lower-name}') >= 0:
+                    line = line.replace('{lower-name}', self.lower_name)
+                if line.find('{algo-lib-name}') >= 0:
+                    line = line.replace('{algo-lib-name}', libraries[0])
+                f.write(line)
 
-        # 混淆规则
-        with open(f"{self.path}/consumer-rules.pro", mode='w') as f:
-            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg}.** " + "{*;}")
-        with open(f"{self.path}/proguard-rules.pro", mode='w') as f:
-            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg}.** " + "{*;}")
+    def __modify_compile_scripts__(self):
+        # 修改 settings.gradle、config.gradle、upload-to-maven.sh
+        settings: str = os.path.dirname(os.path.dirname(self.path)) + '/settings.gradle'
+        if not os.path.exists(settings):
+            print(f"'{settings}' 不存在！")
+            exit(1)
+        raw_lines = read_content(settings)
+        with open(settings, mode='w') as f:
+            for line in raw_lines:
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', os.path.basename(self.path)).replace('//', '')
+                    line = line[:line.find(' /* ')]
+                    f.write(line)
+                    f.write("\n//include ':Component-AI:{module-name}' /* 这一行是模板占位符，不要删除！！*/\n")
+                else:
+                    f.write(line)
+        # config.gradle upload-to-maven.sh
+        config: str = os.path.dirname(os.path.dirname(self.path)) + '/config.gradle'
+        if not os.path.exists(config):
+            print(f"'{config}' 不存在！")
+            exit(1)
+        raw_lines = read_content(config)
+        with open(config, mode='w') as f:
+            for line in raw_lines:
+                if line.find('{module-name-zh}') >= 0:
+                    line = line.replace('{module-name-zh}', self.name_zh)
+                    f.write(line)
+                elif line.find('{module-name}') >= 0:
+                    left = line.find('{module-name}')
+                    right = line.rfind('{module-name}')
+
+                    line = line.replace('{module-name}', self.module_name).replace('//', '')
+                    f.write(line)
+
+                    if left == right:
+                        f.write('    //lib{module-name},\n')
+                    else:
+                        f.write("  // {module-name-zh}\n")
+                        f.write("  //lib{module-name} = [artifact: '{module-name}AI',"
+                                " module: ':Component-AI:{module-name}AI']\n")
+                else:
+                    f.write(line)
+
+        compile_script: str = os.path.dirname(os.path.dirname(self.path)) + '/upload-to-maven.sh'
+        if not os.path.exists(compile_script):
+            print(f"'{compile_script}' 不存在！")
+            exit(1)
+        raw_lines = read_content(compile_script)
+        new_lines: list[str] = []
+        for index in range(len(raw_lines)):
+            line = raw_lines[index]
+            if line.find('{module-name}') >= 0:
+                # 先处理上面一行，使用 pop() 方法删除上一个元素，处理之后再追加
+                prev_line = new_lines.pop().replace('\n', '')
+                new_lines.append(prev_line + ' \\\n')
+                # 处理这一行
+                line = line.replace('{module-name}', self.module_name).replace('#', '')
+                new_lines.append(line[:line.find(' \\ /*')] + '\n')
+                # 追加后面的
+                new_lines.append('    #:Component-AI:{module-name}:"$task" \\ /* 这一行是模板占位符，不要删除！！*/\n')
+            else:
+                new_lines.append(line)
+        with open(compile_script, mode='w') as f:
+            for line in new_lines:
+                f.write(line)
 
 
 class ModuleSpec:
-    def __init__(self, root: str, name: str):
+    def __init__(self, root: str, name: str, name_zh: str):
         parent = os.path.dirname(root)
         if not os.path.exists(parent):
             print(f"'{parent}' 不存在！")
             exit(1)
 
         module_dir = f"{root}/Component-AI/{name.title().replace(' ', '')}AI"
-        self.__generator = PrjGenerator(module_dir, name)
+        self.__generator = PrjGenerator(module_dir, name, name_zh)
 
     def __str__(self):
         return self.__generator.__str__()
 
-    def generate(self, raw_dir: RawDir, ai_type: int):
-        self.__generator.make(raw_dir, ai_type)
+    def generate(self, raw_dir: AlgoSpec):
+        self.__generator.make(raw_dir)
 
 
-class Algo:
-    raw_dir: RawDir
-    itf_type: int = 0
-    ai_type: int = -1
+class GenerateTask:
+    algo: AlgoSpec
     module: ModuleSpec
 
-    def __init__(self, algo_dir: str = '', itf_type: int = 0, ai_type: int = -1, module_dir: str = '',
-                 module_name: str = ''):
-        self.raw_dir = RawDir(algo_dir)
-        self.itf_type = itf_type
-        self.ai_type = ai_type
-        self.module = ModuleSpec(module_dir, module_name)
+    def __init__(self, algo_dir: str = '', ai_type: str = '', module_dir: str = '',
+                 module_name: str = '', module_name_zh: str = ''):
+        self.algo = AlgoSpec(algo_dir, ai_type)
+        self.module = ModuleSpec(module_dir, module_name, module_name_zh)
 
     def create_module(self):
-        self.module.generate(self.raw_dir, self.ai_type)
-
-    def __str__(self):
-        formatter = "算法目录：{}\n接口类型：{}接口\n算法类型：{}\nmodule {}"
-        return formatter.format(self.raw_dir, "普通" if self.itf_type == 0 else "统一", self.ai_type, self.module)
+        self.module.generate(self.algo)
 
 
 def usage():
+    menus: list[str] = [
+        "算法库目录（绝对路径）：/home/binlee/code/XYAlgLibs/AutoCrop-component/ImageRestore（这里是画质修复算法库）",
+        "算法类型（正整数且不能与现有算法类型重复）：24（请与 iOS 协商好）",
+        "算法组件根目录（绝对路径）：/home/binlee/code/QuVideoEngineAI",
+        "算法组件名（多个单词时以空格分割）：image restore v2（程序内部会处理成首字母大写、剔除空格、驼峰命名等）",
+        "算法组件名（中文）：画质修复 v2（用于生成代码注释）",
+    ]
     print("=====================菜单=====================")
-    for hint in hints:
-        print(hint)
+    print("示例：")
+    for item in menus:
+        print(item)
     print("=====================菜单=====================")
 
 
 if __name__ == '__main__':
     usage()
 
-    # a = Algo(input("算法库目录（绝对路径）："),
-    #          int(input("算法接口类型，（普通（0）、统一接口（1）：")),
+    # task = Algo(input("算法库目录（绝对路径）："),
     #          int(input("算法类型（正整数）：")),
-    #          input("算法组件工程目录（绝对路径）："),
-    #          input("算法组件名（多个单词时以空格分割）：").lower())
-    a = Algo(algo_dir='/home/binlee/code/quvideo/XYAlgLibs/AutoCrop-component/ImageRestore',
-             itf_type=0,
-             ai_type=200,
-             module_dir='/home/binlee/code/android/Dailearn/pytest/out',
-             module_name='image restore test'.lower())
-    a.create_module()
+    #          input("算法组件根目录（绝对路径）："),
+    #          input("算法组件名（多个单词时以空格分割）：").lower(),
+    #          input("算法组件名（中文）：").lower())
+    task = GenerateTask(algo_dir='/home/binlee/code/open-source/quvideo/XYAlgLibs/AutoCrop-component/ImageRestore',
+                        ai_type='24',
+                        module_dir='/home/binlee/code/open-source/quvideo/QuVideoEngineAI',
+                        module_name='image restore v2'.lower(),
+                        module_name_zh='画质修复 v2')
+    # task.create_module()

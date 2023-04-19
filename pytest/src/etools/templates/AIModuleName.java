@@ -1,4 +1,4 @@
-package com.quvideo.mobile.component.{pkg};
+package com.quvideo.mobile.component.{pkg-name};
 
 import android.graphics.Bitmap;
 import com.quvideo.mobile.component.common.AIFrameInfo;

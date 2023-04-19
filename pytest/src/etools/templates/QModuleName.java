@@ -1,4 +1,4 @@
-package com.quvideo.mobile.component.{pkg};
+package com.quvideo.mobile.component.{pkg-name};
 
 import com.quvideo.mobile.component.common.AIFrameInfo;
 import com.quvideo.mobile.component.common.AIInitResult;
