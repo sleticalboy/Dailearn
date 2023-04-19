@@ -35,30 +35,35 @@ def tree_dir(path: str, trim: str = '', level: int = 0):
             tree_dir(path + '/' + child, trim, level + 1)
 
 
-def __find_files__(path: str, output: list[str], suffix: str):
+def get_suffix(path: str) -> str:
+    index = path.rfind('.')
+    if index >= 0:
+        return path[index:]
+    return ''
+
+
+def __find_files__(path: str, output: list[str], suffixes: list[str]):
     if os.path.isfile(path):
-        if path.find(suffix) >= 0:
+        if get_suffix(path) in suffixes:
             output.append(path)
     elif os.path.isdir(path):
         for child in os.listdir(path):
-            __find_files__(path + '/' + child, output, suffix)
+            __find_files__(path + '/' + child, output, suffixes)
 
 
 def find_file(root: str, sub_dirs: list[str] = None, suffixes: list[str] = None) -> list[str]:
     files: list[str] = []
     if sub_dirs and len(sub_dirs) > 0:
         for sub_dir in sub_dirs:
-            path = f"{root}/{sub_dir}"
+            path = root + '/' + sub_dir
             if os.path.exists(path):
                 if suffixes and len(suffixes) > 0:
-                    for suffix in suffixes:
-                        __find_files__(path, files, suffix)
+                    __find_files__(path, files, suffixes)
                 else:
                     files.append(path)
     else:
         if suffixes and len(suffixes) > 0:
-            for suffix in suffixes:
-                __find_files__(root, files, suffix)
+            __find_files__(root, files, suffixes)
     return files
 
 
@@ -78,7 +83,7 @@ class AlgoSpec:
 
     def __init__(self, root: str, ai_type: str):
         if not os.path.exists(root):
-            print(f"'{root}' 不存在！")
+            print(f"'{root}' 不存在！", file=sys.stderr)
             exit(1)
         self.ai_type = ai_type
         # tree_dir(root, root)
@@ -185,7 +190,7 @@ class PrjGenerator:
         # QE{self.name}Client.java 提供给业务使用（组件内部也会使用）
         # Q{self.name}.java 提供给引擎使用
         with open(java_dir + f'/Q{self.module_name}.java', mode='w') as f:
-            for line in read_content(tmplt + '/QModuleName.java'):
+            for line in read_content(tmplt + '/QModuleName.java.tmplt'):
                 # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
                 if line.find('{pkg-name}') >= 0:
                     line = line.replace('{pkg-name}', self.pkg_name)
@@ -193,7 +198,7 @@ class PrjGenerator:
                     line = line.replace('{module-name}', self.module_name)
                 f.write(line)
         with open(java_dir + f'/QE{self.module_name}Client.java', mode='w') as f:
-            for line in read_content(tmplt + '/QEModuleNameClient.java'):
+            for line in read_content(tmplt + '/QEModuleNameClient.java.tmplt'):
                 # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
                 if line.find('{pkg-name}') >= 0:
                     line = line.replace('{pkg-name}', self.pkg_name)
@@ -207,7 +212,7 @@ class PrjGenerator:
                     line = line.replace('{ai-type}', algo_spec.ai_type)
                 f.write(line)
         with open(java_dir + f'/AI{self.module_name}.java', mode='w') as f:
-            for line in read_content(tmplt + '/AIModuleName.java'):
+            for line in read_content(tmplt + '/AIModuleName.java.tmplt'):
                 # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
                 if line.find('{pkg-name}') >= 0:
                     line = line.replace('{pkg-name}', self.pkg_name)
@@ -221,10 +226,10 @@ class PrjGenerator:
         with open(f"{self.path}/proguard-rules.pro", mode='w') as f:
             f.write(f"-keep class com.quvideo.mobile.component.{self.pkg_name}.** " + "{*;}")
 
-        # {self.path}/build.gradle
-        with open(f"{self.path}/build.gradle", mode='w') as f:
+        # {self.path}/build.gradle.tmplt
+        with open(f"{self.path}/build.gradle.tmplt", mode='w') as f:
             # 通过模板读取
-            for line in read_content(tmplt + '/build.gradle'):
+            for line in read_content(tmplt + '/build.gradle.tmplt'):
                 if line.find('{module-name}') >= 0:
                     line = line.replace('{module-name}', self.module_name)
                 if line.find('{upper-name}') >= 0:
@@ -286,7 +291,8 @@ class PrjGenerator:
                     f.write(line)
         # jni 实现，通过模板生成 cpp 文件
         with open(f"{jni_dir}/{self.lower_name}_jni.cpp", mode='w') as f:
-            for line in read_content(tmplt + '/lower_name_jni.cpp'):
+            # 模板要根据算法接口类型来选择
+            for line in read_content(tmplt + '/lower_name_jni_0.cpp.tmplt'):
                 if line.find('{imported-headers}') >= 0:
                     # 从 header 中解析出来
                     line = line.replace('{imported-headers}', '\n'.join(headers))
@@ -306,10 +312,10 @@ class PrjGenerator:
                         line = line.replace('{module-name}', self.module_name)
                 f.write(line)
 
-        # {self.path}/CMakeLists.txt
-        with open(f"{self.path}/CMakeLists.txt", mode='w') as f:
+        # {self.path}/CMakeLists.txt.tmplt
+        with open(f"{self.path}/CMakeLists.txt.tmplt", mode='w') as f:
             # 通过模板读取
-            for line in read_content(tmplt + '/CMakeLists.txt'):
+            for line in read_content(tmplt + '/CMakeLists.txt.tmplt'):
                 if line.find('{module-name}') >= 0:
                     line = line.replace('{module-name}', self.module_name)
                 if line.find('{lower-name}') >= 0:
@@ -406,10 +412,10 @@ class GenerateTask:
     algo: AlgoSpec
     module: ModuleSpec
 
-    def __init__(self, algo_dir: str = '', ai_type: str = '', module_dir: str = '',
+    def __init__(self, algo_dir: str = '', ai_type: str = '', algo_root: str = '',
                  module_name: str = '', module_name_zh: str = ''):
         self.algo = AlgoSpec(algo_dir, ai_type)
-        self.module = ModuleSpec(module_dir, module_name, module_name_zh)
+        self.module = ModuleSpec(algo_root, module_name, module_name_zh)
 
     def create_module(self):
         self.module.generate(self.algo)
@@ -417,9 +423,10 @@ class GenerateTask:
 
 def usage():
     menus: list[str] = [
+        '操作类型（a 新增算法组件，u 更新算法组件）：a（这里是新增）',
         "算法库目录（绝对路径）：/home/binlee/code/XYAlgLibs/AutoCrop-component/ImageRestore（这里是画质修复算法库）",
+        "## 如果是更新库，下面的操作都不需要了",
         "算法类型（正整数且不能与现有算法类型重复）：24（请与 iOS 协商好）",
-        "算法组件根目录（绝对路径）：/home/binlee/code/QuVideoEngineAI",
         "算法组件名（多个单词时以空格分割）：image restore v2（程序内部会处理成首字母大写、剔除空格、驼峰命名等）",
         "算法组件名（中文）：画质修复 v2（用于生成代码注释）",
     ]
@@ -433,14 +440,20 @@ def usage():
 if __name__ == '__main__':
     usage()
 
-    # task = Algo(input("算法库目录（绝对路径）："),
-    #          int(input("算法类型（正整数）：")),
-    #          input("算法组件根目录（绝对路径）："),
-    #          input("算法组件名（多个单词时以空格分割）：").lower(),
-    #          input("算法组件名（中文）：").lower())
+    prj_root = os.path.dirname(__file__)
+    if not os.path.exists(prj_root + '/Component-AI'):
+        # 脚本必须在算法工程根目录执行
+        print(f"脚本必须在算法工程根目录执行！当前：'{prj_root}'", file=sys.stderr, flush=True)
+        exit(1)
+
+    # task = GenerateTask(input("操作类型（a 新增算法组件，u 更新算法组件）："),
+    #                     input("算法库目录（绝对路径）："),
+    #                     input("算法类型（正整数）："),
+    #                     input("算法组件名（多个单词时以空格分割）：").lower(),
+    #                     input("算法组件名（中文）：").lower())
     task = GenerateTask(algo_dir='/home/binlee/code/open-source/quvideo/XYAlgLibs/AutoCrop-component/ImageRestore',
                         ai_type='24',
-                        module_dir='/home/binlee/code/open-source/quvideo/QuVideoEngineAI',
+                        algo_root=prj_root,
                         module_name='image restore v2'.lower(),
                         module_name_zh='画质修复 v2')
     # task.create_module()
