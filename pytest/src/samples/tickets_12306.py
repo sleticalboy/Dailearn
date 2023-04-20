@@ -248,9 +248,8 @@ def get_stations() -> dict[str, str]:
     # 从 12306 查询所有站点信息
     url = 'https://kyfw.12306.cn/otn/resources/js/framework/station_name.js?station_version=1.9119'
     with requests.request(method="GET", url=url, verify=False) as r:
-        pattern = u"([\u4e00-\u9fa5]+)\|([A-Z]+)"
         # 结果映射到 map 中
-        pairs = re.findall(pattern=pattern, string=r.text)
+        pairs = re.compile(r"([\u4e00-\u9fa5]+)\|([A-Z]+)").findall(r.text)
     stations: dict[str, str] = {}
     for k, v in pairs:
         stations[k] = v

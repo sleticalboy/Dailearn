@@ -42,5 +42,5 @@ public final class Q{module-name} extends QAIBase {
 
   public static native void nativeRelease(long handle);
 
-  public static native int nativeForward4J(long handle, AIFrameInfo input, int width, int height, AIFrameInfo output);
+  public static native int nativeForward4J(long handle, AIFrameInfo input,/* int width, int height, */AIFrameInfo output);
 }

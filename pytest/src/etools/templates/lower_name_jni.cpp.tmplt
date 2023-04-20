@@ -57,7 +57,7 @@ void Q{module-name}_Release(JNIEnv *env, jclass clazz, jlong handle) {
   ir->Release();
 }
 
-jint Q{module-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject input, jint width, jint height, jobject output) {
+jint Q{module-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject input,/* jint width, jint height, */jobject output) {
   ALOGE(TAG, "%s enter", __func__)
   auto ir = ({itf-name} *) handle;
   auto frame = std::unique_ptr<XYAIFrameInfo>(AIFrameInfoJ2C(env, input));
@@ -65,11 +65,11 @@ jint Q{module-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject i
   int res = ir->SetProp(RESTORE_INPUT_IMG, frame.get());
   ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_INPUT_IMG) failed: 0x%x", res)
 
-  ALOGE(TAG, "%s expected w: %d, h: %d, fmt: %d", __func__, width, height, frame->format)
-  res = ir->SetProp(RESTORE_EXPECTED_WID, &width);
-  ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_WID) failed: 0x%x", res)
-  res = ir->SetProp(RESTORE_EXPECTED_HEI, &height);
-  ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_HEI) failed: 0x%x", res)
+  //ALOGE(TAG, "%s expected w: %d, h: %d, fmt: %d", __func__, width, height, frame->format)
+  //res = ir->SetProp(RESTORE_EXPECTED_WID, &width);
+  //ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_WID) failed: 0x%x", res)
+  //res = ir->SetProp(RESTORE_EXPECTED_HEI, &height);
+  //ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_HEI) failed: 0x%x", res)
 
   res = ir->SetProp(RESTORE_EXPECTED_FMT, &frame->format);
   ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_FMT) failed: 0x%x", res)
@@ -94,7 +94,7 @@ JNINativeMethod g{module-name}Methods[] = {
   {"nativeGetVersion", "()Ljava/lang/String;", (void *) Q{module-name}_GetVersion},
   {"nativeRelease", "(J)V", (void *) Q{module-name}_Release},
   {"nativeForward4J",
-    "(JLcom/quvideo/mobile/component/common/AIFrameInfo;IILcom/quvideo/mobile/component/common/AIFrameInfo;)I",
+    "(JLcom/quvideo/mobile/component/common/AIFrameInfo;Lcom/quvideo/mobile/component/common/AIFrameInfo;)I",
    (void *) Q{module-name}_Forward4J},
 };
 
