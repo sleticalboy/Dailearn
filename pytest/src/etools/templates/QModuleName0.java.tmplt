@@ -18,33 +18,8 @@ public class Q{module-name} extends QAIBase {
   }
 
   @Override protected AIInitResult create(InitArgs args) {
-    return XYAICreateHandler(args.modelPath);
+    return {init-method}(args.modelPath);
   }
 
-  /*
-   * 功能描述：创建节拍点检测句柄
-   * 参数说明：
-   * @modelPath[in] -> 模型目录
-   * 返回值：节拍点检测句柄
-   */
-  public static native AIInitResult XYAICreateHandler(String modelPath);
-
-  /*
-   * 功能描述：释放节拍点句柄
-   * 参数说明：如上描述shotHandle
-   * 返回值：无返回值
-   */
-  public static native void XYAIReleaseHandler(long handle);
-
-  /*
-   * 功能描述：从buffer获取节拍点信息
-   * 参数说明：
-   * @handle[in]	 -> 节拍点检测句柄
-   * @wavs[in]		 -> 输入的音频数据
-   * @length[in]   -> 音频数据长度
-   * 返回值：节拍点检测信息
-   */
-  public static native int RunBeatDetectionFromBuffer(long handle, float[] wavs, int length, BeatInfo out);
-
-  public static native int RunBeatDetectionFromBuffer4C(long handle, long pWav, int length, long pBeat, long pDownBeat, long beatSize);
+  {native-methods}
 }
