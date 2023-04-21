@@ -6,22 +6,6 @@ import shutil
 import sys
 import time
 
-replace_map = {
-    '{imported-headers}': '头文件',
-    '{module-name}': '算法模块名',
-    '{algo-nss}': '算法命名空间',
-    '{itf-name}': '算法统一接口名字',
-    '{pkg-name}': '包名',
-    '{ai-type}': '算法类型',
-    '{lower-name}': '大写_模块名',
-    '{upper-name}': '小写_模块名',
-    '{algo-lib-name}': '算法静态库名，去掉前缀和后缀',
-    '{native-methods}': 'java 层定义的 native 方法',
-    '{jni-methods}': 'cpp 中要实现的在 java 层定义的 native 方法',
-    '{jni-register-methods}': 'jni 注册方法数组',
-    '{init-method}': '算法初始化方法，返回值比较特殊 AIInitResult',
-}
-
 
 class Types:
     def __init__(self):
@@ -33,10 +17,10 @@ types_map = {
     'int': 'jint I',
     'XYAIImageFormat': 'jint I',
     'XYInt32': 'jint I',
+    'float': 'jfloat F',
     'XYFloat': 'jfloat F',
     'XYDouble': 'jdouble D',
     'XYHandle': 'jlong J',
-    'XYHandle*': 'jlong J',
     'XYLong': 'jlong J',
     'XYBool': 'jboolean Z',
     'XYChar': 'jchar C',
@@ -45,14 +29,13 @@ types_map = {
     'XYVoid': 'void V',
     'XYChar*': 'jstring Ljava/lang/String;',
     'XYString': 'jstring Ljava/lang/String;',
-    'std::vector<float>': 'jobject Ljava/util/ArrayList; F',
+    'std::vector<float>': 'jobject Ljava/util/ArrayList;',
     'XYAIFrameInfo': 'jobject Lcom/quvideo/mobile/component/common/AIFrameInfo;',
-    'XYAIFrameInfo*': 'jobject Lcom/quvideo/mobile/component/common/AIFrameInfo;',
     'XYAIRect': 'jobject Lcom/quvideo/mobile/component/common/AIRectF;',
     'XYAIRectf': 'jobject Lcom/quvideo/mobile/component/common/AIRectF;',
     'XYAIPoint': 'jobject Lcom/quvideo/mobile/component/common/AIPoint;',
     'XYAIPointf': 'jobject Lcom/quvideo/mobile/component/common/AIPointF;',
-    'Init': 'jobject Lcom/quvideo/mobile/component/common/AIInitResult;',
+    'InitResult': 'jobject Lcom/quvideo/mobile/component/common/AIInitResult;',
     # c 中定义的枚举和结构体可以在这里根据代码动态添加
 }
 
@@ -116,13 +99,20 @@ class Struct:
             if kv:
                 self.fields.append(kv)
 
+    def is_init_method(self) -> bool:
+        ms = self.name.lower()
+        return ms.find('init') >= 0 or ms.find('create') >= 0
+
     def gen_signature(self, pkg_name: str = None):
-        if self.rtype != '':
+        def _sigof(pt: str) -> str:
+            return types_map[pt if pt in types_map else pt.replace('*', '')].split()[1]
+
+        if self.stype == StructType.METHOD:
             print(f'{self.rtype} {self.name} {self.fields}')
             signature = '('
-            for p in self.fields:
-                signature += types_map[p.replace('const', '').strip().split()[0]].split()[1]
-            signature += ')' + types_map[self.rtype].split()[1]
+            for f in (self.fields[1:] if self.is_init_method() else self.fields):
+                signature += _sigof(f.replace('const', '').strip().split()[0])
+            signature += ')' + types_map['InitResult' if self.is_init_method() else self.rtype].split()[1]
             print(f'signature: {signature}\n')
             return signature
         # 结构体签名，转成 java
@@ -131,9 +121,9 @@ class Struct:
 
 class AlgoStructs:
     def __init__(self, stype: StructType):
-        self.stype = stype
+        self.__stype = stype
         self.__structs = list[Struct]()
-        self.raw_data = list[str]()
+        self.__init_method = ''
 
     def __iter__(self):
         return iter(self.__structs)
@@ -142,22 +132,17 @@ class AlgoStructs:
         return len(self.__structs)
 
     def add(self, raw: str) -> Struct:
-        self.raw_data.append(raw)
-        s = Struct(raw, self.stype)
+        s = Struct(raw, self.__stype)
         self.__structs.append(s)
+        if s.is_init_method():
+            self.__init_method = s.name
         return s
 
-
-def tree_dir(path: str, trim: str = '', level: int = 0):
-    if os.path.isfile(path):
-        print('  ' * level + os.path.basename(path))
-    else:
-        print('  ' * level + os.path.basename(path))
-        for child in os.listdir(path):
-            tree_dir(path + '/' + child, trim, level + 1)
+    def get_init_method(self) -> str:
+        return self.__init_method
 
 
-def get_suffix(path: str) -> str:
+def get_file_ext(path: str) -> str:
     index = path.rfind('.')
     if index >= 0:
         return path[index:]
@@ -166,7 +151,7 @@ def get_suffix(path: str) -> str:
 
 def __find_files__(path: str, output: list[str], suffixes: list[str]):
     if os.path.isfile(path):
-        if get_suffix(path) in suffixes:
+        if get_file_ext(path) in suffixes:
             output.append(path)
     elif os.path.isdir(path):
         for child in os.listdir(path):
@@ -253,50 +238,26 @@ class AlgoSpec:
         if not os.path.exists(root):
             print(f"'{root}' 不存在！", file=sys.stderr)
             exit(1)
+
         self.ai_type = ai_type
-        # tree_dir(root, root)
         # 更新日志: [README.md, releasenote.txt]
         self.release_notes = find_file(root, suffixes=['.md', '.txt'])
-        print(f"release notes: {len(self.release_notes)}")
+        # print(f"release notes: {self.release_notes}")
 
         # 库文件: lib/[android, Android]/[arm64-v8a, arm32-v8a, armeabi-v7a]/*.a
         self.library_files = find_file(root + "/lib", ['android', 'Android'], suffixes=['.a'])
-        print(f"libraries: {len(self.library_files)}")
+        # print(f"libraries: {self.library_files}")
 
         # 头文件：include/*.h
         self.header_files = find_file(root + '/include', suffixes=['.h'])
-        print(f"headers: {len(self.header_files)}")
+        # print(f"headers: {self.header_files}")
 
         # 模型文件：model/**/[*.json, *.xymodel]
         self.model_files = find_file(root + '/model', suffixes=['.json', '.xymodel'])
-        print(f"models: {len(self.model_files)}")
+        # print(f"models: {self.model_files}")
 
-    def __str__(self):
-        formatter = "release notes:{}\nlibraries:{}接口\nheaders:{}\nmodels:{}"
-        return formatter.format(self.release_notes, self.library_files, self.header_files, self.model_files)
-
-
-class ModuleGenerator:
-    def __init__(self, root: str, name: str, name_zh: str):
-        self.prj_root = root
-        # 驼峰
-        self.module_name = name.title().replace(' ', '')
-        # module path
-        self.path = f"{root}/Component-AI/{self.module_name}AI"
-        # 模板路径，在工程目录下
-        self.tmplt = root + '/templates'
-        # jni 相关
-        self.jni_dir = f"{self.path}/src/main/jni"
-
-        # java package name 规则
-        self.pkg_name = name.lower().replace(' ', '')
-        # 全_小写
-        self.lower_name = name.lower().replace(' ', '_')
-        # 全_大写
-        self.upper_name = name.upper().replace(' ', '_')
-        # 中文名
-        self.name_zh = name_zh
-        # 代码生成所需要的值
+        # ###### 代码生成所需要的变量 ######
+        # 统一接口名
         self.itf_impl_name = ''
         # 算法库名
         self.libraries = list[str]()
@@ -314,236 +275,11 @@ class ModuleGenerator:
         self.consts = set[str]()
 
     def __str__(self):
-        return f"path: {self.path}\nname: {self.module_name}, pkg: {self.pkg_name}, lower: {self.lower_name}"
+        formatter = "release notes:{}\nlibraries:{}接口\nheaders:{}\nmodels:{}"
+        return formatter.format(self.release_notes, self.library_files, self.header_files, self.model_files)
 
-    def make(self, algo_spec: AlgoSpec):
-        # 测试代码
-        if os.path.exists(self.path):
-            shutil.rmtree(self.path)
-
-        # 拷贝模型文件
-        assets_dir = f"{self.path}/src/main/assets/engine/ai/{self.lower_name}"
-        os.makedirs(assets_dir)
-        for item in algo_spec.model_files:
-            shutil.copyfile(item, assets_dir + '/' + os.path.basename(item), follow_symlinks=False)
-
-        # 生成 .gitignore 文件
-        with open(f"{self.path}/.gitignore", mode='w') as f:
-            f.writelines('build\n.cxx\nlibs/arm*\n')
-
-        # 生成清单文件
-        with open(f"{self.path}/src/main/AndroidManifest.xml", mode='w') as f:
-            f.write(f'<?xml version="1.0" encoding="utf-8"?>\n')
-            f.write(f'  <manifest package="com.quvideo.mobile.component.ai.{self.pkg_name}" />')
-
-        # native 相关
-        self.__generate_native__(algo_spec)
-
-        # java 文件
-        self.__generate_java__(algo_spec)
-
-        # 以上都没有出错，修改 settings.gradle、config.gradle、upload-to-maven.sh
-        # self.__modify_compile_scripts__()
-
-    def __generate_java__(self, algo_spec: AlgoSpec):
-        # AIConstants.java 中定义了算法模块常量，这里更新一下算法类型
-        ai_constants = f'{os.path.dirname(self.path)}/AlgoBase/commonAI/src/main/java/' \
-                       f'com/quvideo/mobile/component/common/AIConstants.java'
-        if not os.path.exists(ai_constants):
-            print(f"'{ai_constants}' 不存在！", file=sys.stderr)
-            exit(1)
-        raw_lines = read_lines(ai_constants)
-        with open(ai_constants, mode='w') as f:
-            for line in raw_lines:
-                if line.find('{module-name-zh}') >= 0:
-                    line = line.replace('{module-name-zh}', self.name_zh).replace('//', '')
-                    f.write(line)
-                else:
-                    write_placeholder = False
-                    if line.find('{upper-name}') >= 0:
-                        line = line.replace('{upper-name}', self.upper_name)
-                        write_placeholder = True
-                    if line.find('{ai-type}') >= 0:
-                        line = line.replace('{ai-type}', algo_spec.ai_type).replace('//', '')
-                        write_placeholder = True
-                    f.write(line)
-                    if write_placeholder:
-                        f.write('  ///** 算法类型-{module-name-zh} */\n')
-                        f.write('  //public static final int AI_TYPE_{upper-name} = {ai-type};\n')
-
-        # java 文件
-        java_dir = f"{self.path}/src/main/java/com/quvideo/mobile/component/{self.pkg_name}"
-        os.makedirs(java_dir)
-        # 生成枚举和结构体
-        self.__gen_java_enums__(java_dir)
-        self.__gen_java_beans__(java_dir)
-        # 根据模板生成对应的 java 文件，一般来讲有三个文件
-        # Q{self.name}.java 提供给引擎使用
-        with open(java_dir + f'/Q{self.module_name}.java', mode='w') as f:
-            # 判断使用统一接口还是普通接口模板
-            if self.itf_impl_name != '':
-                self.__generate_java_union__(f)
-            else:
-                self.__generate_java_common__(f)
-        # QE{self.name}Client.java 提供给业务使用（组件内部也会使用）
-        with open(java_dir + f'/QE{self.module_name}Client.java', mode='w') as f:
-            for line in read_lines(self.tmplt + '/QEModuleNameClient.java.tmplt'):
-                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
-                if line.find('{pkg-name}') >= 0:
-                    line = line.replace('{pkg-name}', self.pkg_name)
-                if line.find('{module-name}') >= 0:
-                    line = line.replace('{module-name}', self.module_name)
-                if line.find('{lower-name}') >= 0:
-                    line = line.replace('{lower-name}', self.lower_name)
-                if line.find('{upper-name}') >= 0:
-                    line = line.replace('{upper-name}', self.upper_name)
-                if line.find('{ai-type}') >= 0:
-                    line = line.replace('{ai-type}', algo_spec.ai_type)
-                f.write(line)
-        # AI{self.name}.java 提供给业务使用
-        with open(java_dir + f'/AI{self.module_name}.java', mode='w') as f:
-            for line in read_lines(self.tmplt + '/AIModuleName.java.tmplt'):
-                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
-                if line.find('{pkg-name}') >= 0:
-                    line = line.replace('{pkg-name}', self.pkg_name)
-                if line.find('{module-name}') >= 0:
-                    line = line.replace('{module-name}', self.module_name)
-                f.write(line)
-
-        # 混淆规则
-        with open(f"{self.path}/consumer-rules.pro", mode='w') as f:
-            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg_name}.** " + "{*;}")
-        with open(f"{self.path}/proguard-rules.pro", mode='w') as f:
-            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg_name}.** " + "{*;}")
-
-        # {self.path}/build.gradle.tmplt
-        with open(f"{self.path}/build.gradle", mode='w') as f:
-            # 通过模板读取
-            for line in read_lines(self.tmplt + '/build.gradle.tmplt'):
-                if line.find('{module-name}') >= 0:
-                    line = line.replace('{module-name}', self.module_name)
-                if line.find('{upper-name}') >= 0:
-                    line = line.replace('{upper-name}', self.upper_name)
-                if line.find('{ai-type}') >= 0:
-                    line = line.replace('{ai-type}', algo_spec.ai_type)
-                f.write(line)
-
-    def __gen_java_enums__(self, java_dir: str):
-        if self.enums.size() > 0:
-            package = java_dir[java_dir.find('java/') + 5:].replace('/', '.')
-            today = time.strftime("%Y-%m-%d", time.localtime())
-            for e in self.enums:
-                with open(java_dir + f'/{e.name}.java', mode='w') as f:
-                    f.write(f'package {package};\n\n')
-                    f.write(f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n')
-                    f.write(f'public final class {e.name}' + ' {\n')
-                    for item in e.fields:
-                        if item:
-                            f.write(f'  public static final int {item};\n')
-                    f.write('}')
-
-    def __gen_java_beans__(self, java_dir: str):
-        if self.structs.size() > 0:
-            package = java_dir[java_dir.find('java/') + 5:].replace('/', '.')
-            today = time.strftime("%Y-%m-%d", time.localtime())
-            for s in self.structs:
-                with open(java_dir + f'/{s.name}.java', mode='w') as f:
-                    f.write(f'package {package};\n\n')
-                    f.write(f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n')
-                    f.write(f'public final class {s.name}' + ' {\n')
-                    if len(self.consts) > 0:
-                        f.write('\n')
-                        for c in self.consts:
-                            pieces = c.split()
-                            f.write(f'  public static final int {pieces[0]} = {pieces[1]};\n')
-                    f.write(f'\n  public {s.name}() ' + '{\n  }\n\n')
-                    for item in s.fields:
-                        if item:
-                            f.write(f'  public {item};\n')
-                    f.write('}')
-
-    def __generate_java_union__(self, f):
-        for line in read_lines(self.tmplt + '/QModuleName.java.tmplt'):
-            if line.find('{pkg-name}') >= 0:
-                line = line.replace('{pkg-name}', self.pkg_name)
-            elif line.find('{module-name}') >= 0:
-                line = line.replace('{module-name}', self.module_name)
-            f.write(line)
-
-    def __generate_java_common__(self, f):
-        for line in read_lines(self.tmplt + '/QModuleName0.java.tmplt'):
-            if line.find('{pkg-name}') >= 0:
-                line = line.replace('{pkg-name}', self.pkg_name)
-            elif line.find('{module-name}') >= 0:
-                line = line.replace('{module-name}', self.module_name)
-            elif line.find('{native-methods}') >= 0:
-                line = self.__gen_java_native_methods__()
-            f.write(line)
-
-    def __gen_java_native_methods__(self) -> str:
-        # 获取返回值类型
-        def __typeof__(s: str) -> str:
-            if s == 'void':
-                return 'void'
-            pieces = types_map[s].split()
-            if pieces[0] == 'jobject' or pieces[0] == 'jstring':
-                return pieces[1][1:len(pieces[1]) - 1].replace('/', '.')
-            if pieces[0] == 'void':
-                return 'void'
-            return pieces[0][1:]
-
-        methods: list[str] = []
-        for m in self.methods:
-            # 构建 jni 方法，没有方法体
-            method_body = '  private static native '
-            # 方法返回值，算法初始化时的返回值要特殊处理
-            method_body += __typeof__(m.rtype)
-            # 方法参数列表
-            args_str = ''
-            for i, f in enumerate(m.fields, 1):
-                if i > 2 and i & i % 2 == 1:
-                    args_str += '\n' + ' ' * 8
-                segments = f.replace('const', '').strip().split()
-                args_str += __typeof__(segments[0]) + ' ' + segments[1] + ', '
-            args_str = args_str[:len(args_str) - 2]
-            method_body += f' {m.name}({args_str});\n'
-            methods.append(method_body)
-            print(f'java native method =======>\n{method_body}')
-        return '\n'.join(methods)
-
-    def __generate_native__(self, algo_spec: AlgoSpec):
-        jni_header_map = {
-            '"XYAICommon.h"': '"../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"',
-            '<XYAICommon.h>': '"../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"',
-            '"XYAISDK.h"': '"../../../../AlgoBase/commonAI/src/main/jni/XYAISDK.h"',
-            '<XYAISDK.h>': '"../../../../AlgoBase/commonAI/src/main/jni/XYAISDK.h"',
-            '"XYAIStructExchange.h"': '"../../../../AlgoBase/commonAI/src/main/jni/XYAIStructExchange.h"',
-            '<XYAIStructExchange.h>': '"../../../../AlgoBase/commonAI/src/main/jni/XYAIStructExchange.h"',
-            '"method_tracer.h"': '"../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"',
-            '<method_tracer.h>': '"../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"',
-        }
-
-        os.makedirs(self.jni_dir)
-
-        # 拷贝升级日志
-        if len(algo_spec.release_notes) > 0:
-            dst = self.jni_dir + '/' + os.path.basename(algo_spec.release_notes[0])
-            shutil.copyfile(algo_spec.release_notes[0], dst, follow_symlinks=False)
-
-        # 拷贝库文件 ['arm64-v8a', 'arm32-v8a', 'armeabi-v7a']
-        v8a_dir = f"{self.jni_dir}/arm64-v8a"
-        os.mkdir(v8a_dir)
-        v7a_dir = f"{self.jni_dir}/armeabi-v7a"
-        os.mkdir(v7a_dir)
-        for item in algo_spec.library_files:
-            lib_name: str = os.path.basename(item)
-            if lib_name not in self.libraries:
-                self.libraries.append(lib_name.replace('lib', '').replace('.a', ''))
-            shutil.copyfile(src=item,
-                            dst=(v8a_dir if item.find('arm64') >= 0 else v7a_dir) + '/' + lib_name,
-                            follow_symlinks=False)
-
-        # 拷贝头文件时顺便分析文件内容: 文件名、命名空间、是否是统一接口、算法提供的 API、是否有定义结构体
+    def analyse(self, pkg_name: str):
+        # 分析头文件内容: 文件名、命名空间、是否是统一接口、算法提供的 API、是否有定义结构体
         # 算法使用到的命名空间
         ns_pattern = re.compile(r'namespace (.+?) \{')
         # 有种特殊情况，算法侧提供了两种类型的接口，那我们优先选择使用统一接口的方式
@@ -551,20 +287,10 @@ class ModuleGenerator:
         itf_pattern = re.compile(r'class XYAI_PUBLIC (.+?) : public XYAISDK::AlgBase \{')
         # 普通算法只有算法接口，没有实现类
         method_pattern = re.compile(r'XYAI_PUBLIC (.+?)\);')
-        for item in algo_spec.header_files:
+        for item in self.header_files:
             header_name = os.path.basename(item)
             # 记录需要导入的头文件名
             self.headers.add(f'#include "{header_name}"')
-            with open(self.jni_dir + '/' + header_name, 'w') as f:
-                for line in read_lines(item):
-                    # 修改 include 路径
-                    if line.find('.h') >= 0:
-                        for k, v in jni_header_map.items():
-                            if line.find(k) >= 0:
-                                line = line.replace(k, v)
-                                break
-                    f.write(line)
-            # 分析文件内容
             # 使用到的命名空间
             __text: str = read_content(path=item, flatmap=True)
             nss: list[str] = ns_pattern.findall(__text)
@@ -595,19 +321,298 @@ class ModuleGenerator:
             for s in parse_structs(raw_lines):
                 strukt = self.structs.add(s)
                 print(f"find struct: {strukt.name} in '{header_name}'")
-                types_map[strukt.name] = strukt.gen_signature(self.pkg_name)
-                types_map[strukt.name + '*'] = strukt.gen_signature(self.pkg_name)
+                types_map[strukt.name] = strukt.gen_signature(pkg_name)
             # 枚举
             for e in parse_enums(raw_lines):
                 enm = self.enums.add(e)
                 print(f"find enum: {enm.name} in '{header_name}'")
                 types_map[enm.name] = "jint I"
 
+
+class ModuleGenerator:
+    def __init__(self, root: str, name: str, name_zh: str, spec: AlgoSpec):
+        """
+        @param root: 算法组件工程根目录
+        @param name: 算法模块名
+        @param name_zh: 算法模块中文名
+        @param spec: 算法库
+        """
+        parent = os.path.dirname(root)
+        if not os.path.exists(parent):
+            print(f"'{parent}' 不存在！")
+            exit(1)
+        self.prj_root = root
+        # 驼峰
+        self.module_name = name.title().replace(' ', '')
+        # module path
+        self.path = f"{root}/Component-AI/{self.module_name}AI"
+        # 模板路径，在工程目录下
+        self.tmplt = root + '/templates'
+        # jni 相关
+        self.jni_dir = f"{self.path}/src/main/jni"
+
+        # java package name 规则
+        self.pkg_name = name.lower().replace(' ', '')
+        # 全_小写
+        self.lower_name = name.lower().replace(' ', '_')
+        # 全_大写
+        self.upper_name = name.upper().replace(' ', '_')
+        # 中文名
+        self.name_zh = name_zh
+
+        # 算法库相关
+        self.spec = spec
+
+    def __str__(self):
+        return f"path: {self.path}\nname: {self.module_name}, pkg: {self.pkg_name}, lower: {self.lower_name}"
+
+    def generate(self):
+        # 分析算法库提供的头文件
+        self.spec.analyse(self.pkg_name)
+
+        # 测试代码
+        if os.path.exists(self.path):
+            shutil.rmtree(self.path)
+
+        # 拷贝模型文件
+        assets_dir = f"{self.path}/src/main/assets/engine/ai/{self.lower_name}"
+        os.makedirs(assets_dir)
+        for item in self.spec.model_files:
+            shutil.copyfile(item, assets_dir + '/' + os.path.basename(item), follow_symlinks=False)
+
+        # 生成 .gitignore 文件
+        with open(f"{self.path}/.gitignore", mode='w') as f:
+            f.writelines('build\n.cxx\nlibs/arm*\n')
+
+        # 生成清单文件
+        with open(f"{self.path}/src/main/AndroidManifest.xml", mode='w') as f:
+            f.write(f'<?xml version="1.0" encoding="utf-8"?>\n')
+            f.write(f'  <manifest package="com.quvideo.mobile.component.ai.{self.pkg_name}" />')
+
+        # native 相关
+        self.__generate_native__()
+
+        # java 文件
+        self.__generate_java__()
+
+        # 以上都没有出错，修改 settings.gradle、config.gradle、upload-to-maven.sh
+        # self.__modify_compile_scripts__()
+
+    def __generate_java__(self):
+        # AIConstants.java 中定义了算法模块常量，这里更新一下算法类型
+        ai_constants = f'{os.path.dirname(self.path)}/AlgoBase/commonAI/src/main/java/' \
+                       f'com/quvideo/mobile/component/common/AIConstants.java'
+        if not os.path.exists(ai_constants):
+            print(f"'{ai_constants}' 不存在！", file=sys.stderr)
+            exit(1)
+        raw_lines = read_lines(ai_constants)
+        with open(ai_constants, mode='w') as f:
+            for line in raw_lines:
+                if line.find('{module-name-zh}') >= 0:
+                    line = line.replace('{module-name-zh}', self.name_zh).replace('//', '')
+                    f.write(line)
+                else:
+                    write_placeholder = False
+                    if line.find('{upper-name}') >= 0:
+                        line = line.replace('{upper-name}', self.upper_name)
+                        write_placeholder = True
+                    if line.find('{ai-type}') >= 0:
+                        line = line.replace('{ai-type}', self.spec.ai_type).replace('//', '')
+                        write_placeholder = True
+                    f.write(line)
+                    if write_placeholder:
+                        f.write('  ///** 算法类型-{module-name-zh} */\n')
+                        f.write('  //public static final int AI_TYPE_{upper-name} = {ai-type};\n')
+
+        # java 文件
+        java_dir = f"{self.path}/src/main/java/com/quvideo/mobile/component/{self.pkg_name}"
+        os.makedirs(java_dir)
+        # 生成枚举和结构体
+        self.__gen_java_enums__(java_dir)
+        self.__gen_java_beans__(java_dir)
+        # 根据模板生成对应的 java 文件，一般来讲有三个文件
+        # Q{self.name}.java 提供给引擎使用
+        with open(java_dir + f'/Q{self.module_name}.java', mode='w') as f:
+            # 判断使用统一接口还是普通接口模板
+            if self.spec.itf_impl_name != '':
+                self.__generate_java_union__(f)
+            else:
+                self.__generate_java_common__(f)
+        # QE{self.name}Client.java 提供给业务使用（组件内部也会使用）
+        with open(java_dir + f'/QE{self.module_name}Client.java', mode='w') as f:
+            for line in read_lines(self.tmplt + '/QEModuleNameClient.java.tmplt'):
+                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
+                if line.find('{pkg-name}') >= 0:
+                    line = line.replace('{pkg-name}', self.pkg_name)
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                if line.find('{lower-name}') >= 0:
+                    line = line.replace('{lower-name}', self.lower_name)
+                if line.find('{upper-name}') >= 0:
+                    line = line.replace('{upper-name}', self.upper_name)
+                if line.find('{ai-type}') >= 0:
+                    line = line.replace('{ai-type}', self.spec.ai_type)
+                f.write(line)
+        # AI{self.name}.java 提供给业务使用
+        with open(java_dir + f'/AI{self.module_name}.java', mode='w') as f:
+            for line in read_lines(self.tmplt + '/AIModuleName.java.tmplt'):
+                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
+                if line.find('{pkg-name}') >= 0:
+                    line = line.replace('{pkg-name}', self.pkg_name)
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                f.write(line)
+
+        # 混淆规则
+        with open(f"{self.path}/consumer-rules.pro", mode='w') as f:
+            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg_name}.** " + "{*;}")
+        with open(f"{self.path}/proguard-rules.pro", mode='w') as f:
+            f.write(f"-keep class com.quvideo.mobile.component.{self.pkg_name}.** " + "{*;}")
+
+        # {self.path}/build.gradle.tmplt
+        with open(f"{self.path}/build.gradle", mode='w') as f:
+            # 通过模板读取
+            for line in read_lines(self.tmplt + '/build.gradle.tmplt'):
+                if line.find('{module-name}') >= 0:
+                    line = line.replace('{module-name}', self.module_name)
+                if line.find('{upper-name}') >= 0:
+                    line = line.replace('{upper-name}', self.upper_name)
+                if line.find('{ai-type}') >= 0:
+                    line = line.replace('{ai-type}', self.spec.ai_type)
+                f.write(line)
+
+    def __gen_java_enums__(self, java_dir: str):
+        if self.spec.enums.size() > 0:
+            package = java_dir[java_dir.find('java/') + 5:].replace('/', '.')
+            today = time.strftime("%Y-%m-%d", time.localtime())
+            for e in self.spec.enums:
+                with open(java_dir + f'/{e.name}.java', mode='w') as f:
+                    f.write(f'package {package};\n\n')
+                    f.write(f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n')
+                    f.write(f'public final class {e.name}' + ' {\n')
+                    for item in e.fields:
+                        if item:
+                            f.write(f'  public static final int {item};\n')
+                    f.write('}')
+
+    def __gen_java_beans__(self, java_dir: str):
+        if self.spec.structs.size() > 0:
+            package = java_dir[java_dir.find('java/') + 5:].replace('/', '.')
+            today = time.strftime("%Y-%m-%d", time.localtime())
+            for s in self.spec.structs:
+                with open(java_dir + f'/{s.name}.java', mode='w') as f:
+                    f.write(f'package {package};\n\n')
+                    f.write(f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n')
+                    f.write(f'public final class {s.name}' + ' {\n')
+                    if len(self.spec.consts) > 0:
+                        f.write('\n')
+                        for c in self.spec.consts:
+                            pieces = c.split()
+                            f.write(f'  public static final int {pieces[0]} = {pieces[1]};\n')
+                    f.write(f'\n  public {s.name}() ' + '{\n  }\n\n')
+                    for item in s.fields:
+                        if item:
+                            f.write(f'  public {item};\n')
+                    f.write('}')
+
+    def __generate_java_union__(self, f):
+        for line in read_lines(self.tmplt + '/QModuleName.java.tmplt'):
+            if line.find('{pkg-name}') >= 0:
+                line = line.replace('{pkg-name}', self.pkg_name)
+            elif line.find('{module-name}') >= 0:
+                line = line.replace('{module-name}', self.module_name)
+            f.write(line)
+
+    def __generate_java_common__(self, f):
+        for line in read_lines(self.tmplt + '/QModuleName0.java.tmplt'):
+            if line.find('{pkg-name}') >= 0:
+                line = line.replace('{pkg-name}', self.pkg_name)
+            elif line.find('{module-name}') >= 0:
+                line = line.replace('{module-name}', self.module_name)
+            elif line.find('{init-method}') >= 0:
+                line = line.replace('{init-method}', self.spec.methods.get_init_method())
+            elif line.find('{native-methods}') >= 0:
+                line = self.__gen_java_native_methods__()
+            f.write(line)
+
+    def __gen_java_native_methods__(self) -> str:
+        # 获取返回值类型
+        def _typeof_java(pt: str) -> str:
+            pieces = types_map[pt if pt in types_map else pt.replace('*', '')].split()
+            if pieces[0] == 'jobject' or pieces[0] == 'jstring':
+                return pieces[1][1:len(pieces[1]) - 1].replace('/', '.')
+            if pieces[0] == 'void':
+                return 'void'
+            return pieces[0][1:]
+
+        methods: list[str] = []
+        for m in self.spec.methods:
+            # 构建 jni 方法，没有方法体
+            method_body = '  private static native '
+            # 方法返回值，算法初始化时的返回值要特殊处理
+            method_body += _typeof_java('InitResult' if m.is_init_method() else m.rtype)
+            # 方法参数列表，算法初始化时跳过第一个参数
+            args_str = ''
+            for i, f in enumerate(m.fields[1:] if m.is_init_method() else m.fields, 1):
+                if i > 2 and i & i % 2 == 1:
+                    args_str += '\n' + ' ' * 8
+                segments = f.replace('const', '').strip().split()
+                args_str += _typeof_java(segments[0]) + ' ' + segments[1] + ', '
+            args_str = args_str[:len(args_str) - 2]
+            method_body += f' {m.name}({args_str});\n'
+            methods.append(method_body)
+            print(f'java native method =======>\n{method_body}')
+        return '\n'.join(methods)
+
+    def __generate_native__(self):
+        jni_header_map = {
+            '"XYAICommon.h"': '"../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"',
+            '<XYAICommon.h>': '"../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"',
+            '"XYAISDK.h"': '"../../../../AlgoBase/commonAI/src/main/jni/XYAISDK.h"',
+            '<XYAISDK.h>': '"../../../../AlgoBase/commonAI/src/main/jni/XYAISDK.h"',
+            '"XYAIStructExchange.h"': '"../../../../AlgoBase/commonAI/src/main/jni/XYAIStructExchange.h"',
+            '<XYAIStructExchange.h>': '"../../../../AlgoBase/commonAI/src/main/jni/XYAIStructExchange.h"',
+            '"method_tracer.h"': '"../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"',
+            '<method_tracer.h>': '"../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"',
+        }
+
+        os.makedirs(self.jni_dir)
+
+        # 拷贝升级日志
+        if len(self.spec.release_notes) > 0:
+            dst = self.jni_dir + '/' + os.path.basename(self.spec.release_notes[0])
+            shutil.copyfile(self.spec.release_notes[0], dst, follow_symlinks=False)
+
+        # 拷贝库文件 ['arm64-v8a', 'arm32-v8a', 'armeabi-v7a']
+        v8a_dir = f"{self.jni_dir}/arm64-v8a"
+        os.mkdir(v8a_dir)
+        v7a_dir = f"{self.jni_dir}/armeabi-v7a"
+        os.mkdir(v7a_dir)
+        for item in self.spec.library_files:
+            lib_name: str = os.path.basename(item)
+            if lib_name not in self.spec.libraries:
+                self.spec.libraries.append(lib_name.replace('lib', '').replace('.a', ''))
+            shutil.copyfile(src=item,
+                            dst=(v8a_dir if item.find('arm64') >= 0 else v7a_dir) + '/' + lib_name,
+                            follow_symlinks=False)
+
+        for item in self.spec.header_files:
+            with open(self.jni_dir + '/' + os.path.basename(item), 'w') as f:
+                for line in read_lines(item):
+                    # 修改 include 路径
+                    if line.find('.h') >= 0:
+                        for k, v in jni_header_map.items():
+                            if line.find(k) >= 0:
+                                line = line.replace(k, v)
+                                break
+                    f.write(line)
+
         # 生成算法组件 jni 实现，通过模板生成 cpp 文件
-        if self.itf_impl_name != '':
-            self.__generate_cpp_union__(algo_spec)
+        print(f"start generate '{self.jni_dir}/{self.lower_name}_jni.cpp'")
+        if self.spec.itf_impl_name != '':
+            self.__generate_cpp_union__()
         else:
-            self.__generate_cpp_common__(algo_spec)
+            self.__generate_cpp_common__()
 
         print(f"start generate '{self.path}/CMakeLists.txt'")
         with open(f"{self.path}/CMakeLists.txt", mode='w') as f:
@@ -618,21 +623,21 @@ class ModuleGenerator:
                 if line.find('{lower-name}') >= 0:
                     line = line.replace('{lower-name}', self.lower_name)
                 if line.find('{algo-lib-name}') >= 0:
-                    line = line.replace('{algo-lib-name}', self.libraries[0])
+                    line = line.replace('{algo-lib-name}', self.spec.libraries[0])
                 f.write(line)
 
-    def __generate_cpp_union__(self, spec: AlgoSpec):
+    def __generate_cpp_union__(self):
         with open(f"{self.jni_dir}/{self.lower_name}_jni.cpp", mode='w') as f:
             # 模板要根据算法接口类型来选择
             for line in read_lines(self.tmplt + '/lower_name_jni.cpp.tmplt'):
                 if line.find('{imported-headers}') >= 0:
-                    line = line.replace('{imported-headers}', '\n'.join(self.headers))
+                    line = line.replace('{imported-headers}', '\n'.join(self.spec.headers))
                 elif line.find('{algo-nss}') >= 0:
-                    line = line.replace('{algo-nss}', '\n'.join(self.using_nss))
+                    line = line.replace('{algo-nss}', '\n'.join(self.spec.using_nss))
                 elif line.find('{itf-name}') >= 0:
                     line = line.replace('{itf-name}', self.itf_impl_name)
                 elif line.find('{ai-type}') >= 0:
-                    line = line.replace('{ai-type}', spec.ai_type)
+                    line = line.replace('{ai-type}', self.spec.ai_type)
                 else:
                     # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
                     if line.find('{pkg-name}') >= 0:
@@ -641,16 +646,16 @@ class ModuleGenerator:
                         line = line.replace('{module-name}', self.module_name)
                 f.write(line)
 
-    def __generate_cpp_common__(self, spec: AlgoSpec):
+    def __generate_cpp_common__(self):
         with open(f"{self.jni_dir}/{self.lower_name}_jni.cpp", mode='w') as f:
             # 模板要根据算法接口类型来选择
             for line in read_lines(self.tmplt + '/lower_name_jni_0.cpp.tmplt'):
                 if line.find('{imported-headers}') >= 0:
-                    line = line.replace('{imported-headers}', '\n'.join(self.headers))
+                    line = line.replace('{imported-headers}', '\n'.join(self.spec.headers))
                 elif line.find('{algo-nss}') >= 0:
-                    line = line.replace('{algo-nss}', '\n'.join(self.using_nss))
+                    line = line.replace('{algo-nss}', '\n'.join(self.spec.using_nss))
                 elif line.find('{ai-type}') >= 0:
-                    line = line.replace('{ai-type}', spec.ai_type)
+                    line = line.replace('{ai-type}', self.spec.ai_type)
                 elif line.find('{jni-methods}') >= 0:
                     line = self.__gen_native_jni_methods__()
                 elif line.find('{jni-register-methods}') >= 0:
@@ -671,11 +676,10 @@ class ModuleGenerator:
             __ss = field.replace('const', '').strip().split()
             return __ss[0], __ss[1]
 
-        # 处理结尾字符串
-        def _trim(text: str) -> str:
-            return text if not text.endswith(', ') else text[:len(text) - 2]
+        def _typeof(pt: str) -> str:
+            return types_map[pt if pt.find('*') < 0 else pt.replace('*', '')].split()[0]
 
-        for m in self.methods:
+        for m in self.spec.methods:
             method_body = types_map[m.rtype].split()[0] + f' Q{self.module_name}_{m.name}'
             # jni 方法参数列表
             args_list = 'JNIEnv *env, jclass clazz, \n' + ' ' * 8
@@ -687,7 +691,7 @@ class ModuleGenerator:
                 print(f)
                 ptype, pname = _parse_field(f)
                 # 处理方法定义参数列表
-                args_list += types_map[ptype].split()[0] + ' ' + pname + ', '
+                args_list += _typeof(ptype) + ' ' + pname + ', '
                 # 语句定义，java -> cpp 数据结构转换
                 statements += f'  {ptype} _{pname}_ = ({ptype}){pname};\n'
                 # 处理方法调用入参列表，* 比较特殊，但是不能统一这么处理
@@ -714,7 +718,7 @@ class ModuleGenerator:
 
     def __gen_native_register_array__(self) -> str:
         line = ''
-        for m in self.methods:
+        for m in self.spec.methods:
             line += '  {' + f'"{m.name}", "{m.gen_signature()}", (void *) Q{self.module_name}_{m.name}' + '},\n'
         return line
 
@@ -785,49 +789,52 @@ class ModuleGenerator:
                 f.write(line)
 
 
-class ModuleSpec:
-    def __init__(self, root: str, name: str, name_zh: str):
-        parent = os.path.dirname(root)
-        if not os.path.exists(parent):
-            print(f"'{parent}' 不存在！")
-            exit(1)
-
-        self.__generator = ModuleGenerator(root, name, name_zh)
-
-    def __str__(self):
-        return self.__generator.__str__()
-
-    def generate(self, algo_spec: AlgoSpec):
-        self.__generator.make(algo_spec)
-
-
 class GenerateTask:
-    algo: AlgoSpec
-    module: ModuleSpec
-
     def __init__(self, algo_dir: str = '', ai_type: str = '', algo_root: str = '',
                  module_name: str = '', module_name_zh: str = ''):
-        self.algo = AlgoSpec(algo_dir, ai_type)
-        self.module = ModuleSpec(algo_root, module_name, module_name_zh)
+        algo_spec = AlgoSpec(algo_dir, ai_type)
+        self.__generator = ModuleGenerator(algo_root, module_name, module_name_zh, algo_spec)
 
     def create_module(self):
-        self.module.generate(self.algo)
+        self.__generator.generate()
 
 
 def usage():
+    placeholders = {
+        '{imported-headers}': 'cpp 文件中需要导入的头文件',
+        '{module-name}': '算法模块名',
+        '{algo-nss}': '算法命名空间',
+        '{itf-name}': '算法统一接口名字',
+        '{pkg-name}': 'java 包名',
+        '{ai-type}': '算法类型',
+        '{lower-name}': '大写_模块名',
+        '{upper-name}': '小写_模块名',
+        '{algo-lib-name}': '算法静态库名，去掉前缀和后缀',
+        '{native-methods}': 'java 层定义的 native 方法',
+        '{jni-methods}': 'cpp 中要实现的在 java 层定义的 native 方法',
+        '{jni-register-methods}': 'jni 静态注册方法映射数组',
+        '{init-method}': '算法初始化方法，其返回值比较特殊 AIInitResult',
+    }
+    align = len(max(placeholders.keys(), key=len)) + 1
+    print("===============================代码模板占位符说明===============================")
+    for k, v in placeholders.items():
+        print(k + ' ' * (align - len(k)) + ': ' + v)
+    print("===============================代码模板占位符说明===============================")
+    print()
+
     menus: list[str] = [
         '操作类型（a 新增算法组件，u 更新算法组件）：a（这里是新增）',
         "算法库目录（绝对路径）：/home/binlee/code/XYAlgLibs/AutoCrop-component/ImageRestore（这里是画质修复算法库）",
-        "## 如果是更新库，下面的操作都不需要了",
+        "！！！！！！ 如果是更新库，下面的操作都不需要了 ！！！！！！",
         "算法类型（正整数且不能与现有算法类型重复）：24（请与 iOS 协商好）",
         "算法组件名（多个单词时以空格分割）：image restore v2（程序内部会处理成首字母大写、剔除空格、驼峰命名等）",
         "算法组件名（中文）：画质修复 v2（用于生成代码注释）",
     ]
-    print("=====================菜单=====================")
-    print("示例：")
+    print("================================菜单================================")
+    print("操作示例：")
     for item in menus:
         print(item)
-    print("=====================菜单=====================")
+    print("================================菜单================================")
 
 
 if __name__ == '__main__':
@@ -840,14 +847,14 @@ if __name__ == '__main__':
     #     exit(1)
     # print(f"project root: '{__prj_root}'")
 
-    __prj_root = '/home/binlee/code/Dailearn/pytest/out'
+    __prj_root = '/home/binlee/code/android/Dailearn/pytest/out'
 
     # task = GenerateTask(input("操作类型（a 新增算法组件，u 更新算法组件）："),
     #                     input("算法库目录（绝对路径）："),
     #                     input("算法类型（正整数）："),
     #                     input("算法组件名（多个单词时以空格分割）：").lower(),
     #                     input("算法组件名（中文）：").lower())
-    task = GenerateTask(algo_dir='/home/binlee/code/open-source/quvideo/XYAlgLibs/AutoCrop-component/XYAutoCrop',
+    task = GenerateTask(algo_dir='/home/binlee/code/quvideo/XYAlgLibs/AutoCrop-component/XYAutoCrop',
                         ai_type='24',
                         algo_root=__prj_root,
                         module_name='auto crop'.lower(),
