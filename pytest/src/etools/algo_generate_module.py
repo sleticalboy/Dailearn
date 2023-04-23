@@ -55,15 +55,17 @@ def _split_field(field: str) -> (str, str):
     return __ss[0], __ss[1]
 
 
-def _sigof_java(pt: str) -> str:
+def _sigof_java(pt: str, allow_missed: bool = False) -> str:
     if 'std::vector' in pt:
         raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
-        return f'[{_sigof_java(raw_type)}'
+        return f'[{_sigof_java(raw_type, allow_missed=allow_missed)}'
+    if allow_missed and pt not in types_map:
+        return ''
     sig = types_map[pt if pt in types_map else pt.replace('*', '')].split()[1]
     return '[' + sig if '**' in pt else sig
 
 
-def _typeof_java(pt: str) -> str:
+def _typeof_java(pt: str, allow_missed: bool = False) -> str:
     """
     获取j ava 数据类型
     @param pt:
@@ -76,7 +78,9 @@ def _typeof_java(pt: str) -> str:
     if 'std::vector' in pt:
         # 原始类型
         raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
-        return f'{_typeof_java(raw_type)}[]'
+        return f'{_typeof_java(raw_type, allow_missed=allow_missed)}[]'
+    if allow_missed and pt not in types_map:
+        return ''
     pieces = types_map[pt if pt in types_map else pt.replace('*', '')].split()
     if pieces[0] == 'void':
         return 'void'
@@ -85,12 +89,19 @@ def _typeof_java(pt: str) -> str:
     return __wrap(pieces[0][1:])
 
 
-def _typeof_jni(pt: str) -> str:
+def _typeof_jni(pt: str, allow_missed: bool = False) -> str:
     """
     获取 jni 数据类型
     @param pt:
     @return:
     """
+    if 'std::vector' in pt:
+        left = pt.find('<')
+        right = pt.find('>')
+        raw_type = pt[left + 1: right]
+        return _typeof_jni(raw_type, allow_missed=allow_missed) + 'Array'
+    if allow_missed and pt not in types_map:
+        return ''
     ctype = types_map[pt if pt in types_map else pt.replace('*', '')].split()[0]
     return ctype + 'Array' if '**' in pt else ctype
 
@@ -102,6 +113,40 @@ def _typeof_jni_mf(pt: str) -> str:
     if 'Array' in pieces[0]:
         return 'Object'
     return pieces[0][1:].title()
+
+
+class Field:
+    def __init__(self, kv: str):
+        index = kv.find(' ')
+        ftype = kv[:index]
+        fname = kv[index + 1:]
+        left = fname.find('[')
+        right = fname.find(']')
+        # 如果是数组类型，记一下数组长度
+        self.arr_len = fname[left + 1:right] if left >= 0 and right >= 0 else ''
+        # 名字
+        self.name = fname[:left] if left >= 0 and right >= 0 else kv[index + 1:]
+        # cpp 中的数据类型
+        self.cpp_type = ftype
+        # java 中的数据类型，这里可能会报错，可以延后处理
+        self.java_type = _typeof_java(ftype, allow_missed=True)
+        # jni 中的数据类型
+        self.jni_type = _typeof_jni(ftype, allow_missed=True)
+        # jni 签名
+        self.jni_sig = _sigof_java(ftype, allow_missed=True)
+        print(self)
+
+    def __str__(self):
+        fields = {
+            'name': self.name,
+            'cpp_type': self.cpp_type,
+            'java_type': self.java_type,
+            'jni_type': self.jni_type,
+            'jni_sig': self.jni_sig,
+            'arr_len': self.arr_len,
+        }
+        return f'{fields}'
+        # return f'Field: {self.name} {self.cpp_type} {self.java_type} {self.jni_type} {self.jni_sig}'
 
 
 class StructType(enum.Enum):
@@ -117,6 +162,7 @@ class Struct:
         self.name = ''
         self.rtype = ''
         self.fields = list[str]()
+        self.field_list = list[Field]()
         if stype == StructType.METHOD:
             self.__parse_method__(raw)
         else:
@@ -124,10 +170,10 @@ class Struct:
 
     def __str__(self):
         if self.stype == StructType.METHOD:
-            return f"method -> {self.rtype} {self.name}({', '.join(self.fields)})"
+            return f"method: {self.rtype} {self.name}({', '.join(self.fields)})"
         if self.stype == StructType.ENUM:
-            return f"enum -> {self.name}" + ' {\n  ' + ',\n  '.join(self.fields) + '\n}'
-        return f"struct {self.name}" + ' {\n  ' + ';\n  '.join(self.fields) + '\n}'
+            return f"enum: {self.name}" + ' {\n  ' + ',\n  '.join(self.fields) + '\n}'
+        return f"struct: {self.name}" + ' {\n  ' + ';\n  '.join(self.fields) + '\n}'
 
     def __parse_method__(self, raw: str):
         # 第一个左括号
@@ -144,8 +190,10 @@ class Struct:
         fields_str = raw[first_index + 1: raw.rfind(')')]
         # 参数列表键值对
         for kv in fields_str.split(','):
-            if kv:
-                self.fields.append(kv.replace('const', '').strip())
+            if kv == '':
+                continue
+            self.fields.append(kv.replace('const', '').strip())
+            self.field_list.append(Field(kv.replace('const', '').strip()))
 
     def __parse_struct_or_enum__(self, raw: str):
         # typedef struct MultiTaskDetectionOutput {XYInt32 object_num;XYFloat pet_score;...} MTDetBbox;
@@ -166,6 +214,7 @@ class Struct:
         for kv in raw[first_index + 1: raw.rfind('}')].split(__sep):
             if kv and '//' not in kv:
                 self.fields.append(kv)
+                self.field_list.append(Field(kv))
 
     def is_init_method(self) -> bool:
         lmn = self.name.lower()
@@ -177,12 +226,12 @@ class Struct:
 
     def gen_signature(self, pkg_name: str = None):
         if self.stype == StructType.METHOD:
-            print(f'{self.rtype} {self.name} {self.fields}')
+            # print(f'{self}')
             signature = '('
             for f in (self.fields[1:] if self.is_init_method() else self.fields):
                 signature += _sigof_java(f.replace('const', '').strip().split()[0])
             signature += ')' + types_map['InitResult' if self.is_init_method() else self.rtype].split()[1]
-            print(f'signature: {signature}\n')
+            # print(f'signature: {signature}\n')
             return signature
         # 结构体签名，转成 java
         return f'jobject Lcom/quvideo/mobile/component/{pkg_name}/{self.name};'
@@ -400,8 +449,27 @@ class AlgoParser:
             header_name = os.path.basename(item)
             # 记录需要导入的头文件名
             self.headers.add(f'#include "{header_name}"')
-            # 使用到的命名空间
+            # 常量
+            raw_lines = read_lines(item)
+            for line in raw_lines:
+                line = line.replace('\n', '')
+                if line.startswith('#define XYAI_') and '(' not in line:
+                    line = line.replace('#define', '').strip()
+                    # print(f"find constant: {line.split()} in '{header_name}'")
+                    self.consts.add(line)
+            # 结构体
+            for s in parse_structs(raw_lines):
+                strukt = self.structs.add(s)
+                print(f"find {strukt} in '{header_name}'")
+                types_map[strukt.name] = strukt.gen_signature(pkg_name)
+            # 枚举
+            for e in parse_enums(raw_lines):
+                enm = self.enums.add(e)
+                # print(f"find {enm} in '{header_name}'")
+                types_map[enm.name] = "jint I"
+            # 读取文件内容，去掉所有换行
             __text: str = read_content(path=item, flatmap=True)
+            # 使用到的命名空间
             nss: list[str] = ns_pattern.findall(__text)
             if nss and len(nss) > 0:
                 for ns in nss:
@@ -414,28 +482,11 @@ class AlgoParser:
                     self.itf_impl_name = itf_names[0]
             if self.itf_impl_name == '' and self.methods.size() == 0:
                 # 普通接口
-                method_signatures = method_pattern.findall(__text)
-                if method_signatures and len(method_signatures) > 0:
-                    for ms in method_signatures:
-                        self.methods.add('XYAI_PUBLIC ' + ms + ');')
-            # 常量
-            raw_lines = read_lines(item)
-            for line in raw_lines:
-                line = line.replace('\n', '')
-                if line.startswith('#define XYAI_') and '(' not in line:
-                    line = line.replace('#define', '').strip()
-                    print(f"find constant: {line.split()} in '{header_name}'")
-                    self.consts.add(line)
-            # 结构体
-            for s in parse_structs(raw_lines):
-                strukt = self.structs.add(s)
-                print(f"find {strukt} in '{header_name}'")
-                types_map[strukt.name] = strukt.gen_signature(pkg_name)
-            # 枚举
-            for e in parse_enums(raw_lines):
-                enm = self.enums.add(e)
-                print(f"find {enm} in '{header_name}'")
-                types_map[enm.name] = "jint I"
+                method_definitions = method_pattern.findall(__text)
+                if method_definitions and len(method_definitions) > 0:
+                    for define in method_definitions:
+                        m = self.methods.add('XYAI_PUBLIC ' + define + ');')
+                        print(f"find {m} in '{header_name}'")
 
 
 class ModuleGenerator:
@@ -674,7 +725,7 @@ class ModuleGenerator:
             args_str = args_str[:len(args_str) - 2]
             method_body += f' {m.name}({args_str});\n'
             methods.append(method_body)
-            print(f'java native method =======>\n{method_body}')
+            # print(f'java native method =====>\n{method_body}')
         return '\n'.join(methods)
 
     def __generate_native__(self):
@@ -909,7 +960,7 @@ class ModuleGenerator:
             method_body += '  // TODO 下面是默认实现，请根据实际需求进行修改！\n'
             method_body += statements
             method_body += '}\n'
-            print(f'\ncpp jni method =====>\n{method_body}')
+            # print(f'\ncpp jni method =====>\n{method_body}')
             methods.append(method_body)
         # 所有方法之间以换行符分割
         return '\n'.join(methods)
@@ -1010,7 +1061,7 @@ def usage():
         '{jni-methods}': 'cpp 中要实现的在 java 层定义的 native 方法',
         '{jni-register-methods}': 'jni 静态注册方法映射数组',
         '{init-method}': '算法初始化方法，其返回值比较特殊 AIInitResult',
-        '{structs-beans}': 'cpp 结构体和 java bean 相互转化方法',
+        '{convert-methods}': 'cpp 结构体和 java bean 相互转化方法',
     }
     align = len(max(placeholders.keys(), key=len)) + 1
     print("===============================代码模板占位符说明===============================")
@@ -1035,7 +1086,7 @@ def usage():
 
 
 if __name__ == '__main__':
-    usage()
+    # usage()
 
     # __prj_root = os.path.dirname(__file__)
     # if not os.path.exists(__prj_root + '/Component-AI'):
@@ -1044,14 +1095,14 @@ if __name__ == '__main__':
     #     exit(1)
     # print(f"project root: '{__prj_root}'")
 
-    __prj_root = '/home/binlee/code/Dailearn/pytest/out'
+    __prj_root = '/home/binlee/code/android/Dailearn/pytest/out'
 
     # task = GenerateTask(input("操作类型（a 新增算法组件，u 更新算法组件）："),
     #                     input("算法库目录（绝对路径）："),
     #                     input("算法类型（正整数）："),
     #                     input("算法组件名（多个单词时以空格分割）：").lower(),
     #                     input("算法组件名（中文）：").lower())
-    task = GenerateTask(algo_dir='/home/binlee/code/open-source/quvideo/XYAlgLibs/AutoCrop-component/OneclickVideoClip',
+    task = GenerateTask(algo_dir='/home/binlee/code/quvideo/XYAlgLibs/AutoCrop-component/OneclickVideoClip',
                         ai_type='24',
                         algo_root=__prj_root,
                         module_name='one click video clip v2'.lower(),
