@@ -58,11 +58,15 @@ def _split_field(field: str) -> (str, str):
 def _sigof_java(pt: str, allow_missed: bool = False) -> str:
     if 'std::vector' in pt:
         raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
-        return f'[{_sigof_java(raw_type, allow_missed=allow_missed)}'
-    if allow_missed and pt not in types_map:
-        return ''
-    sig = types_map[pt if pt in types_map else pt.replace('*', '')].split()[1]
-    return '[' + sig if '**' in pt else sig
+        sj = _sigof_java(raw_type, allow_missed)
+        return '[' + sj if sj != '' else sj
+    try:
+        sig = types_map[pt if pt in types_map else pt.replace('*', '')].split()[1]
+        return '[' + sig if '**' in pt else sig
+    except KeyError as e:
+        if allow_missed and pt not in types_map:
+            return ''
+        raise e
 
 
 def _typeof_java(pt: str, allow_missed: bool = False) -> str:
@@ -78,15 +82,19 @@ def _typeof_java(pt: str, allow_missed: bool = False) -> str:
     if 'std::vector' in pt:
         # 原始类型
         raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
-        return f'{_typeof_java(raw_type, allow_missed=allow_missed)}[]'
-    if allow_missed and pt not in types_map:
-        return ''
-    pieces = types_map[pt if pt in types_map else pt.replace('*', '')].split()
-    if pieces[0] == 'void':
-        return 'void'
-    if pieces[0] == 'jobject' or pieces[0] == 'jstring':
-        return __wrap(pieces[1][1:len(pieces[1]) - 1].replace('/', '.'))
-    return __wrap(pieces[0][1:])
+        tj = _typeof_java(raw_type, allow_missed)
+        return tj + '[]' if tj != '' else tj
+    try:
+        pieces = types_map[pt if pt in types_map else pt.replace('*', '')].split()
+        if pieces[0] == 'void':
+            return 'void'
+        if pieces[0] == 'jobject' or pieces[0] == 'jstring':
+            return __wrap(pieces[1][1:len(pieces[1]) - 1].replace('/', '.'))
+        return __wrap(pieces[0][1:])
+    except KeyError as e:
+        if allow_missed and pt not in types_map:
+            return ''
+        raise e
 
 
 def _typeof_jni(pt: str, allow_missed: bool = False) -> str:
@@ -99,11 +107,15 @@ def _typeof_jni(pt: str, allow_missed: bool = False) -> str:
         left = pt.find('<')
         right = pt.find('>')
         raw_type = pt[left + 1: right]
-        return _typeof_jni(raw_type, allow_missed=allow_missed) + 'Array'
-    if allow_missed and pt not in types_map:
-        return ''
-    ctype = types_map[pt if pt in types_map else pt.replace('*', '')].split()[0]
-    return ctype + 'Array' if '**' in pt else ctype
+        tj = _typeof_jni(raw_type, allow_missed)
+        return tj + 'Array' if tj != '' else tj
+    try:
+        ctype = types_map[pt if pt in types_map else pt.replace('*', '')].split()[0]
+        return ctype + 'Array' if '**' in pt else ctype
+    except KeyError as e:
+        if allow_missed and pt not in types_map:
+            return ''
+        raise e
 
 
 def _typeof_jni_mf(pt: str) -> str:
@@ -117,23 +129,50 @@ def _typeof_jni_mf(pt: str) -> str:
 
 class Field:
     def __init__(self, kv: str):
-        index = kv.find(' ')
-        ftype = kv[:index]
-        fname = kv[index + 1:]
-        left = fname.find('[')
-        right = fname.find(']')
-        # 如果是数组类型，记一下数组长度
-        self.arr_len = fname[left + 1:right] if left >= 0 and right >= 0 else ''
-        # 名字
-        self.name = fname[:left] if left >= 0 and right >= 0 else kv[index + 1:]
-        # cpp 中的数据类型
-        self.cpp_type = ftype
+        # 枚举：XYInt32 XXX = 3
+        # 方法参数：XYInt32 xxx
+        # 结构体字段：XYInt32 xxx[]
+        self.__kv__ = kv.replace(',', '')
+        self.arr_len = ''
+        self.name = ''
+        self.value = ''
+        self.cpp_type = ''
+        self.java_type = ''
+        self.jni_type = ''
+        self.jni_sig = ''
+        self.parse()
+
+    def parse(self, allow_missed: bool = True):
+        if self.java_type != '':
+            return
+        if '=' in self.__kv__:
+            # 枚举类型固定为 int
+            self.cpp_type = 'XYInt32'
+            i = self.__kv__.find('=')
+            # 枚举名字
+            self.name = self.__kv__[:i].strip()
+            # 枚举值
+            self.value = self.__kv__[i + 1:].strip()
+        else:
+            index = self.__kv__.find(' ')
+            fname = self.__kv__[index + 1:]
+            # 数据类型和名字
+            self.cpp_type = self.__kv__[:index]
+            self.name = fname
+            self.arr_len = ''
+            if '[' in fname:
+                left = fname.find('[')
+                right = fname.find(']')
+                # 名字中如果有数组标识的话需要去掉
+                self.name = fname[:left]
+                # 如果是数组类型，记一下数组长度
+                self.arr_len = fname[left + 1:right].strip() if left != right else ''
         # java 中的数据类型，这里可能会报错，可以延后处理
-        self.java_type = _typeof_java(ftype, allow_missed=True)
+        self.java_type = _typeof_java(self.cpp_type, allow_missed)
         # jni 中的数据类型
-        self.jni_type = _typeof_jni(ftype, allow_missed=True)
+        self.jni_type = _typeof_jni(self.cpp_type, allow_missed)
         # jni 签名
-        self.jni_sig = _sigof_java(ftype, allow_missed=True)
+        self.jni_sig = _sigof_java(self.cpp_type, allow_missed)
         print(self)
 
     def __str__(self):
@@ -143,10 +182,12 @@ class Field:
             'java_type': self.java_type,
             'jni_type': self.jni_type,
             'jni_sig': self.jni_sig,
-            'arr_len': self.arr_len,
         }
-        return f'{fields}'
-        # return f'Field: {self.name} {self.cpp_type} {self.java_type} {self.jni_type} {self.jni_sig}'
+        if self.arr_len != '':
+            fields['arr_len'] = self.arr_len
+        if self.value != '':
+            fields['value'] = self.value
+        return f'{self.__kv__}\n{fields}'
 
 
 class StructType(enum.Enum):
@@ -160,20 +201,11 @@ class Struct:
     def __init__(self, raw: str, stype: StructType):
         self.stype = stype
         self.name = ''
-        self.rtype = ''
-        self.fields = list[str]()
-        self.field_list = list[Field]()
+        self.fields = list[Field]()
         if stype == StructType.METHOD:
             self.__parse_method__(raw)
         else:
             self.__parse_struct_or_enum__(raw)
-
-    def __str__(self):
-        if self.stype == StructType.METHOD:
-            return f"method: {self.rtype} {self.name}({', '.join(self.fields)})"
-        if self.stype == StructType.ENUM:
-            return f"enum: {self.name}" + ' {\n  ' + ',\n  '.join(self.fields) + '\n}'
-        return f"struct: {self.name}" + ' {\n  ' + ';\n  '.join(self.fields) + '\n}'
 
     def __parse_method__(self, raw: str):
         # 第一个左括号
@@ -184,16 +216,15 @@ class Struct:
         self.name = first_half[len(first_half) - 1]
         # 返回值
         if first_half[0].startswith('XYAI_'):
-            self.rtype = first_half[1]
+            self.rtype = Field(first_half[1] + " r___")
         else:
-            self.rtype = first_half[0]
+            self.rtype = Field(first_half[0] + " r___")
         fields_str = raw[first_index + 1: raw.rfind(')')]
         # 参数列表键值对
         for kv in fields_str.split(','):
             if kv == '':
                 continue
-            self.fields.append(kv.replace('const', '').strip())
-            self.field_list.append(Field(kv.replace('const', '').strip()))
+            self.fields.append(Field(kv.replace('const', '').strip()))
 
     def __parse_struct_or_enum__(self, raw: str):
         # typedef struct MultiTaskDetectionOutput {XYInt32 object_num;XYFloat pet_score;...} MTDetBbox;
@@ -213,8 +244,7 @@ class Struct:
         __sep = ',' if self.stype == StructType.ENUM else ';'
         for kv in raw[first_index + 1: raw.rfind('}')].split(__sep):
             if kv and '//' not in kv:
-                self.fields.append(kv)
-                self.field_list.append(Field(kv))
+                self.fields.append(Field(kv))
 
     def is_init_method(self) -> bool:
         lmn = self.name.lower()
@@ -229,8 +259,8 @@ class Struct:
             # print(f'{self}')
             signature = '('
             for f in (self.fields[1:] if self.is_init_method() else self.fields):
-                signature += _sigof_java(f.replace('const', '').strip().split()[0])
-            signature += ')' + types_map['InitResult' if self.is_init_method() else self.rtype].split()[1]
+                signature += f.jni_sig
+            signature += ')' + types_map['InitResult' if self.is_init_method() else self.rtype.cpp_type].split()[1]
             # print(f'signature: {signature}\n')
             return signature
         # 结构体签名，转成 java
@@ -312,7 +342,7 @@ def parse_structs(lines: list[str]) -> set[str]:
         # struct 开始
         if 'typedef struct' in line:
             started = True
-        if started:
+        if started and ';' in line and '(' not in line:
             s += line.replace('\n', '').strip()
         # struct 结束
         if started and '}' in line and ';' in line:
@@ -341,30 +371,28 @@ def parse_enums(lines: list[str]) -> set[str]:
 
 
 def to_c_struct(s: Struct) -> str:
-    body = f'{s.name} *to_C_struct_{s.name}(JNIEnv *env, jobject obj) ' + '{\n'
+    def _jni_mt(jni_type: str):
+        return jni_type.replace('Array', '')[1:].title()
+    body = f'{s.name} *to_cpp_struct_{s.name}(JNIEnv *env, jobject obj) ' + '{\n'
     statements = f'  auto/*{s.name}*/ _out_ = new {s.name}();\n'
     statements += f'  jclass clazz = env->FindClass("{_sigof_java(s.name)}");\n'
     statements += f'  jfieldId fid;\n'
     for f in s.fields:
-        ptype, pname = _split_field(f)
-        left = pname.find('[')
-        right = pname.find(']')
-        if left >= 0 and right >= 0:
-            statements += f'  /* 从 java 获取 {pname[:left]} -> {_typeof_java(ptype)}[] */\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{pname[:left]}", "[{_sigof_java(ptype)}");\n'
-            statements += f'  auto _{pname[:left]}_ = ({_typeof_jni(ptype)}Array) '
-            statements += f'env->GetObjectField(obj, fid);\n'
-            statements += f'  _out_->{pname[:left]} = '
-            statements += f'env->Get{_typeof_jni_mf(ptype)}ArrayElements(_{pname[:left]}_, JNI_FALSE);\n'
-        elif 'std::string' in ptype:
-            statements += f'  /* 从 java 获取 {pname[:left]} -> {_typeof_java(ptype)}[] */\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{pname}", "{_sigof_java(ptype)}");\n'
-            statements += f'  auto _{pname}_ = ({_typeof_jni(ptype)}) env->GetObjectField(obj, fid);\n'
-            statements += f'  _out_->{pname} = ScopedString(env, _{pname}_).c_str();\n'
+        if '[]' in f.java_type:
+            statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
+            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+            statements += f'  auto/*{f.jni_type}*/ _{f.name}_ = /*({f.jni_type}) */env->GetObjectField(obj, fid);\n'
+            statements += f'  _out_->{f.name} = '
+            statements += f'env->Get{_jni_mt(f.jni_type)}ArrayElements(_{f.name}_, JNI_FALSE);\n'
+        elif 'std::string' in f.cpp_type:
+            statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
+            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+            statements += f'  auto/*{f.jni_type}*/ _{f.name}_ = /*({f.jni_type}) */env->GetObjectField(obj, fid);\n'
+            statements += f'  _out_->{f.name} = ScopedString(env, _{f.name}_).c_str();\n'
         else:
-            statements += f'  /* 从 java 获取 {pname} -> {_typeof_java(ptype)} */\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{pname}", "{_sigof_java(ptype)}");\n'
-            statements += f'  _out_->{pname} = env->Get{_typeof_jni_mf(ptype)}Field(obj, fid);\n'
+            statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
+            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+            statements += f'  _out_->{f.name} = env->Get{_jni_mt(f.jni_type)}Field(obj, fid);\n'
     body += statements
     body += '  return _out_;\n'
     body += '}\n'
@@ -372,13 +400,36 @@ def to_c_struct(s: Struct) -> str:
 
 
 def to_java_bean(s: Struct) -> str:
-    body = f'jobject to_J_bean_{s.name}(JNIEnv *env, {s.name} *value) ' + '{\n'
-    statements = ''
+    def _jni_mt(jni_type: str):
+        return jni_type.replace('Array', '')[1:].title()
+    body = f'jobject to_java_bean_{s.name}(JNIEnv *env, {s.name} *value) ' + '{\n'
+    statements = f'  jclass clazz = env->FindClass("{_sigof_java(s.name)}");\n'
+    statements += f'  jobject obj = env->NewObject(clazz, env->GetMethodID(clazz, "<init>", "()V"));\n'
+    statements += f'  jfieldId fid;\n'
     for f in s.fields:
-        ptype, pname = _split_field(f)
-        pass
+        if '[]' in f.java_type:
+            statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
+            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+            statements += f'  auto c_{f.name}_ = value->{f.name};\n'
+            if f.arr_len == '':
+                statements += f'  int _{f.name}_len_ = value->{f.name}.size();\n'
+            else:
+                statements += f'  int _{f.name}_len_ = {f.arr_len};\n'
+            statements += f'  {f.jni_type} _ja_{f.name}_ = env->New{_jni_mt(f.jni_type)}Array(_{f.name}_len_);\n'
+            statements += f'  env->Set{_jni_mt(f.jni_type)}ArrayRegion(_ja_{f.name}_, 0, _{f.name}_len_, c_{f.name}_);\n'
+            statements += f'  env->SetObjectField(obj, fid, _ja_{f.name}_);\n'
+            pass
+        elif 'std::string' in f.cpp_type:
+            statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
+            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+            statements += f'  env->SetObjectField(obj, fid, env->NewStringUTF(value->{f.name}.c_str()));\n'
+            pass
+        else:
+            statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
+            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+            statements += f'  env->Set{_jni_mt(f.jni_type)}Field(obj, fid, value->{f.name});\n'
     body += statements
-    body += '  return nullptr;\n'
+    body += '  return java_out;\n'
     body += '}\n'
     return body
 
@@ -404,14 +455,16 @@ class AlgoParser:
 
         # 库文件: lib/[android, Android]/[arm64-v8a, arm32-v8a, armeabi-v7a]/*.a
         self.library_files = find_file(root + "/lib", ['android', 'Android'], suffixes=['.a'])
+        if len(self.library_files) == 0:
+            self.library_files = find_file(root + "/libs", ['android', 'Android'], suffixes=['.a'])
         # print(f"libraries: {self.library_files}")
 
         # 头文件：include/*.h
         self.header_files = find_file(root + '/include', suffixes=['.h'])
         # print(f"headers: {self.header_files}")
 
-        # 模型文件：model/**/[*.json, *.xymodel]
-        self.model_files = find_file(root + '/model', suffixes=['.json', '.xymodel'])
+        # 模型文件：model/**/[*.json, *.xymodel] 这还有可能是 zip 文件，要先解压再处理
+        self.model_files = find_file(root, sub_dirs=['model', 'models'], suffixes=['.json', '.xymodel'])
         # print(f"models: {self.model_files}")
 
         # ###### 代码生成所需要的变量 ######
@@ -453,14 +506,14 @@ class AlgoParser:
             raw_lines = read_lines(item)
             for line in raw_lines:
                 line = line.replace('\n', '')
-                if line.startswith('#define XYAI_') and '(' not in line:
+                if line.startswith('#define ') and '(' not in line and line.find(' ') != line.rfind(' '):
                     line = line.replace('#define', '').strip()
                     # print(f"find constant: {line.split()} in '{header_name}'")
                     self.consts.add(line)
             # 结构体
             for s in parse_structs(raw_lines):
                 strukt = self.structs.add(s)
-                print(f"find {strukt} in '{header_name}'")
+                # print(f"find {strukt} in '{header_name}'")
                 types_map[strukt.name] = strukt.gen_signature(pkg_name)
             # 枚举
             for e in parse_enums(raw_lines):
@@ -486,7 +539,7 @@ class AlgoParser:
                 if method_definitions and len(method_definitions) > 0:
                     for define in method_definitions:
                         m = self.methods.add('XYAI_PUBLIC ' + define + ');')
-                        print(f"find {m} in '{header_name}'")
+                        # print(f"find {m} in '{header_name}'")
 
 
 class ModuleGenerator:
@@ -527,23 +580,28 @@ class ModuleGenerator:
         return f"path: {self.path}\nname: {self.module_name}, pkg: {self.pkg_name}, lower: {self.lower_name}"
 
     def generate(self):
+        print('start parse algo lib...')
         # 分析算法库提供的头文件
         self.parser.parse(self.pkg_name)
+        print(self.parser)
 
         # 测试代码
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
 
+        print('start copy model files...')
         # 拷贝模型文件
         assets_dir = f"{self.path}/src/main/assets/engine/ai/{self.lower_name}"
         os.makedirs(assets_dir)
         for item in self.parser.model_files:
             shutil.copyfile(item, assets_dir + '/' + os.path.basename(item), follow_symlinks=False)
 
+        print('start generate .gitignore file...')
         # 生成 .gitignore 文件
         with open(f"{self.path}/.gitignore", mode='w') as f:
             f.writelines('build\n.cxx\nlibs/arm*\n')
 
+        print('start generate AndroidManifest.xml file...')
         # 生成清单文件
         with open(f"{self.path}/src/main/AndroidManifest.xml", mode='w') as f:
             f.write(f'<?xml version="1.0" encoding="utf-8"?>\n')
@@ -650,11 +708,9 @@ class ModuleGenerator:
                     f.write(f'package {package};\n\n')
                     f.write(f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n')
                     f.write(f'public final class {e.name}' + ' {\n')
-                    f.write(f'  /* generated from\n')
-                    f.write(f'{e}*/\n')
+                    f.write(f"  // generated from enum '{e.name}'\n")
                     for item in e.fields:
-                        if item:
-                            f.write(f'  public static final int {item};\n')
+                        f.write(f'  public static final {item.java_type} {item.name} = {item.value};\n')
                     f.write('}')
 
     def __gen_java_beans__(self, java_dir: str):
@@ -672,18 +728,12 @@ class ModuleGenerator:
                             pieces = c.split()
                             body += f'  public static final int {pieces[0]} = {pieces[1]};\n'
                     body += f'\n  public {s.name}() ' + '{\n  }\n\n'
-                    body += f'  /* generated from\n'
-                    body += f'{s}*/\n'
+                    body += f"  // generated from '{s.name}'\n"
                     for f in s.fields:
-                        ptype, pname = _split_field(f)
-                        if ptype and pname:
-                            left = pname.find('[')
-                            right = pname.find(']')
-                            if left >= 0 and right >= 0:
-                                body += f'  public {_typeof_java(ptype)}[] {pname[:left]} = '
-                                body += f'new {_typeof_java(ptype)}{pname[left: right + 1]};\n'
-                            else:
-                                body += f'  public {_typeof_java(ptype)} {pname};\n'
+                        if f.arr_len != '':
+                            body += f'  public {f.java_type}[] {f.name} = new {f.java_type}[{f.arr_len}];\n'
+                        else:
+                            body += f'  public {f.java_type} {f.name};\n'
                     body += '}'
                     bean.write(body)
 
@@ -714,16 +764,14 @@ class ModuleGenerator:
             # 构建 jni 方法，没有方法体
             method_body += '  private static native '
             # 方法返回值，算法初始化时的返回值要特殊处理
-            method_body += _typeof_java('InitResult' if m.is_init_method() else m.rtype)
+            method_body += _typeof_java('InitResult' if m.is_init_method() else m.rtype.cpp_type)
             # 方法参数列表，算法初始化时跳过第一个参数
             args_str = ''
             for i, f in enumerate(m.fields[1:] if m.is_init_method() else m.fields, 1):
                 if i > 2 and i & i % 2 == 1:
                     args_str += '\n' + ' ' * 8
-                segments = f.replace('const', '').strip().split()
-                args_str += _typeof_java(segments[0]) + ' ' + segments[1] + ', '
-            args_str = args_str[:len(args_str) - 2]
-            method_body += f' {m.name}({args_str});\n'
+                args_str += f.java_type + ' ' + f.name + ', '
+            method_body += f" {m.name}({args_str.rstrip(', ')});\n"
             methods.append(method_body)
             # print(f'java native method =====>\n{method_body}')
         return '\n'.join(methods)
@@ -742,11 +790,13 @@ class ModuleGenerator:
 
         os.makedirs(self.jni_dir)
 
+        print('start copy release note file...')
         # 拷贝升级日志
         if len(self.parser.release_notes) > 0:
             dst = self.jni_dir + '/' + os.path.basename(self.parser.release_notes[0])
             shutil.copyfile(self.parser.release_notes[0], dst, follow_symlinks=False)
 
+        print('start copy algo library files...')
         # 拷贝库文件 ['arm64-v8a', 'arm32-v8a', 'armeabi-v7a']
         v8a_dir = f"{self.jni_dir}/arm64-v8a"
         os.mkdir(v8a_dir)
@@ -760,6 +810,7 @@ class ModuleGenerator:
                             dst=(v8a_dir if 'arm64' in item else v7a_dir) + '/' + lib_name,
                             follow_symlinks=False)
 
+        print('start copy header files...')
         for item in self.parser.header_files:
             with open(self.jni_dir + '/' + os.path.basename(item), 'w') as f:
                 for line in read_lines(item):
@@ -772,13 +823,13 @@ class ModuleGenerator:
                     f.write(line)
 
         # 生成算法组件 jni 实现，通过模板生成 cpp 文件
-        print(f"start generate '{self.jni_dir}/{self.lower_name}_jni.cpp'")
+        print(f"start generate {self.lower_name}_jni.cpp file...")
         if self.parser.itf_impl_name != '':
             self.__generate_cpp_union__()
         else:
             self.__generate_cpp_common__()
 
-        print(f"start generate '{self.path}/CMakeLists.txt'")
+        print(f"start generate CMakeLists.txt file...")
         with open(f"{self.path}/CMakeLists.txt", mode='w') as f:
             # 通过模板读取
             for line in read_lines(self.tmplt + '/CMakeLists.txt.tmplt'):
@@ -843,8 +894,7 @@ class ModuleGenerator:
         # struct 和 java bean 相互转换，每个结构体有两组方法
         methods: list[str] = []
         for s in self.parser.structs:
-            methods.append(f'/*{s}*/')
-            methods.append('// 自动生成的转换方法')
+            methods.append(f"// 自动生成的转换方法 '{s.name}'")
             # bean -> struct
             methods.append(to_c_struct(s))
             # struct -> bean
@@ -855,7 +905,7 @@ class ModuleGenerator:
         methods: list[str] = []
         for m in self.parser.methods:
             method_body = f'// generated from {m}\n'
-            method_body += types_map[m.rtype].split()[0] + f' Q{self.module_name}_{m.name}'
+            method_body += m.rtype.cpp_type + f' Q{self.module_name}_{m.name}'
             # jni 方法参数列表
             args_list = 'JNIEnv *env, jclass clazz'
             if len(m.fields) > 0:
@@ -865,68 +915,67 @@ class ModuleGenerator:
             # 算法接口调用时入参
             caller_args = ''
             # 那些结构体要转成 java bean
-            structs_to_convert: list[str] = []
+            structs_to_convert: list[Field] = []
             for i, f in enumerate(m.fields, 1):
-                ptype, pname = _split_field(f)
                 # 处理方法定义参数列表
-                args_list += _typeof_jni(ptype) + ' ' + pname + ', '
+                args_list += f.jni_type + ' ' + f.name + ', '
                 # 语句定义，java -> cpp 数据结构转换
                 if i == 1 and m.is_init_method():
-                    statements += f'  {ptype} _{pname}_ = nullptr;\n'
+                    statements += f'  {f.cpp_type} _{f.name}_ = nullptr;\n'
                 elif i == len(m.fields) and m.is_release_method():
-                    ptype = ptype[:len(ptype) - 1]
-                    statements += f'  {ptype} _{pname}_ = ({ptype}) {pname};\n'
-                    caller_args += f'&_{pname}_'
+                    ptype = f.cpp_type[:len(f.cpp_type) - 1]
+                    statements += f'  {ptype} _{f.name}_ = ({ptype}) {f.name};\n'
+                    caller_args += f'&_{f.name}_'
                 else:
                     # 特殊处理的参数：XYChar*/std:string/XYAIRect*/XYAIFrameInfo*
-                    if ptype == 'XYChar*':
-                        statements += f'  {ptype} _{pname}_ = ({ptype})ScopedString(env, {pname}).c_str();\n'
-                        caller_args += f'_{pname}_, '
-                    elif ptype == 'std::string':
-                        statements += f'  {ptype} _{pname}_ = {ptype}(ScopedString(env, {pname}).c_str());\n'
-                        caller_args += f'_{pname}_, '
-                    elif '*' in ptype:
+                    if f.cpp_type == 'XYChar*':
+                        statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type})ScopedString(env, {f.name}).c_str();\n'
+                        caller_args += f'_{f.name}_, '
+                    elif f.cpp_type == 'std::string':
+                        statements += f'  {f.cpp_type} _{f.name}_ = {f.cpp_type}(ScopedString(env, {f.name}).c_str());\n'
+                        caller_args += f'_{f.name}_, '
+                    elif '*' in f.cpp_type:
                         # * 表示传递地址过去，也可以表示传递一个数组（如何区分呢？）
                         # ** 表示传递数组地址过去
                         # 区分是结构体还是基本数据类型
                         # 基本数据类型初值怎么设置？
                         # 数据结构怎么进行转换？
-                        if '**' in ptype:
-                            ptype = ptype[:len(ptype) - 2]
-                            statements += f'  {ptype} _{pname}_[] = new {ptype}[数组长度];\n'
-                            caller_args += f'&_{pname}_, '
+                        if '**' in f.cpp_type:
+                            ptype = f.cpp_type[:len(f.cpp_type) - 2]
+                            statements += f'  {ptype} _{f.name}_[] = new {ptype}[数组长度];\n'
+                            caller_args += f'&_{f.name}_, '
                             structs_to_convert.append(f)
                         else:
-                            ptype = ptype[:len(ptype) - 1]
-                            if 'list' in pname:
-                                statements += f'  {ptype} _{pname}_[] = new {ptype}[数组长度];\n'
-                                caller_args += f'&_{pname}_, '
+                            ptype = f.cpp_type[:len(f.cpp_type) - 1]
+                            if 'list' in f.name:
+                                statements += f'  {ptype} _{f.name}_[] = new {ptype}[数组长度];\n'
+                                caller_args += f'&_{f.name}_, '
                                 structs_to_convert.append(f)
-                            elif 'input' in pname:
+                            elif 'input' in f.name:
                                 # 送给算法接口的参数
-                                statements += f'  auto _{pname}_ = std::unique_ptr'
-                                statements += f'<{ptype[:len(ptype) - 1]}>(AIFrameInfoJ2C(env, _{pname}_));\n'
-                                caller_args += f'_{pname}_.get(), '
-                            elif 'output' in pname:
+                                statements += f'  auto _{f.name}_ = std::unique_ptr'
+                                statements += f'<{ptype[:len(ptype) - 1]}>(AIFrameInfoJ2C(env, _{f.name}_));\n'
+                                caller_args += f'_{f.name}_.get(), '
+                            elif 'output' in f.name:
                                 # 需要算法填充的参数，这时返回值需要做转换
-                                statements += f'  {ptype[:len(ptype) - 1]} _{pname}_ = ' + '{};\n'
-                                caller_args += f'&_{pname}_, '
+                                statements += f'  {ptype[:len(ptype) - 1]} _{f.name}_ = ' + '{};\n'
+                                caller_args += f'&_{f.name}_, '
                                 structs_to_convert.append(f)
                             else:
                                 statements += f'  // 可能是一个基本数据类型，也可也能是一个结构体\n'
-                                statements += f'  {ptype} _{pname}_ = xxx/' + '{};\n'
-                                caller_args += f'&_{pname}_, '
+                                statements += f'  {ptype} _{f.name}_ = xxx/' + '{};\n'
+                                caller_args += f'&_{f.name}_, '
                                 structs_to_convert.append(f)
                     else:
-                        statements += f'  {ptype} _{pname}_ = ({ptype}){pname};\n'
-                        caller_args += f'_{pname}_, '
+                        statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}){f.name};\n'
+                        caller_args += f'_{f.name}_, '
                 # 换行处理
                 if i % 3 == 0 and i != len(m.fields):
                     args_list += '\n' + ' ' * 8
                     caller_args += '\n' + ' ' * 8
 
             # 方法返回
-            if 'void' in m.rtype.lower():
+            if 'void' in m.rtype.cpp_type.lower():
                 statements += f"  return {m.name}({caller_args.rstrip(', ')});\n"
             else:
                 # 埋点代码：方法执行前
@@ -934,7 +983,7 @@ class ModuleGenerator:
                     statements += '\n  FUNC_ENTER(__func__, 0)\n'
                 else:
                     statements += f'\n  FUNC_ENTER(__func__, _handle_)\n'
-                statements += f"  {m.rtype} _res_ = {m.name}({caller_args.rstrip(', ')});\n"
+                statements += f"  {m.rtype.cpp_type} _res_ = {m.name}({caller_args.rstrip(', ')});\n"
                 # 埋点代码：方法执行后
                 statements += f'  FUNC_EXIT(env, __func__, _res_, {self.parser.ai_type}, AV)\n'
                 if m.is_init_method():
@@ -945,14 +994,13 @@ class ModuleGenerator:
                         statements += '  // 结构体转成 java bean\n'
                         statements += '  if (_res_ == XYAI_NO_ERROR) {\n'
                         for f in structs_to_convert:
-                            ptype, pname = _split_field(f)
-                            if ptype == 'XYAIFrameInfo*':
+                            if f.cpp_type == 'XYAIFrameInfo*':
                                 # AIFrameInfoC2J(env, &frameOut, out);
-                                statements += f'    AIFrameInfoC2J(env, &_{pname}_, {pname});\n'
+                                statements += f'    AIFrameInfoC2J(env, &_{f.name}_, {f.name});\n'
                             # 我们目前只实现这一个，其他的用到了再处理
-                            statements += f"    // TODO 转换 '{ptype}' to '{pname}'\n"
+                            statements += f"    // TODO 转换 '{f.cpp_type}' to '{f.name}'\n"
                         statements += '  }\n'
-                    if _typeof_java(m.rtype) == 'java.lang.String':
+                    if m.rtype.java_type == 'java.lang.String':
                         statements += '  return env->NewStringUTF(_res_);\n'
                     else:
                         statements += '  return _res_;\n'
@@ -972,6 +1020,7 @@ class ModuleGenerator:
         return line
 
     def __modify_compile_scripts__(self):
+        print('start modify settings.gradle file...')
         # 修改 settings.gradle、config.gradle、upload-to-maven.sh
         settings: str = self.prj_root + '/settings.gradle'
         if not os.path.exists(settings):
@@ -987,6 +1036,7 @@ class ModuleGenerator:
                     f.write("\n//include ':Component-AI:{module-name}AI' /* 这一行是模板占位符，不要删除！！*/\n")
                 else:
                     f.write(line)
+        print('start modify config.gradle file...')
         # config.gradle upload-to-maven.sh
         config: str = self.prj_root + '/config.gradle'
         if not os.path.exists(config):
@@ -1016,6 +1066,7 @@ class ModuleGenerator:
         if not os.path.exists(compile_script):
             print(f"'{compile_script}' 不存在！")
             exit(1)
+        print('start modify upload-to-maven.sh file...')
         raw_lines = read_lines(compile_script)
         new_lines: list[str] = []
         for index in range(len(raw_lines)):
@@ -1095,16 +1146,16 @@ if __name__ == '__main__':
     #     exit(1)
     # print(f"project root: '{__prj_root}'")
 
-    __prj_root = '/home/binlee/code/android/Dailearn/pytest/out'
+    __prj_root = '/home/binlee/code/Dailearn/pytest/out'
 
     # task = GenerateTask(input("操作类型（a 新增算法组件，u 更新算法组件）："),
     #                     input("算法库目录（绝对路径）："),
     #                     input("算法类型（正整数）："),
     #                     input("算法组件名（多个单词时以空格分割）：").lower(),
     #                     input("算法组件名（中文）：").lower())
-    task = GenerateTask(algo_dir='/home/binlee/code/quvideo/XYAlgLibs/AutoCrop-component/OneclickVideoClip',
+    task = GenerateTask(algo_dir='/home/binlee/code/open-source/quvideo/XYAlgLibs/XYCartoonLite',
                         ai_type='24',
                         algo_root=__prj_root,
-                        module_name='one click video clip v2'.lower(),
-                        module_name_zh='宠物一键 v2')
+                        module_name='cartoon lite v2'.lower(),
+                        module_name_zh='皮克斯相机 v2')
     task.create_module()
