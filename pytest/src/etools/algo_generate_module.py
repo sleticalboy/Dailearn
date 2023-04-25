@@ -8,11 +8,6 @@ import sys
 import time
 
 
-class Types:
-    def __init__(self):
-        pass
-
-
 # ai type -> jni type & sig
 # int* 是传递地址过去
 # int** 是传递数组地址过去
@@ -44,16 +39,6 @@ types_map = {
     'InitResult': 'jobject Lcom/quvideo/mobile/component/common/AIInitResult;',
     # c 中定义的枚举和结构体在这里根据代码动态添加
 }
-
-
-def _split_field(field: str) -> (str, str):
-    """
-    把字符串分割成键值对
-    @param field:
-    @return:
-    """
-    __ss = field.replace('const', '').strip().split()
-    return __ss[0], __ss[1]
 
 
 def _sigof_java(pt: str, allow_missed: bool = False) -> str:
@@ -119,15 +104,6 @@ def _typeof_jni(pt: str, allow_missed: bool = False) -> str:
         raise e
 
 
-def _typeof_jni_mf(pt: str) -> str:
-    if 'std::vector' in pt:
-        return 'Object'
-    pieces = types_map[pt if pt in types_map else pt.replace('*', '')].split()
-    if 'Array' in pieces[0]:
-        return 'Object'
-    return pieces[0][1:].title()
-
-
 class Field:
     def __init__(self, kv: str):
         # 枚举：XYInt32 XXX = 3
@@ -174,7 +150,7 @@ class Field:
         self.jni_type = _typeof_jni(self.cpp_type, allow_missed)
         # jni 签名
         self.jni_sig = _sigof_java(self.cpp_type, allow_missed)
-        print(self)
+        # print(self)
 
     def __str__(self):
         fields = {
@@ -462,28 +438,20 @@ class AlgoParser:
     """
 
     def __init__(self, root: str, ai_type: str):
-        if not os.path.exists(root):
-            print(f"'{root}' 不存在！", file=sys.stderr)
-            exit(1)
-
         self.ai_type = ai_type
         # 更新日志: [README.md, releasenote.txt]
         self.release_notes = find_file(root, suffixes=['.md', '.txt'])
-        # print(f"release notes: {self.release_notes}")
 
         # 库文件: lib/[android, Android]/[arm64-v8a, arm32-v8a, armeabi-v7a]/*.a
         self.library_files = find_file(root + "/lib", ['android', 'Android'], suffixes=['.a'])
         if len(self.library_files) == 0:
             self.library_files = find_file(root + "/libs", ['android', 'Android'], suffixes=['.a'])
-        # print(f"libraries: {self.library_files}")
 
         # 头文件：include/*.h
         self.header_files = find_file(root + '/include', suffixes=['.h'])
-        # print(f"headers: {self.header_files}")
 
         # 模型文件：model/**/[*.json, *.xymodel] 这还有可能是 zip 文件，要先解压再处理
         self.model_files = find_file(root, sub_dirs=['model', 'models'], suffixes=['.json', '.xymodel'])
-        # print(f"models: {self.model_files}")
 
         # ###### 代码生成所需要的变量 ######
         # 统一接口名
@@ -588,13 +556,12 @@ class PrjInfo:
         self.java_dir = f"{self.path}/src/main/java/com/quvideo/mobile/component/{self.pkg_name}"
         ensure_path(self.path, self.assets_dir, self.jni_dir, self.java_dir)
 
-    def __str__(self):
-        _field_map_ = {
+    def dict(self) -> dict[str, str]:
+        return {
             'root': self.algo_root,
             'name': self.__raw_name__,
             'name_zh': self.module_name_zh,
         }
-        return json.dumps(_field_map_, ensure_ascii=False)
 
 
 class CopyTask:
@@ -609,21 +576,21 @@ class CopyTask:
 
     def process(self, parser: AlgoParser):
         self.parser = parser
-        print('start parse algo lib...')
+        print('parse algo lib...')
         # 分析算法库提供的头文件
         self.parser.parse(self.prj.pkg_name)
         print(self.parser)
         # 拷贝模型文件
-        print('start copy model files...')
+        print('copy model files...')
         for item in self.parser.model_files:
             shutil.copyfile(item, self.prj.assets_dir + '/' + os.path.basename(item), follow_symlinks=False)
         # 拷贝升级日志
-        print('start copy release note file...')
+        print('copy release note file...')
         if len(self.parser.release_notes) > 0:
             dst = self.prj.jni_dir + '/' + os.path.basename(self.parser.release_notes[0])
             shutil.copyfile(self.parser.release_notes[0], dst, follow_symlinks=False)
         # 拷贝库文件 ['arm64-v8a', 'arm32-v8a', 'armeabi-v7a']
-        print('start copy algo library files...')
+        print('copy algo library files...')
         v7a_dir = f"{self.prj.jni_dir}/armeabi-v7a"
         v8a_dir = f"{self.prj.jni_dir}/arm64-v8a"
         ensure_path(v7a_dir, v8a_dir)
@@ -1118,27 +1085,78 @@ class GenerateTask(CopyTask):
             f.write('\n')
 
 
-def save_prj(key: str, value: str, path: str):
-    ensure_path(path + '/.idea')
-    # 维护一个数据库： 算法库目录和算法组件目录的映射
-    path += '/.idea/algo_cache.json'
-    cache = {}
-    if not os.path.exists(path):
-        cache[key] = value
-    else:
-        # 更新字典
-        cache = json.loads(read_content(path, flatmap=True))
-        cache[key] = value
-    with open(path, mode='w') as f:
-        json.dump(f, cache)
+class AlgoCache:
+    def __init__(self, prj_root: str):
+        # 维护一个数据库： 算法库目录和算法组件目录的映射
+        self.file = prj_root + '/.idea/algo_cache_db.json'
+        ensure_path(os.path.dirname(self.file))
+        self.__cache = json.loads(read_content(self.file, flatmap=True)) if os.path.exists(self.file) else {}
+
+    def has(self, path: str) -> bool:
+        return path in self.__cache
+
+    def get(self, path: str) -> dict[str, any]:
+        return self.__cache.get(path) if self.has(path) else None
+
+    def update(self, path: str, value: dict[str, any], ai_type: str):
+        value['ai_type'] = ai_type
+        self.__cache[path] = value
+        with open(self.file, mode='w') as f:
+            f.write(json.dumps(self.__cache, ensure_ascii=False))
 
 
-def get_prj(key: str, path: str) -> dict[str, str]:
-    # 维护一个数据库： 算法库目录和算法组件目录的映射
-    path += '/.idea/algo_cache.json'
-    if not os.path.exists(path):
-        return {}
-    return json.loads(read_content(path, flatmap=True))[key]
+def read_opt(prompt: str, tester=None) -> str:
+    if tester is None:
+        return input(prompt)
+    while True:
+        value = input(prompt)
+        if tester(value):
+            return value
+
+
+def run_main_flow(cwd: str):
+    def path_tester(path__: str) -> bool:
+        if not os.path.exists(path__):
+            print(f"'{path__}' 不存在, 请重新输入！")
+            return False
+        return True
+    algo_lib_dir__ = read_opt("算法库目录（绝对路径）：", path_tester)
+
+    def op_tester(op__: str) -> bool:
+        if op__.lower() not in 'ua':
+            print(f"操作类型错误：'{op__}'，请重新输入！")
+            return False
+        return True
+    op_type__ = read_opt("操作类型（a 新增算法组件，u 更新算法组件）：", op_tester).lower()
+
+    cache__ = AlgoCache(cwd)
+
+    if 'u' == op_type__:
+        # 通过脚本创建或更新过一次的算法模块，会有缓存文件存在
+        if cache__.has(algo_lib_dir__):
+            prj_info__ = cache__.get(algo_lib_dir__)
+            ai_type__ = prj_info__.pop('ai_type')
+            task = CopyTask(PrjInfo(**prj_info__))
+            task.process(AlgoParser(algo_lib_dir__, ai_type__))
+            print('更新完成！')
+            return
+        else:
+            # 非首次更新，需要以下信息
+            print(f'首次更新，还需提供以下信息：')
+    ai_type__ = read_opt("算法类型（正整数）：")
+    module_name__ = read_opt("算法组件名（多个单词时以空格分割）：").lower()
+    module_name_zh__ = read_opt("算法组件名（中文）：").lower()
+    prj_info__ = PrjInfo(cwd, module_name__, module_name_zh__)
+    if 'u' == op_type__:
+        CopyTask(prj_info__).process(AlgoParser(algo_lib_dir__, ai_type__))
+        # 非脚本创建的算法模块，更新过算法库之后要同步缓存
+        cache__.update(algo_lib_dir__, prj_info__.dict(), ai_type__)
+        print('更新完成！')
+        return
+    # 新增算法模块
+    GenerateTask(prj_info__).process(AlgoParser(algo_lib_dir__, ai_type__))
+    cache__.update(algo_lib_dir__, prj_info__.dict(), ai_type__)
+    print('新增完成！')
 
 
 def usage():
@@ -1148,7 +1166,7 @@ def usage():
         '{algo-nss}': '算法命名空间',
         '{itf-name}': '算法统一接口名字',
         '{pkg-name}': 'java 包名',
-        '{ai-type}': '算法类型',
+        '{ai-type}': '算法类型，与模型下发有关',
         '{lower-name}': '大写_模块名',
         '{upper-name}': '小写_模块名',
         '{algo-lib-name}': '算法静态库名，去掉前缀和后缀',
@@ -1166,53 +1184,27 @@ def usage():
     print()
 
     menus: list[str] = [
-        '操作类型（a 新增算法组件，u 更新算法组件）：a（这里是新增）',
-        "算法库目录（绝对路径）：/home/binlee/code/XYAlgLibs/AutoCrop-component/ImageRestore（这里是画质修复算法库）",
+        '================================菜单================================',
+        '操作类型（a 新增算法组件，u 更新算法组件）：a/A/u/U 不区分大小写',
+        "算法库目录（绝对路径）：/path/to/algo/library",
         "！！！！！！ 如果是更新库，下面的操作都不需要了 ！！！！！！",
-        "算法类型（正整数且不能与现有算法类型重复）：24（请与 iOS 协商好）",
+        "算法类型（正整数且不能与现有算法类型重复）：如：24（请与 iOS 协商好）",
         "算法组件名（多个单词时以空格分割）：image restore v2（程序内部会处理成首字母大写、剔除空格、驼峰命名等）",
         "算法组件名（中文）：画质修复 v2（用于生成代码注释）",
+        '================================菜单================================'
     ]
-    print("================================菜单================================")
-    print("操作示例：")
-    for item in menus:
-        print(item)
-    print("================================菜单================================")
+    print("操作示例：\n" + '\n'.join(menus) + '\n')
 
 
 if __name__ == '__main__':
-    # usage()
-
-    # __prj_root = os.path.dirname(__file__)
-    # if not os.path.exists(__prj_root + '/Component-AI'):
-    #     # 脚本必须在算法工程根目录执行
-    #     print(f"脚本必须在算法工程根目录执行！当前：'{__prj_root}'", file=sys.stderr, flush=True)
-    #     exit(1)
-    # print(f"project root: '{__prj_root}'")
-
-    __prj_root = '/home/binlee/code/Dailearn/pytest/out'
-
-    # __algo_lib_dir = input("算法库目录（绝对路径）：")
-    # __op_type = input("操作类型（a 新增算法组件，u 更新算法组件）：")
-
-    __algo_lib_dir = '/home/binlee/code/open-source/quvideo/XYAlgLibs/AutoCrop-component/OneclickVideoClip'
-    __op_type = 'a'
-    if 'u' == __op_type:
-        prj_info = get_prj(__algo_lib_dir, __prj_root)
-        if prj_info and len(prj_info) > 0:
-            __ai_type = prj_info.pop('ai_type')
-            task = CopyTask(**prj_info)
-            task.process(AlgoParser(__algo_lib_dir, __ai_type))
-    else:
-        # __ai_type = input("算法库目录（绝对路径）：")
-        # __algo_root = input("算法类型（正整数）：")
-        # __module_name = input("算法组件名（多个单词时以空格分割）：").lower()
-        # __module_name_zh = input("算法组件名（中文）：").lower()
-        __ai_type = '240'
-        __algo_root = __prj_root
-        __module_name = 'one click video v2'.lower()
-        __module_name_zh = '一键成片 v2'
-        prj_info = PrjInfo(__prj_root, __module_name, __module_name_zh)
-        task = GenerateTask(prj_info)
-        task.process(AlgoParser(__algo_lib_dir, __ai_type))
-        save_prj(__algo_lib_dir, __prj_root, prj_info.__str__())
+    # 算法工程根目录
+    cwd__ = os.path.dirname(__file__)
+    if not os.path.exists(cwd__ + '/Component-AI'):
+        # 脚本必须在算法工程根目录执行
+        print(f"脚本必须在算法工程根目录执行！当前：'{cwd__}'", file=sys.stderr)
+        exit(1)
+    print(f"project root: '{cwd__}'")
+    # 使用说明
+    usage()
+    # 开始运行主流程
+    run_main_flow(cwd__)

@@ -11,6 +11,8 @@
 
 {algo-nss}
 
+{convert-methods}
+
 jobject Q{module-name}_Init(JNIEnv *env, jclass clazz, jstring model_path) {
   ScopedString path(env, model_path);
   ALOGD(TAG, "%s model path: %s", __func__, path.c_str())

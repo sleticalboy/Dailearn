@@ -9,6 +9,8 @@
 
 {algo-nss}
 
+{convert-methods}
+
 {jni-methods}
 
 JNINativeMethod g{module-name}Methods[] = {
