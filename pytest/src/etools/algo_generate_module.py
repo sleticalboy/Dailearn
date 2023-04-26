@@ -1,13 +1,12 @@
 import enum
 import getpass
-import io
 import json
 import os
 import re
 import shutil
 import sys
 import time
-
+import zipfile
 
 # ai type -> jni type & sig
 # int* 是传递地址过去
@@ -103,6 +102,23 @@ def _typeof_jni(pt: str, allow_missed: bool = False) -> str:
         if allow_missed and pt not in types_map:
             return ''
         raise e
+
+
+class Types:
+    def __init__(self):
+        pass
+
+    def of_java(self, pt: str, allow_missed: bool = False):
+        pass
+
+    def of_cpp(self, pt: str, allow_missed: bool = False):
+        pass
+
+    def of_jni(self, pt: str, allow_missed: bool = False):
+        pass
+
+    def append(self, key: str, val: str):
+        pass
 
 
 class Field:
@@ -278,6 +294,7 @@ class Struct:
     def gen_javabean_to_struct_method(self) -> str:
         def _jni_mt(jni_type: str):
             return jni_type.replace('Array', '')[1:].title()
+
         body = f'{self.name} *to_cpp_struct_{self.name}(JNIEnv *env, jobject obj) ' + '{\n'
         statements = f'  auto/*{self.name}*/ _out_ = new {self.name}();\n'
         statements += f'  jclass clazz = env->FindClass("{_sigof_java(self.name)}");\n'
@@ -306,6 +323,7 @@ class Struct:
     def gen_struct_to_javabean_method(self) -> str:
         def _jni_mt(jni_type: str):
             return jni_type.replace('Array', '')[1:].title()
+
         body = f'jobject to_java_bean_{self.name}(JNIEnv *env, {self.name} *value) ' + '{\n'
         statements = f'  jclass clazz = env->FindClass("{_sigof_java(self.name)}");\n'
         statements += f'  jobject obj = env->NewObject(clazz, env->GetMethodID(clazz, "<init>", "()V"));\n'
@@ -499,29 +517,35 @@ def get_file_ext(path: str) -> str:
     return '' if index < 0 else path[index:]
 
 
-def __find_files__(path: str, output: list[str], suffixes: list[str]):
-    if os.path.isfile(path):
-        if get_file_ext(path) in suffixes:
-            output.append(path)
-    elif os.path.isdir(path):
-        for child in os.listdir(path):
-            __find_files__(path + '/' + child, output, suffixes)
+def find_files(root: str, suffixes: list[str] = None, tester=None) -> list[str]:
+    output: list[str] = []
+
+    def filter_file(path: str) -> bool:
+        return tester is None or (tester and tester(path))
+
+    def recursive_find(path: str):
+        if os.path.isfile(path):
+            if suffixes and len(suffixes) > 0:
+                # tester 为空就不校验，test 不为空就校验
+                if get_file_ext(path) in suffixes and filter_file(path):
+                    output.append(path)
+            else:
+                if filter_file(path):
+                    output.append(path)
+        elif os.path.isdir(path):
+            for child in os.listdir(path):
+                recursive_find(path + '/' + child)
+
+    recursive_find(root)
+    return output
 
 
-def find_file(root: str, sub_dirs: list[str] = None, suffixes: list[str] = None) -> list[str]:
-    files: list[str] = []
-    if sub_dirs and len(sub_dirs) > 0:
-        for sub_dir in sub_dirs:
-            path = root + '/' + sub_dir
-            if os.path.exists(path):
-                if suffixes and len(suffixes) > 0:
-                    __find_files__(path, files, suffixes)
-                else:
-                    files.append(path)
-    else:
-        if suffixes and len(suffixes) > 0:
-            __find_files__(root, files, suffixes)
-    return files
+def extract_file(file: str) -> list[str]:
+    with zipfile.ZipFile(file) as f:
+        # 如果路径不存在，extractall() 方法内部会自行创建
+        path = '/tmp/' + os.path.basename(file)
+        f.extractall(path)
+        return find_files(path)
 
 
 def read_lines(path: str) -> list[str]:
@@ -600,18 +624,20 @@ class AlgoParser:
     def __init__(self, root: str, ai_type: str):
         self.ai_type = ai_type
         # 更新日志: [README.md, releasenote.txt]
-        self.release_notes = find_file(root, suffixes=['.md', '.txt'])
+        self.release_notes = find_files(root, ['.md', '.txt'])
 
         # 库文件: lib/[android, Android]/[arm64-v8a, arm32-v8a, armeabi-v7a]/*.a
-        self.library_files = find_file(root + "/lib", ['android', 'Android'], suffixes=['.a'])
-        if len(self.library_files) == 0:
-            self.library_files = find_file(root + "/libs", ['android', 'Android'], suffixes=['.a'])
+        self.library_files = find_files(root, ['.a'])
 
         # 头文件：include/*.h
-        self.header_files = find_file(root + '/include', suffixes=['.h'])
+        self.header_files = find_files(root, ['.h'])
 
-        # 模型文件：model/**/[*.json, *.xymodel] 这还有可能是 zip 文件，要先解压再处理
-        self.model_files = find_file(root, sub_dirs=['model', 'models'], suffixes=['.json', '.xymodel'])
+        # 模型文件：model/**/[*.json, *.xymodel]
+        self.model_files = find_files(root, ['.json', '.xymodel'])
+        # 模型有可能是 zip 文件，要先解压再处理
+        if len(self.model_files) == 0:
+            for item in find_files(root, ['.zip'], tester=lambda p: 'android' in p.lower()):
+                self.model_files.extend(extract_file(item))
 
         # ###### 代码生成所需要的变量 ######
         # 统一接口名
@@ -1075,6 +1101,7 @@ def run_main_flow(cwd: str):
             print(f"'{path__}' 不存在, 请重新输入！")
             return False
         return True
+
     algo_lib_dir__ = read_opt("算法库目录（绝对路径）：", path_tester)
 
     def op_tester(op__: str) -> bool:
@@ -1082,6 +1109,7 @@ def run_main_flow(cwd: str):
             print(f"操作类型错误：'{op__}'，请重新输入！")
             return False
         return True
+
     op_type__ = read_opt("操作类型（a 新增算法组件，u 更新算法组件）：", op_tester).lower()
 
     cache__ = AlgoCache(cwd)
@@ -1151,7 +1179,19 @@ def usage():
     print("操作示例：\n" + '\n'.join(menus) + '\n')
 
 
+def run_test():
+    root_ = '/home/binlee/code/open-source/quvideo/XYAlgLibs/XYCartoonLite'
+    for item in find_files(root_, ['.zip'], lambda p: 'android' in p.lower()):
+        print(item)
+        print('\n'.join(extract_file(item)))
+    exit(1)
+    pass
+
+
 if __name__ == '__main__':
+
+    run_test()
+
     # 算法工程根目录
     cwd__ = os.path.dirname(__file__)
     if not os.path.exists(cwd__ + '/Component-AI'):
