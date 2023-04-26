@@ -1,5 +1,6 @@
 import enum
 import getpass
+import io
 import json
 import os
 import re
@@ -153,18 +154,7 @@ class Field:
         # print(self)
 
     def __str__(self):
-        fields = {
-            'name': self.name,
-            'cpp_type': self.cpp_type,
-            'java_type': self.java_type,
-            'jni_type': self.jni_type,
-            'jni_sig': self.jni_sig,
-        }
-        if self.arr_len != '':
-            fields['arr_len'] = self.arr_len
-        if self.value != '':
-            fields['value'] = self.value
-        return f'{self.__kv__}\n{fields}'
+        return f'{self.__kv__}\n{self.__dict__}'
 
 
 class StructType(enum.Enum):
@@ -236,13 +226,13 @@ class Struct:
 
     def is_init_method(self) -> bool:
         lmn = self.name.lower()
-        return 'init' in lmn or 'crate' in lmn
+        return 'init' in lmn or 'create' in lmn
 
     def is_release_method(self):
         lmn = self.name.lower()
         return 'release' in lmn
 
-    def gen_signature(self, pkg_name: str = None):
+    def signature(self, pkg_name: str = None) -> str:
         if self.stype == StructType.METHOD:
             # print(f'{self}')
             signature = '('
@@ -253,6 +243,226 @@ class Struct:
             return signature
         # 结构体签名，转成 java
         return f'jobject Lcom/quvideo/mobile/component/{pkg_name}/{self.name};'
+
+    def gen_java_enum(self, package: str) -> str:
+        today = time.strftime("%Y-%m-%d", time.localtime())
+        body = f'package {package};\n\n'
+        body += f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n'
+        body += f'public final class {self.name}' + ' {\n'
+        body += f"/* generated via {self}*/\n"
+        for item in self.fields:
+            body += f'  public static final {item.java_type} {item.name} = {item.value};\n'
+        body += '}'
+        return body
+
+    def gen_javabean(self, package: str, consts: set[str]) -> str:
+        today = time.strftime("%Y-%m-%d", time.localtime())
+        body = f'package {package};\n\n'
+        body += f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n'
+        body += f'public final class {self.name}' + ' {\n'
+        if len(consts) > 0:
+            body += '\n'
+            for c in consts:
+                pieces = c.split()
+                body += f'  public static final int {pieces[0]} = {pieces[1]};\n'
+        body += f'\n  public {self.name}() ' + '{\n  }\n\n'
+        body += f"/* generated via {self}*/\n"
+        for f in self.fields:
+            if f.arr_len != '':
+                body += f'  public {f.java_type}[] {f.name} = new {f.java_type}[{f.arr_len}];\n'
+            else:
+                body += f'  public {f.java_type} {f.name};\n'
+        body += '}'
+        return body
+
+    def gen_javabean_to_struct_method(self) -> str:
+        def _jni_mt(jni_type: str):
+            return jni_type.replace('Array', '')[1:].title()
+        body = f'{self.name} *to_cpp_struct_{self.name}(JNIEnv *env, jobject obj) ' + '{\n'
+        statements = f'  auto/*{self.name}*/ _out_ = new {self.name}();\n'
+        statements += f'  jclass clazz = env->FindClass("{_sigof_java(self.name)}");\n'
+        statements += f'  jfieldId fid;\n'
+        for f in self.fields:
+            if '[]' in f.java_type:
+                statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
+                statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+                statements += f'  auto/*{f.jni_type}*/ _{f.name}_ = /*({f.jni_type}) */env->GetObjectField(obj, fid);\n'
+                statements += f'  _out_->{f.name} = '
+                statements += f'env->Get{_jni_mt(f.jni_type)}ArrayElements(_{f.name}_, JNI_FALSE);\n'
+            elif 'std::string' in f.cpp_type:
+                statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
+                statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+                statements += f'  auto/*{f.jni_type}*/ _{f.name}_ = /*({f.jni_type}) */env->GetObjectField(obj, fid);\n'
+                statements += f'  _out_->{f.name} = ScopedString(env, _{f.name}_).c_str();\n'
+            else:
+                statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
+                statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+                statements += f'  _out_->{f.name} = env->Get{_jni_mt(f.jni_type)}Field(obj, fid);\n'
+        body += statements
+        body += '  return _out_;\n'
+        body += '}\n'
+        return body
+
+    def gen_struct_to_javabean_method(self) -> str:
+        def _jni_mt(jni_type: str):
+            return jni_type.replace('Array', '')[1:].title()
+        body = f'jobject to_java_bean_{self.name}(JNIEnv *env, {self.name} *value) ' + '{\n'
+        statements = f'  jclass clazz = env->FindClass("{_sigof_java(self.name)}");\n'
+        statements += f'  jobject obj = env->NewObject(clazz, env->GetMethodID(clazz, "<init>", "()V"));\n'
+        statements += f'  jfieldId fid;\n'
+        for f in self.fields:
+            if '[]' in f.java_type:
+                statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
+                statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+                statements += f'  auto c_{f.name}_ = value->{f.name};\n'
+                if f.arr_len == '':
+                    statements += f'  int _{f.name}_len_ = value->{f.name}.size();\n'
+                else:
+                    statements += f'  int _{f.name}_len_ = {f.arr_len};\n'
+                statements += f'  {f.jni_type} _ja_{f.name}_ = env->New{_jni_mt(f.jni_type)}Array(_{f.name}_len_);\n'
+                statements += f'  env->Set{_jni_mt(f.jni_type)}ArrayRegion(_ja_{f.name}_, 0, _{f.name}_len_, c_{f.name}_);\n'
+                statements += f'  env->SetObjectField(obj, fid, _ja_{f.name}_);\n'
+                pass
+            elif 'std::string' in f.cpp_type:
+                statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
+                statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+                statements += f'  env->SetObjectField(obj, fid, env->NewStringUTF(value->{f.name}.c_str()));\n'
+                pass
+            else:
+                statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
+                statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
+                statements += f'  env->Set{_jni_mt(f.jni_type)}Field(obj, fid, value->{f.name});\n'
+        body += statements
+        body += '  return java_out;\n'
+        body += '}\n'
+        return body
+
+    def gen_jni_method(self, module_name: str, ai_type: str) -> str:
+        body = f'// generated via {self}\n'
+        body += self.rtype.cpp_type + f' Q{module_name}_{self.name}'
+        # jni 方法参数列表
+        args_list = 'JNIEnv *env, jclass clazz'
+        if len(self.fields) > 0:
+            args_list += ', \n' + ' ' * 8
+        # 方法体内的语句
+        statements = ''
+        # 算法接口调用时入参
+        caller_args = ''
+        # 那些结构体要转成 java bean
+        structs_to_convert: list[Field] = []
+        for i, f in enumerate(self.fields, 1):
+            # 处理方法定义参数列表
+            args_list += f.jni_type + ' ' + f.name + ', '
+            # 语句定义，java -> cpp 数据结构转换
+            if i == 1 and self.is_init_method():
+                statements += f'  {f.cpp_type} _{f.name}_ = nullptr;\n'
+            elif i == len(self.fields) and self.is_release_method():
+                ptype = f.cpp_type[:len(f.cpp_type) - 1]
+                statements += f'  {ptype} _{f.name}_ = ({ptype}) {f.name};\n'
+                caller_args += f'&_{f.name}_'
+            else:
+                # 特殊处理的参数：XYChar*/std:string/XYAIRect*/XYAIFrameInfo*
+                if f.cpp_type == 'XYChar*':
+                    statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type})ScopedString(env, {f.name}).c_str();\n'
+                    caller_args += f'_{f.name}_, '
+                elif f.cpp_type == 'std::string':
+                    statements += f'  {f.cpp_type} _{f.name}_ = {f.cpp_type}(ScopedString(env, {f.name}).c_str());\n'
+                    caller_args += f'_{f.name}_, '
+                elif '*' in f.cpp_type:
+                    # * 表示传递地址过去，也可以表示传递一个数组（如何区分呢？）
+                    # ** 表示传递数组地址过去
+                    # 区分是结构体还是基本数据类型
+                    # 基本数据类型初值怎么设置？
+                    # 数据结构怎么进行转换？
+                    if '**' in f.cpp_type:
+                        ptype = f.cpp_type[:len(f.cpp_type) - 2]
+                        statements += f'  {ptype} _{f.name}_[] = new {ptype}[数组长度];\n'
+                        caller_args += f'&_{f.name}_, '
+                        structs_to_convert.append(f)
+                    else:
+                        ptype = f.cpp_type[:len(f.cpp_type) - 1]
+                        if 'list' in f.name:
+                            statements += f'  {ptype} _{f.name}_[] = new {ptype}[数组长度];\n'
+                            caller_args += f'&_{f.name}_, '
+                            structs_to_convert.append(f)
+                        elif 'input' in f.name:
+                            # 送给算法接口的参数
+                            statements += f'  auto _{f.name}_ = std::unique_ptr'
+                            statements += f'<{ptype[:len(ptype) - 1]}>(AIFrameInfoJ2C(env, _{f.name}_));\n'
+                            caller_args += f'_{f.name}_.get(), '
+                        elif 'output' in f.name:
+                            # 需要算法填充的参数，这时返回值需要做转换
+                            statements += f'  {ptype[:len(ptype) - 1]} _{f.name}_ = ' + '{};\n'
+                            caller_args += f'&_{f.name}_, '
+                            structs_to_convert.append(f)
+                        else:
+                            statements += f'  // 可能是一个基本数据类型，也可也能是一个结构体\n'
+                            statements += f'  {ptype} _{f.name}_ = xxx/' + '{};\n'
+                            caller_args += f'&_{f.name}_, '
+                            structs_to_convert.append(f)
+                else:
+                    statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}){f.name};\n'
+                    caller_args += f'_{f.name}_, '
+            # 换行处理
+            if i % 3 == 0 and i != len(self.fields):
+                args_list += '\n' + ' ' * 8
+                caller_args += '\n' + ' ' * 8
+
+        # 方法返回
+        if 'void' in self.rtype.cpp_type.lower():
+            statements += f"  return {self.name}({caller_args.rstrip(', ')});\n"
+        else:
+            # 埋点代码：方法执行前
+            if self.is_init_method():
+                statements += '\n  FUNC_ENTER(__func__, 0)\n'
+            else:
+                statements += f'\n  FUNC_ENTER(__func__, _handle_)\n'
+            statements += f"  {self.rtype.cpp_type} _res_ = {self.name}({caller_args.rstrip(', ')});\n"
+            # 埋点代码：方法执行后
+            statements += f'  FUNC_EXIT(env, __func__, _res_, {ai_type}, AV)\n'
+            if self.is_init_method():
+                statements += f'  return XIAIInitResultC2J(env, _res_, (long) _handle_));\n'
+            else:
+                # 返回之前，还要把数据结构转成 java bean，需要知道是什么结构体才能就行转换
+                if len(structs_to_convert) > 0:
+                    statements += '  // 结构体转成 java bean\n'
+                    statements += '  if (_res_ == XYAI_NO_ERROR) {\n'
+                    for f in structs_to_convert:
+                        if f.cpp_type == 'XYAIFrameInfo*':
+                            # AIFrameInfoC2J(env, &frameOut, out);
+                            statements += f'    AIFrameInfoC2J(env, &_{f.name}_, {f.name});\n'
+                        # 我们目前只实现这一个，其他的用到了再处理
+                        statements += f"    // TODO 转换 '{f.cpp_type}' to '{f.name}'\n"
+                    statements += '  }\n'
+                if self.rtype.java_type == 'java.lang.String':
+                    statements += '  return env->NewStringUTF(_res_);\n'
+                else:
+                    statements += '  return _res_;\n'
+        body = body.rstrip(', ') + f"({args_list.rstrip(', ')})" + ' {\n'
+        body += '  // TODO 下面是默认实现，请根据实际需求进行修改！\n'
+        body += statements
+        body += '}\n'
+        return body
+
+    def gen_native_method(self) -> str:
+        body = f'// generated via {self}\n'
+        # 构建 jni 方法，没有方法体
+        body += '  private static native '
+        # 方法返回值，算法初始化时的返回值要特殊处理
+        body += _typeof_java('InitResult' if self.is_init_method() else self.rtype.cpp_type)
+        # 方法参数列表，算法初始化时跳过第一个参数
+        args_list = ''
+        for i, f in enumerate(self.fields[1:] if self.is_init_method() else self.fields, 1):
+            if i > 2 and i & i % 2 == 1:
+                args_list += '\n' + ' ' * 8
+            args_list += f.java_type + ' ' + f.name + ', '
+        body += f" {self.name}({args_list.rstrip(', ')});\n"
+        return body
+
+    def gen_jni_method_signature(self, module_name) -> str:
+        # "{java 方法名}", "{java 方法签名}", (void *) jni 方法实现
+        # return fmt.format(self.name, self.signature(), module_name, self.name)
+        return f'"{self.name}", "{self.signature()}", (void *) Q{module_name}_{self.name}'
 
 
 class AlgoStructs:
@@ -270,7 +480,8 @@ class AlgoStructs:
     def add(self, raw: str) -> Struct:
         s = Struct(raw, self.__stype)
         self.__structs.append(s)
-        self.__init_method = s.name if s.is_init_method() else ''
+        if self.__init_method == '' and s.is_init_method():
+            self.__init_method = s.name
         return s
 
     def get_init_method(self) -> str:
@@ -364,68 +575,17 @@ def parse_enums(lines: list[str]) -> set[str]:
     return ss
 
 
-def to_c_struct(s: Struct) -> str:
-    def _jni_mt(jni_type: str):
-        return jni_type.replace('Array', '')[1:].title()
-    body = f'{s.name} *to_cpp_struct_{s.name}(JNIEnv *env, jobject obj) ' + '{\n'
-    statements = f'  auto/*{s.name}*/ _out_ = new {s.name}();\n'
-    statements += f'  jclass clazz = env->FindClass("{_sigof_java(s.name)}");\n'
-    statements += f'  jfieldId fid;\n'
-    for f in s.fields:
-        if '[]' in f.java_type:
-            statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
-            statements += f'  auto/*{f.jni_type}*/ _{f.name}_ = /*({f.jni_type}) */env->GetObjectField(obj, fid);\n'
-            statements += f'  _out_->{f.name} = '
-            statements += f'env->Get{_jni_mt(f.jni_type)}ArrayElements(_{f.name}_, JNI_FALSE);\n'
-        elif 'std::string' in f.cpp_type:
-            statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
-            statements += f'  auto/*{f.jni_type}*/ _{f.name}_ = /*({f.jni_type}) */env->GetObjectField(obj, fid);\n'
-            statements += f'  _out_->{f.name} = ScopedString(env, _{f.name}_).c_str();\n'
-        else:
-            statements += f'  // 从 java 获取 {f.name} -> {f.java_type}\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
-            statements += f'  _out_->{f.name} = env->Get{_jni_mt(f.jni_type)}Field(obj, fid);\n'
-    body += statements
-    body += '  return _out_;\n'
-    body += '}\n'
-    return body
+class LineHandler:
+    def __init__(self):
+        self.func_map = dict[str, any]()
 
+    def register(self, key: str, new: str):
+        self.func_map[key] = lambda line, old: line.replace(old, new)
 
-def to_java_bean(s: Struct) -> str:
-    def _jni_mt(jni_type: str):
-        return jni_type.replace('Array', '')[1:].title()
-    body = f'jobject to_java_bean_{s.name}(JNIEnv *env, {s.name} *value) ' + '{\n'
-    statements = f'  jclass clazz = env->FindClass("{_sigof_java(s.name)}");\n'
-    statements += f'  jobject obj = env->NewObject(clazz, env->GetMethodID(clazz, "<init>", "()V"));\n'
-    statements += f'  jfieldId fid;\n'
-    for f in s.fields:
-        if '[]' in f.java_type:
-            statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
-            statements += f'  auto c_{f.name}_ = value->{f.name};\n'
-            if f.arr_len == '':
-                statements += f'  int _{f.name}_len_ = value->{f.name}.size();\n'
-            else:
-                statements += f'  int _{f.name}_len_ = {f.arr_len};\n'
-            statements += f'  {f.jni_type} _ja_{f.name}_ = env->New{_jni_mt(f.jni_type)}Array(_{f.name}_len_);\n'
-            statements += f'  env->Set{_jni_mt(f.jni_type)}ArrayRegion(_ja_{f.name}_, 0, _{f.name}_len_, c_{f.name}_);\n'
-            statements += f'  env->SetObjectField(obj, fid, _ja_{f.name}_);\n'
-            pass
-        elif 'std::string' in f.cpp_type:
-            statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
-            statements += f'  env->SetObjectField(obj, fid, env->NewStringUTF(value->{f.name}.c_str()));\n'
-            pass
-        else:
-            statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
-            statements += f'  fid = env->GetFieldID(clazz, "{f.name}", "{f.jni_sig}");\n'
-            statements += f'  env->Set{_jni_mt(f.jni_type)}Field(obj, fid, value->{f.name});\n'
-    body += statements
-    body += '  return java_out;\n'
-    body += '}\n'
-    return body
+    def handle(self, line: str) -> str:
+        for k, func in self.func_map.items():
+            line = func(line, k) if k in line else line
+        return line
 
 
 class AlgoParser:
@@ -472,7 +632,7 @@ class AlgoParser:
         self.consts = set[str]()
 
     def __str__(self):
-        formatter = "release notes:{}\nlibraries:{}接口\nheaders:{}\nmodels:{}"
+        formatter = "release notes:{}\nlibraries:{}\nheaders:{}\nmodels:{}"
         return formatter.format(self.release_notes, self.library_files, self.header_files, self.model_files)
 
     def parse(self, pkg_name: str):
@@ -497,15 +657,15 @@ class AlgoParser:
                     # print(f"find constant: {line.split()} in '{header_name}'")
                     self.consts.add(line)
             # 结构体
-            for s in parse_structs(raw_lines):
-                strukt = self.structs.add(s)
-                # print(f"find {strukt} in '{header_name}'")
-                types_map[strukt.name] = strukt.gen_signature(pkg_name)
+            for ss in parse_structs(raw_lines):
+                s = self.structs.add(ss)
+                # print(f"find {s} in '{header_name}'")
+                types_map[s.name] = s.signature(pkg_name)
             # 枚举
-            for e in parse_enums(raw_lines):
-                enm = self.enums.add(e)
-                # print(f"find {enm} in '{header_name}'")
-                types_map[enm.name] = "jint I"
+            for es in parse_enums(raw_lines):
+                e = self.enums.add(es)
+                # print(f"find {e} in '{header_name}'")
+                types_map[e.name] = "jint I"
             # 读取文件内容，去掉所有换行
             __text: str = read_content(path=item, flatmap=True)
             # 使用到的命名空间
@@ -524,8 +684,13 @@ class AlgoParser:
                 method_definitions = method_pattern.findall(__text)
                 if method_definitions and len(method_definitions) > 0:
                     for define in method_definitions:
-                        m = self.methods.add('XYAI_PUBLIC ' + define + ');')
-                        # print(f"find {m} in '{header_name}'")
+                        # print(f"find {define} in '{header_name}'")
+                        self.methods.add('XYAI_PUBLIC ' + define + ');')
+        # 算法库名
+        for item in self.library_files:
+            lib_name: str = os.path.basename(item)
+            if lib_name not in self.libraries:
+                self.libraries.append(lib_name.replace('lib', '').replace('.a', ''))
 
 
 class PrjInfo:
@@ -565,17 +730,16 @@ class PrjInfo:
 
 
 class CopyTask:
-    def __init__(self, prj: PrjInfo):
+    def __init__(self, prj: PrjInfo, parser: AlgoParser):
         parent = os.path.dirname(prj.algo_root)
         if not os.path.exists(parent):
             print(f"'{parent}' 不存在！")
             exit(1)
         self.prj = prj
         # 算法库相关
-        self.parser = None
-
-    def process(self, parser: AlgoParser):
         self.parser = parser
+
+    def process(self):
         print('parse algo lib...')
         # 分析算法库提供的头文件
         self.parser.parse(self.prj.pkg_name)
@@ -599,11 +763,8 @@ class CopyTask:
         if not os.path.exists(v7a_dir):
             os.mkdir(v7a_dir)
         for item in self.parser.library_files:
-            lib_name: str = os.path.basename(item)
-            if lib_name not in self.parser.libraries:
-                self.parser.libraries.append(lib_name.replace('lib', '').replace('.a', ''))
             shutil.copyfile(src=item,
-                            dst=(v8a_dir if 'arm64' in item else v7a_dir) + '/' + lib_name,
+                            dst=(v8a_dir if 'arm64' in item else v7a_dir) + '/' + os.path.basename(item),
                             follow_symlinks=False)
         # 拷贝头文件
         __jni_header_map = {
@@ -630,17 +791,37 @@ class CopyTask:
 
 
 class GenerateTask(CopyTask):
-    def __init__(self, prj: PrjInfo):
+    def __init__(self, prj: PrjInfo, parser: AlgoParser):
         """
         @param prj: 算法组件信息
         """
-        super().__init__(prj)
+        super().__init__(prj, parser)
+        self.__line_handler = LineHandler()
 
-    def process(self, parser: AlgoParser):
-        super().process(parser)
+    def __register_handlers(self):
+        self.__line_handler.register('{pkg-name}', self.prj.pkg_name)
+        self.__line_handler.register('{module-name}', self.prj.module_name)
+        self.__line_handler.register('{module-name-zh}', self.prj.module_name_zh)
+        self.__line_handler.register('{lower-name}', self.prj.lower_name)
+        self.__line_handler.register('{upper-name}', self.prj.upper_name)
+        self.__line_handler.register('{ai-type}', self.parser.ai_type)
+        self.__line_handler.register('{imported-headers}', '\n'.join(self.parser.headers))
+        self.__line_handler.register('{algo-nss}', '\n'.join(self.parser.using_nss))
+        self.__line_handler.register('{convert-methods}', self.__gen_convert_methods__())
+        self.__line_handler.register('{itf-name}', self.parser.itf_impl_name)
+        self.__line_handler.register('{jni-methods}', self.__gen_jni_methods__())
+        self.__line_handler.register('{jni-register-methods}', self.__gen_native_register_array__())
+        self.__line_handler.register('{init-method}', self.parser.methods.get_init_method())
+        self.__line_handler.register('{native-methods}', self.__gen_native_methods__())
+        self.__line_handler.register('{algo-lib-name}', self.parser.libraries[0])
+
+    def process(self):
+        super().process()
         # 测试代码
         # if os.path.exists(self.prj.path):
         #     shutil.rmtree(self.prj.path)
+
+        self.__register_handlers()
 
         print('start generate .gitignore file...')
         # 生成 .gitignore 文件
@@ -661,6 +842,9 @@ class GenerateTask(CopyTask):
 
         # 以上都没有出错，修改 settings.gradle、config.gradle、upload-to-maven.sh
         self.__modify_compile_scripts__()
+
+    def __write_line(self, line: str, f):
+        f.write(self.__line_handler.handle(line.replace('//', '') if '{module-name-zh}' in line else line))
 
     def __generate_java__(self):
         # AIConstants.java 中定义了算法模块常量，这里更新一下算法类型
@@ -689,40 +873,30 @@ class GenerateTask(CopyTask):
                         f.write('  //public static final int AI_TYPE_{upper-name} = {ai-type};\n')
 
         # 生成 java 文件：生成枚举和结构体
-        self.__gen_java_enums__()
-        self.__gen_java_beans__()
+        package = self.prj.java_dir[self.prj.java_dir.find('java/') + 5:].replace('/', '.')
+        if self.parser.enums.size() > 0:
+            for e in self.parser.enums:
+                with open(self.prj.java_dir + f'/{e.name}.java', mode='w') as f:
+                    f.write(e.gen_java_enum(package))
+        if self.parser.structs.size() > 0:
+            for s in self.parser.structs:
+                with open(self.prj.java_dir + f'/{s.name}.java', mode='w') as f:
+                    f.write(s.gen_javabean(package, self.parser.consts))
         # 根据模板生成对应的 java 文件，一般来讲有三个文件
         # Q{self.name}.java 提供给引擎使用
+        # QE{self.name}Client.java 提供给业务使用（组件内部也会使用）
+        # AI{self.name}.java 提供给业务使用
         with open(self.prj.java_dir + f'/Q{self.prj.module_name}.java', mode='w') as f:
             # 判断使用统一接口还是普通接口模板
-            if self.parser.itf_impl_name != '':
-                self.__generate_java_union__(f)
-            else:
-                self.__generate_java_common__(f)
-        # QE{self.name}Client.java 提供给业务使用（组件内部也会使用）
+            zero = '' if self.parser.itf_impl_name != '' else '0'
+            for line in read_lines(self.prj.tmplt + f'/QModuleName{zero}.java.tmplt'):
+                self.__write_line(line, f)
         with open(self.prj.java_dir + f'/QE{self.prj.module_name}Client.java', mode='w') as f:
             for line in read_lines(self.prj.tmplt + '/QEModuleNameClient.java.tmplt'):
-                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
-                if '{pkg-name}' in line:
-                    line = line.replace('{pkg-name}', self.prj.pkg_name)
-                if '{module-name}' in line:
-                    line = line.replace('{module-name}', self.prj.module_name)
-                if '{lower-name}' in line:
-                    line = line.replace('{lower-name}', self.prj.lower_name)
-                if '{upper-name}' in line:
-                    line = line.replace('{upper-name}', self.prj.upper_name)
-                if '{ai-type}' in line:
-                    line = line.replace('{ai-type}', self.parser.ai_type)
-                f.write(line)
-        # AI{self.name}.java 提供给业务使用
+                self.__write_line(line, f)
         with open(self.prj.java_dir + f'/AI{self.prj.module_name}.java', mode='w') as f:
             for line in read_lines(self.prj.tmplt + '/AIModuleName.java.tmplt'):
-                # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
-                if '{pkg-name}' in line:
-                    line = line.replace('{pkg-name}', self.prj.pkg_name)
-                if '{module-name}' in line:
-                    line = line.replace('{module-name}', self.prj.module_name)
-                f.write(line)
+                self.__write_line(line, f)
 
         # 混淆规则
         with open(f"{self.prj.path}/consumer-rules.pro", mode='w') as f:
@@ -730,93 +904,17 @@ class GenerateTask(CopyTask):
         with open(f"{self.prj.path}/proguard-rules.pro", mode='w') as f:
             f.write(f"-keep class com.quvideo.mobile.component.{self.prj.pkg_name}.** " + "{*;}")
 
-        # {self.path}/build.gradle.tmplt
+        # build.gradle 脚本
         with open(f"{self.prj.path}/build.gradle", mode='w') as f:
-            # 通过模板读取
             for line in read_lines(self.prj.tmplt + '/build.gradle.tmplt'):
-                if '{module-name}' in line:
-                    line = line.replace('{module-name}', self.prj.module_name)
-                if '{upper-name}' in line:
-                    line = line.replace('{upper-name}', self.prj.upper_name)
-                if '{ai-type}' in line:
-                    line = line.replace('{ai-type}', self.parser.ai_type)
-                f.write(line)
+                self.__write_line(line, f)
 
-    def __gen_java_enums__(self):
-        if self.parser.enums.size() > 0:
-            package = self.prj.java_dir[self.prj.java_dir.find('java/') + 5:].replace('/', '.')
-            today = time.strftime("%Y-%m-%d", time.localtime())
-            for e in self.parser.enums:
-                with open(self.prj.java_dir + f'/{e.name}.java', mode='w') as f:
-                    f.write(f'package {package};\n\n')
-                    f.write(f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n')
-                    f.write(f'public final class {e.name}' + ' {\n')
-                    f.write(f"/* generated via {e}*/\n")
-                    for item in e.fields:
-                        f.write(f'  public static final {item.java_type} {item.name} = {item.value};\n')
-                    f.write('}')
-
-    def __gen_java_beans__(self):
-        if self.parser.structs.size() > 0:
-            package = self.prj.java_dir[self.prj.java_dir.find('java/') + 5:].replace('/', '.')
-            today = time.strftime("%Y-%m-%d", time.localtime())
-            for s in self.parser.structs:
-                with open(self.prj.java_dir + f'/{s.name}.java', mode='w') as bean:
-                    body = f'package {package};\n\n'
-                    body += f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n'
-                    body += f'public final class {s.name}' + ' {\n'
-                    if len(self.parser.consts) > 0:
-                        body += '\n'
-                        for c in self.parser.consts:
-                            pieces = c.split()
-                            body += f'  public static final int {pieces[0]} = {pieces[1]};\n'
-                    body += f'\n  public {s.name}() ' + '{\n  }\n\n'
-                    body += f"/* generated via {s}*/\n"
-                    for f in s.fields:
-                        if f.arr_len != '':
-                            body += f'  public {f.java_type}[] {f.name} = new {f.java_type}[{f.arr_len}];\n'
-                        else:
-                            body += f'  public {f.java_type} {f.name};\n'
-                    body += '}'
-                    bean.write(body)
-
-    def __generate_java_union__(self, f):
-        for line in read_lines(self.prj.tmplt + '/QModuleName.java.tmplt'):
-            if '{pkg-name}' in line:
-                line = line.replace('{pkg-name}', self.prj.pkg_name)
-            elif '{module-name}' in line:
-                line = line.replace('{module-name}', self.prj.module_name)
-            f.write(line)
-
-    def __generate_java_common__(self, f):
-        for line in read_lines(self.prj.tmplt + '/QModuleName0.java.tmplt'):
-            if '{pkg-name}' in line:
-                line = line.replace('{pkg-name}', self.prj.pkg_name)
-            elif '{module-name}' in line:
-                line = line.replace('{module-name}', self.prj.module_name)
-            elif '{init-method}' in line:
-                line = line.replace('{init-method}', self.parser.methods.get_init_method())
-            elif '{native-methods}' in line:
-                line = self.__gen_java_native_methods__()
-            f.write(line)
-
-    def __gen_java_native_methods__(self) -> str:
+    def __gen_native_methods__(self) -> str:
         methods: list[str] = []
         for m in self.parser.methods:
-            method_body = f'  // generated via {m}\n'
-            # 构建 jni 方法，没有方法体
-            method_body += '  private static native '
-            # 方法返回值，算法初始化时的返回值要特殊处理
-            method_body += _typeof_java('InitResult' if m.is_init_method() else m.rtype.cpp_type)
-            # 方法参数列表，算法初始化时跳过第一个参数
-            args_str = ''
-            for i, f in enumerate(m.fields[1:] if m.is_init_method() else m.fields, 1):
-                if i > 2 and i & i % 2 == 1:
-                    args_str += '\n' + ' ' * 8
-                args_str += f.java_type + ' ' + f.name + ', '
-            method_body += f" {m.name}({args_str.rstrip(', ')});\n"
-            methods.append(method_body)
+            body = m.gen_native_method()
             # print(f'java native method =====>\n{method_body}')
+            methods.append(body)
         return '\n'.join(methods)
 
     def __generate_native__(self):
@@ -831,59 +929,19 @@ class GenerateTask(CopyTask):
         with open(f"{self.prj.path}/CMakeLists.txt", mode='w') as f:
             # 通过模板读取
             for line in read_lines(self.prj.tmplt + '/CMakeLists.txt.tmplt'):
-                if '{module-name}' in line:
-                    line = line.replace('{module-name}', self.prj.module_name)
-                if '{lower-name}' in line:
-                    line = line.replace('{lower-name}', self.prj.lower_name)
-                if '{algo-lib-name}' in line:
-                    line = line.replace('{algo-lib-name}', self.parser.libraries[0])
-                f.write(line)
+                self.__write_line(line, f)
 
     def __generate_cpp_union__(self):
         with open(f"{self.prj.jni_dir}/{self.prj.lower_name}_jni.cpp", mode='w') as f:
             # 模板要根据算法接口类型来选择
             for line in read_lines(self.prj.tmplt + '/lower_name_jni.cpp.tmplt'):
-                if '{imported-headers}' in line:
-                    line = line.replace('{imported-headers}', '\n'.join(self.parser.headers))
-                elif '{algo-nss}' in line:
-                    line = line.replace('{algo-nss}', '\n'.join(self.parser.using_nss))
-                elif '{convert-methods}' in line:
-                    line = self.__gen_convert_methods__()
-                elif '{itf-name}' in line:
-                    line = line.replace('{itf-name}', self.parser.itf_impl_name)
-                elif '{ai-type}' in line:
-                    line = line.replace('{ai-type}', self.parser.ai_type)
-                else:
-                    # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
-                    if '{pkg-name}' in line:
-                        line = line.replace('{pkg-name}', self.prj.pkg_name)
-                    if '{module-name}' in line:
-                        line = line.replace('{module-name}', self.prj.module_name)
-                f.write(line)
+                self.__write_line(line, f)
 
     def __generate_cpp_common__(self):
         with open(f"{self.prj.jni_dir}/{self.prj.lower_name}_jni.cpp", mode='w') as f:
             # 模板要根据算法接口类型来选择
             for line in read_lines(self.prj.tmplt + '/lower_name_jni_0.cpp.tmplt'):
-                if '{imported-headers}' in line:
-                    line = line.replace('{imported-headers}', '\n'.join(self.parser.headers))
-                elif '{algo-nss}' in line:
-                    line = line.replace('{algo-nss}', '\n'.join(self.parser.using_nss))
-                elif '{convert-methods}' in line:
-                    line = self.__gen_convert_methods__()
-                elif '{ai-type}' in line:
-                    line = line.replace('{ai-type}', self.parser.ai_type)
-                elif '{jni-methods}' in line:
-                    line = self.__gen_native_jni_methods__()
-                elif '{jni-register-methods}' in line:
-                    line = self.__gen_native_register_array__()
-                else:
-                    # '{pkg-name}' 和 '{module-name}' 可能出现在同一行
-                    if '{pkg-name}' in line:
-                        line = line.replace('{pkg-name}', self.prj.pkg_name)
-                    if '{module-name}' in line:
-                        line = line.replace('{module-name}', self.prj.module_name)
-                f.write(line)
+                self.__write_line(line, f)
 
     def __gen_convert_methods__(self) -> str:
         # 没有需要转换的结构体
@@ -894,128 +952,25 @@ class GenerateTask(CopyTask):
         for s in self.parser.structs:
             methods.append(f"// 自动生成的转换方法 '{s.name}'")
             # bean -> struct
-            methods.append(to_c_struct(s))
+            methods.append(s.gen_javabean_to_struct_method())
             # struct -> bean
-            methods.append(to_java_bean(s))
+            methods.append(s.gen_struct_to_javabean_method())
         return '\n'.join(methods)
 
-    def __gen_native_jni_methods__(self) -> str:
+    def __gen_jni_methods__(self) -> str:
         methods: list[str] = []
         for m in self.parser.methods:
-            method_body = f'// generated via {m}\n'
-            method_body += m.rtype.cpp_type + f' Q{self.prj.module_name}_{m.name}'
-            # jni 方法参数列表
-            args_list = 'JNIEnv *env, jclass clazz'
-            if len(m.fields) > 0:
-                args_list += ', \n' + ' ' * 8
-            # 方法体内的语句
-            statements = ''
-            # 算法接口调用时入参
-            caller_args = ''
-            # 那些结构体要转成 java bean
-            structs_to_convert: list[Field] = []
-            for i, f in enumerate(m.fields, 1):
-                # 处理方法定义参数列表
-                args_list += f.jni_type + ' ' + f.name + ', '
-                # 语句定义，java -> cpp 数据结构转换
-                if i == 1 and m.is_init_method():
-                    statements += f'  {f.cpp_type} _{f.name}_ = nullptr;\n'
-                elif i == len(m.fields) and m.is_release_method():
-                    ptype = f.cpp_type[:len(f.cpp_type) - 1]
-                    statements += f'  {ptype} _{f.name}_ = ({ptype}) {f.name};\n'
-                    caller_args += f'&_{f.name}_'
-                else:
-                    # 特殊处理的参数：XYChar*/std:string/XYAIRect*/XYAIFrameInfo*
-                    if f.cpp_type == 'XYChar*':
-                        statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type})ScopedString(env, {f.name}).c_str();\n'
-                        caller_args += f'_{f.name}_, '
-                    elif f.cpp_type == 'std::string':
-                        statements += f'  {f.cpp_type} _{f.name}_ = {f.cpp_type}(ScopedString(env, {f.name}).c_str());\n'
-                        caller_args += f'_{f.name}_, '
-                    elif '*' in f.cpp_type:
-                        # * 表示传递地址过去，也可以表示传递一个数组（如何区分呢？）
-                        # ** 表示传递数组地址过去
-                        # 区分是结构体还是基本数据类型
-                        # 基本数据类型初值怎么设置？
-                        # 数据结构怎么进行转换？
-                        if '**' in f.cpp_type:
-                            ptype = f.cpp_type[:len(f.cpp_type) - 2]
-                            statements += f'  {ptype} _{f.name}_[] = new {ptype}[数组长度];\n'
-                            caller_args += f'&_{f.name}_, '
-                            structs_to_convert.append(f)
-                        else:
-                            ptype = f.cpp_type[:len(f.cpp_type) - 1]
-                            if 'list' in f.name:
-                                statements += f'  {ptype} _{f.name}_[] = new {ptype}[数组长度];\n'
-                                caller_args += f'&_{f.name}_, '
-                                structs_to_convert.append(f)
-                            elif 'input' in f.name:
-                                # 送给算法接口的参数
-                                statements += f'  auto _{f.name}_ = std::unique_ptr'
-                                statements += f'<{ptype[:len(ptype) - 1]}>(AIFrameInfoJ2C(env, _{f.name}_));\n'
-                                caller_args += f'_{f.name}_.get(), '
-                            elif 'output' in f.name:
-                                # 需要算法填充的参数，这时返回值需要做转换
-                                statements += f'  {ptype[:len(ptype) - 1]} _{f.name}_ = ' + '{};\n'
-                                caller_args += f'&_{f.name}_, '
-                                structs_to_convert.append(f)
-                            else:
-                                statements += f'  // 可能是一个基本数据类型，也可也能是一个结构体\n'
-                                statements += f'  {ptype} _{f.name}_ = xxx/' + '{};\n'
-                                caller_args += f'&_{f.name}_, '
-                                structs_to_convert.append(f)
-                    else:
-                        statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}){f.name};\n'
-                        caller_args += f'_{f.name}_, '
-                # 换行处理
-                if i % 3 == 0 and i != len(m.fields):
-                    args_list += '\n' + ' ' * 8
-                    caller_args += '\n' + ' ' * 8
-
-            # 方法返回
-            if 'void' in m.rtype.cpp_type.lower():
-                statements += f"  return {m.name}({caller_args.rstrip(', ')});\n"
-            else:
-                # 埋点代码：方法执行前
-                if m.is_init_method():
-                    statements += '\n  FUNC_ENTER(__func__, 0)\n'
-                else:
-                    statements += f'\n  FUNC_ENTER(__func__, _handle_)\n'
-                statements += f"  {m.rtype.cpp_type} _res_ = {m.name}({caller_args.rstrip(', ')});\n"
-                # 埋点代码：方法执行后
-                statements += f'  FUNC_EXIT(env, __func__, _res_, {self.parser.ai_type}, AV)\n'
-                if m.is_init_method():
-                    statements += f'  return XIAIInitResultC2J(env, _res_, (long) _handle_));\n'
-                else:
-                    # 返回之前，还要把数据结构转成 java bean，需要知道是什么结构体才能就行转换
-                    if len(structs_to_convert) > 0:
-                        statements += '  // 结构体转成 java bean\n'
-                        statements += '  if (_res_ == XYAI_NO_ERROR) {\n'
-                        for f in structs_to_convert:
-                            if f.cpp_type == 'XYAIFrameInfo*':
-                                # AIFrameInfoC2J(env, &frameOut, out);
-                                statements += f'    AIFrameInfoC2J(env, &_{f.name}_, {f.name});\n'
-                            # 我们目前只实现这一个，其他的用到了再处理
-                            statements += f"    // TODO 转换 '{f.cpp_type}' to '{f.name}'\n"
-                        statements += '  }\n'
-                    if m.rtype.java_type == 'java.lang.String':
-                        statements += '  return env->NewStringUTF(_res_);\n'
-                    else:
-                        statements += '  return _res_;\n'
-            method_body = method_body.rstrip(', ') + f"({args_list.rstrip(', ')})" + ' {\n'
-            method_body += '  // TODO 下面是默认实现，请根据实际需求进行修改！\n'
-            method_body += statements
-            method_body += '}\n'
+            body = m.gen_jni_method(self.prj.module_name, self.parser.ai_type)
             # print(f'\ncpp jni method =====>\n{method_body}')
-            methods.append(method_body)
+            methods.append(body)
         # 所有方法之间以换行符分割
         return '\n'.join(methods)
 
     def __gen_native_register_array__(self) -> str:
-        line = ''
+        signatures: list[str] = []
         for m in self.parser.methods:
-            line += '  {' + f'"{m.name}", "{m.gen_signature()}", (void *) Q{self.prj.module_name}_{m.name}' + '},\n'
-        return line
+            signatures.append('{' + m.gen_jni_method_signature(self.prj.module_name) + '}')
+        return ',\n  '.join(signatures)
 
     def __modify_compile_scripts__(self):
         print('start modify settings.gradle file...')
@@ -1116,7 +1071,7 @@ def read_opt(prompt: str, tester=None) -> str:
 
 def run_main_flow(cwd: str):
     def path_tester(path__: str) -> bool:
-        if not os.path.exists(path__):
+        if path__ == '' or not os.path.exists(path__):
             print(f"'{path__}' 不存在, 请重新输入！")
             return False
         return True
@@ -1136,8 +1091,7 @@ def run_main_flow(cwd: str):
         if cache__.has(algo_lib_dir__):
             prj_info__ = cache__.get(algo_lib_dir__)
             ai_type__ = prj_info__.pop('ai_type')
-            task = CopyTask(PrjInfo(**prj_info__))
-            task.process(AlgoParser(algo_lib_dir__, ai_type__))
+            CopyTask(PrjInfo(**prj_info__), AlgoParser(algo_lib_dir__, ai_type__)).process()
             print('更新完成！')
             return
         else:
@@ -1148,13 +1102,13 @@ def run_main_flow(cwd: str):
     module_name_zh__ = read_opt("算法组件名（中文）：").lower()
     prj_info__ = PrjInfo(cwd, module_name__, module_name_zh__)
     if 'u' == op_type__:
-        CopyTask(prj_info__).process(AlgoParser(algo_lib_dir__, ai_type__))
+        CopyTask(prj_info__, AlgoParser(algo_lib_dir__, ai_type__)).process()
         # 非脚本创建的算法模块，更新过算法库之后要同步缓存
         cache__.update(algo_lib_dir__, prj_info__.dict(), ai_type__)
         print('更新完成！')
         return
     # 新增算法模块
-    GenerateTask(prj_info__).process(AlgoParser(algo_lib_dir__, ai_type__))
+    GenerateTask(prj_info__, AlgoParser(algo_lib_dir__, ai_type__)).process()
     cache__.update(algo_lib_dir__, prj_info__.dict(), ai_type__)
     print('新增完成！')
 
@@ -1163,6 +1117,7 @@ def usage():
     placeholders = {
         '{imported-headers}': 'cpp 文件中需要导入的头文件',
         '{module-name}': '算法模块名',
+        '{module-name-zh}': '算法模块中文名',
         '{algo-nss}': '算法命名空间',
         '{itf-name}': '算法统一接口名字',
         '{pkg-name}': 'java 包名',
