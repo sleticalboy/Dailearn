@@ -36,8 +36,8 @@ class QueryArgs:
         self.force_refresh_ = False
 
     def __random_init__(self):
-        self.from_ = self.__from_stations[random.randint(0, len(self.__from_stations) - 1)]
-        self.to_ = self.__to_stations[random.randint(0, len(self.__to_stations) - 1)]
+        self.from_ = random.choice(self.__from_stations)
+        self.to_ = random.choice(self.__to_stations)
         # 未来 15 天随机时间
         start = int(time.time() / (24 * 3600))
         random_time = random.randint(start, start + 15) * 24 * 3600

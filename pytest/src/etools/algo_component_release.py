@@ -231,10 +231,11 @@ def exec_task(cwd: str, task_type='debug') -> int:
     :param task_type: 任务类型 debug/release/upload
     :return: 执行任务返回值
     """
-    proc = subprocess.Popen(f"bash upload-to-maven.sh {task_type}", shell=True, text=True,
+    cmd = f'upload-to-maven.sh {task_type}'
+    proc = subprocess.Popen(f"bash {cmd}", shell=True, text=True,
                             stdout=subprocess.PIPE, cwd=cwd)
-    if not proc.returncode and proc.returncode != 0:
-        print(f"upload-to-maven.sh failed with {proc.returncode}")
+    if proc.returncode != 0:
+        print(f"'{cmd}' failed with {proc.returncode}")
         for line in proc.stdout.readlines():
             line = line.replace('\n', '').strip()
             print(line)

@@ -8,117 +8,94 @@ import sys
 import time
 import zipfile
 
-# ai type -> jni type & sig
-# int* 是传递地址过去
-# int** 是传递数组地址过去
-types_map = {
-    'int': 'jint I',
-    'XYAIImageFormat': 'jint I',
-    'XYInt32': 'jint I int',
-    'float': 'jfloat F',
-    'XYFloat': 'jfloat F',
-    'XYDouble': 'jdouble D',
-    'XYHandle': 'jlong J',
-    'XYLong': 'jlong J',
-    'XYBool': 'jboolean Z',
-    'XYChar': 'jchar C',
-    'XYShort': 'jshort S',
-    'void': 'void V',
-    'XYVoid': 'void V',
-    # 这个比较特殊，就单独放这了
-    'XYChar*': 'jstring Ljava/lang/String;',
-    'XYString': 'jstring Ljava/lang/String;',
-    'std::string': 'jstring Ljava/lang/String;',
-    # 作为数组类型
-    'std::vector': 'jobject [',
-    'XYAIFrameInfo': 'jobject Lcom/quvideo/mobile/component/common/AIFrameInfo;',
-    'XYAIRect': 'jobject Lcom/quvideo/mobile/component/common/AIRect;',
-    'XYAIRectf': 'jobject Lcom/quvideo/mobile/component/common/AIRectF;',
-    'XYAIPoint': 'jobject Lcom/quvideo/mobile/component/common/AIPoint;',
-    'XYAIPointf': 'jobject Lcom/quvideo/mobile/component/common/AIPointF;',
-    'InitResult': 'jobject Lcom/quvideo/mobile/component/common/AIInitResult;',
-    # c 中定义的枚举和结构体在这里根据代码动态添加
-}
+
+class TypeMapper:
+    # ai type -> jni type & sig
+    # int* 是传递地址过去
+    # int** 是传递数组地址过去
+    __map = {
+        'int': 'jint I',
+        'XYAIImageFormat': 'jint I',
+        'XYInt32': 'jint I int',
+        'float': 'jfloat F',
+        'XYFloat': 'jfloat F',
+        'XYDouble': 'jdouble D',
+        'XYHandle': 'jlong J',
+        'XYLong': 'jlong J',
+        'XYBool': 'jboolean Z',
+        'XYChar': 'jchar C',
+        'XYShort': 'jshort S',
+        'void': 'void V',
+        'XYVoid': 'void V',
+        # 这个比较特殊，就单独放这了
+        'XYChar*': 'jstring Ljava/lang/String;',
+        'XYString': 'jstring Ljava/lang/String;',
+        'std::string': 'jstring Ljava/lang/String;',
+        # 作为数组类型
+        'std::vector': 'jobject [',
+        'XYAIFrameInfo': 'jobject Lcom/quvideo/mobile/component/common/AIFrameInfo;',
+        'XYAIRect': 'jobject Lcom/quvideo/mobile/component/common/AIRect;',
+        'XYAIRectf': 'jobject Lcom/quvideo/mobile/component/common/AIRectF;',
+        'XYAIPoint': 'jobject Lcom/quvideo/mobile/component/common/AIPoint;',
+        'XYAIPointf': 'jobject Lcom/quvideo/mobile/component/common/AIPointF;',
+        'InitResult': 'jobject Lcom/quvideo/mobile/component/common/AIInitResult;',
+        # c 中定义的枚举和结构体在这里根据代码动态添加
+    }
+
+    def java_sig(self, pt: str, allow_missed: bool = False):
+        if 'std::vector' in pt:
+            raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
+            sj = self.java_sig(raw_type, allow_missed)
+            return '[' + sj if sj != '' else sj
+        try:
+            sig = self.__map[pt if pt in self.__map else pt.replace('*', '')].split()[1]
+            return '[' + sig if '**' in pt else sig
+        except KeyError as e:
+            if allow_missed and pt not in self.__map:
+                return ''
+            raise e
+
+    def java(self, pt: str, allow_missed: bool = False) -> str:
+        def __wrap(jtype: str) -> str:
+            return jtype + '[]' if '**' in pt else jtype
+
+        if 'std::vector' in pt:
+            # 原始类型
+            raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
+            tj = self.java(raw_type, allow_missed)
+            return tj + '[]' if tj != '' else tj
+        try:
+            pieces = self.__map[pt if pt in self.__map else pt.replace('*', '')].split()
+            if pieces[0] == 'void':
+                return 'void'
+            if pieces[0] == 'jobject' or pieces[0] == 'jstring':
+                return __wrap(pieces[1][1:len(pieces[1]) - 1].replace('/', '.'))
+            return __wrap(pieces[0][1:])
+        except KeyError as e:
+            if allow_missed and pt not in self.__map:
+                return ''
+            raise e
+
+    def jni(self, pt: str, allow_missed: bool = False) -> str:
+        if 'std::vector' in pt:
+            left = pt.find('<')
+            right = pt.find('>')
+            raw_type = pt[left + 1: right]
+            tj = self.jni(raw_type, allow_missed)
+            return tj + 'Array' if tj != '' else tj
+        try:
+            ctype = self.__map[pt if pt in self.__map else pt.replace('*', '')].split()[0]
+            return ctype + 'Array' if '**' in pt else ctype
+        except KeyError as e:
+            if allow_missed and pt not in self.__map:
+                return ''
+            raise e
+
+    def append(self, pt: str, val: str):
+        self.__map[pt] = val
 
 
-def _sigof_java(pt: str, allow_missed: bool = False) -> str:
-    if 'std::vector' in pt:
-        raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
-        sj = _sigof_java(raw_type, allow_missed)
-        return '[' + sj if sj != '' else sj
-    try:
-        sig = types_map[pt if pt in types_map else pt.replace('*', '')].split()[1]
-        return '[' + sig if '**' in pt else sig
-    except KeyError as e:
-        if allow_missed and pt not in types_map:
-            return ''
-        raise e
-
-
-def _typeof_java(pt: str, allow_missed: bool = False) -> str:
-    """
-    获取j ava 数据类型
-    @param pt:
-    @return:
-    """
-
-    def __wrap(jtype: str) -> str:
-        return jtype + '[]' if '**' in pt else jtype
-
-    if 'std::vector' in pt:
-        # 原始类型
-        raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
-        tj = _typeof_java(raw_type, allow_missed)
-        return tj + '[]' if tj != '' else tj
-    try:
-        pieces = types_map[pt if pt in types_map else pt.replace('*', '')].split()
-        if pieces[0] == 'void':
-            return 'void'
-        if pieces[0] == 'jobject' or pieces[0] == 'jstring':
-            return __wrap(pieces[1][1:len(pieces[1]) - 1].replace('/', '.'))
-        return __wrap(pieces[0][1:])
-    except KeyError as e:
-        if allow_missed and pt not in types_map:
-            return ''
-        raise e
-
-
-def _typeof_jni(pt: str, allow_missed: bool = False) -> str:
-    """
-    获取 jni 数据类型
-    @param pt:
-    @return:
-    """
-    if 'std::vector' in pt:
-        left = pt.find('<')
-        right = pt.find('>')
-        raw_type = pt[left + 1: right]
-        tj = _typeof_jni(raw_type, allow_missed)
-        return tj + 'Array' if tj != '' else tj
-    try:
-        ctype = types_map[pt if pt in types_map else pt.replace('*', '')].split()[0]
-        return ctype + 'Array' if '**' in pt else ctype
-    except KeyError as e:
-        if allow_missed and pt not in types_map:
-            return ''
-        raise e
-
-
-class Types:
-    def __init__(self):
-        pass
-
-    def of_java(self, pt: str, allow_missed: bool = False):
-        pass
-
-    def of_cpp(self, pt: str, allow_missed: bool = False):
-        pass
-
-    def of_jni(self, pt: str, allow_missed: bool = False):
-        pass
-
-    def append(self, key: str, val: str):
-        pass
+types_ = TypeMapper()
 
 
 class Field:
@@ -162,11 +139,11 @@ class Field:
                 # 如果是数组类型，记一下数组长度
                 self.arr_len = fname[left + 1:right].strip() if left != right else ''
         # java 中的数据类型，这里可能会报错，可以延后处理
-        self.java_type = _typeof_java(self.cpp_type, allow_missed)
+        self.java_type = types_.java(self.cpp_type, allow_missed)
         # jni 中的数据类型
-        self.jni_type = _typeof_jni(self.cpp_type, allow_missed)
+        self.jni_type = types_.jni(self.cpp_type, allow_missed)
         # jni 签名
-        self.jni_sig = _sigof_java(self.cpp_type, allow_missed)
+        self.jni_sig = types_.java_sig(self.cpp_type, allow_missed)
         # print(self)
 
     def __str__(self):
@@ -254,7 +231,7 @@ class Struct:
             signature = '('
             for f in (self.fields[1:] if self.is_init_method() else self.fields):
                 signature += f.jni_sig
-            signature += ')' + types_map['InitResult' if self.is_init_method() else self.rtype.cpp_type].split()[1]
+            signature += ')' + types_.java('InitResult' if self.is_init_method() else self.rtype.cpp_type)
             # print(f'signature: {signature}\n')
             return signature
         # 结构体签名，转成 java
@@ -297,7 +274,7 @@ class Struct:
 
         body = f'{self.name} *to_cpp_struct_{self.name}(JNIEnv *env, jobject obj) ' + '{\n'
         statements = f'  auto/*{self.name}*/ _out_ = new {self.name}();\n'
-        statements += f'  jclass clazz = env->FindClass("{_sigof_java(self.name)}");\n'
+        statements += f'  jclass clazz = env->FindClass("{types_.java_sig(self.name)}");\n'
         statements += f'  jfieldId fid;\n'
         for f in self.fields:
             if '[]' in f.java_type:
@@ -325,7 +302,7 @@ class Struct:
             return jni_type.replace('Array', '')[1:].title()
 
         body = f'jobject to_java_bean_{self.name}(JNIEnv *env, {self.name} *value) ' + '{\n'
-        statements = f'  jclass clazz = env->FindClass("{_sigof_java(self.name)}");\n'
+        statements = f'  jclass clazz = env->FindClass("{types_.java_sig(self.name)}");\n'
         statements += f'  jobject obj = env->NewObject(clazz, env->GetMethodID(clazz, "<init>", "()V"));\n'
         statements += f'  jfieldId fid;\n'
         for f in self.fields:
@@ -467,7 +444,7 @@ class Struct:
         # 构建 jni 方法，没有方法体
         body += '  private static native '
         # 方法返回值，算法初始化时的返回值要特殊处理
-        body += _typeof_java('InitResult' if self.is_init_method() else self.rtype.cpp_type)
+        body += types_.java('InitResult' if self.is_init_method() else self.rtype.cpp_type)
         # 方法参数列表，算法初始化时跳过第一个参数
         args_list = ''
         for i, f in enumerate(self.fields[1:] if self.is_init_method() else self.fields, 1):
@@ -686,12 +663,12 @@ class AlgoParser:
             for ss in parse_structs(raw_lines):
                 s = self.structs.add(ss)
                 # print(f"find {s} in '{header_name}'")
-                types_map[s.name] = s.signature(pkg_name)
+                types_.append(s.name, s.signature(pkg_name))
             # 枚举
             for es in parse_enums(raw_lines):
                 e = self.enums.add(es)
                 # print(f"find {e} in '{header_name}'")
-                types_map[e.name] = "jint I"
+                types_.append(e.name, "jint I")
             # 读取文件内容，去掉所有换行
             __text: str = read_content(path=item, flatmap=True)
             # 使用到的命名空间
