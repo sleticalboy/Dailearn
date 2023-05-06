@@ -67,11 +67,17 @@ def find_files(root: str, suffixes: list[str] = None, tester=None) -> list[str]:
     return output
 
 
-def extract_file(file: str) -> list[str]:
+def extract_file(file: str, dest: str = None) -> list[str]:
+    """
+    解压文件到指定目录并返回文件路径列表
+    :param file: 源文件见
+    :param dest: 目标目录，为 none 时默认解压到临时目录
+    :return: 文件路径列表
+    """
     import zipfile
     with zipfile.ZipFile(file) as f:
         # 如果路径不存在，extractall() 方法内部会自行创建
-        path = '/tmp/' + os.path.basename(file)
+        path = dest if dest is not None else '/tmp/' + os.path.basename(file)
         f.extractall(path)
         return find_files(path)
 

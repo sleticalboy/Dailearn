@@ -157,7 +157,7 @@ class StructType(enum.Enum):
 
 
 class Struct:
-    # 方法、结构体、枚举
+    # 可能是方法、结构体、枚举
     def __init__(self, raw: str, stype: StructType):
         self.stype = stype
         self.name = ''
@@ -218,12 +218,17 @@ class Struct:
                 self.fields.append(Field(kv))
 
     def is_init_method(self) -> bool:
+        """
+        是否是初始化方法，算法库中的初始化方法返回值要转成 java 中的 AIInitResult 类
+        """
         lmn = self.name.lower()
         return 'init' in lmn or 'create' in lmn
 
     def is_release_method(self):
-        lmn = self.name.lower()
-        return 'release' in lmn
+        """
+        是否是释放算法句柄方法
+        """
+        return 'release' in self.name.lower()
 
     def signature(self, pkg_name: str = None) -> str:
         if self.stype == StructType.METHOD:
@@ -238,6 +243,10 @@ class Struct:
         return f'jobject Lcom/quvideo/mobile/component/{pkg_name}/{self.name};'
 
     def gen_java_enum(self, package: str) -> str:
+        """
+        生成 java 枚举类
+        :param package: java 包名
+        """
         today = time.strftime("%Y-%m-%d", time.localtime())
         body = f'package {package};\n\n'
         body += f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n'
@@ -249,6 +258,11 @@ class Struct:
         return body
 
     def gen_javabean(self, package: str, consts: set[str]) -> str:
+        """
+        生成 java bean 类
+        :param package: 包名
+        :param consts: 从头文件中解析到的常量，有可能会用到
+        """
         today = time.strftime("%Y-%m-%d", time.localtime())
         body = f'package {package};\n\n'
         body += f'/**\n * @author {getpass.getuser()}\n * @date {today}\n */\n'
@@ -269,6 +283,10 @@ class Struct:
         return body
 
     def gen_javabean_to_struct_method(self) -> str:
+        """
+        生成 jni 方法，把 java bean 转换成 cpp 的结构体
+        """
+
         def _jni_mt(jni_type: str):
             return jni_type.replace('Array', '')[1:].title()
 
@@ -298,6 +316,10 @@ class Struct:
         return body
 
     def gen_struct_to_javabean_method(self) -> str:
+        """
+        生成 jni 方法，把 cpp 结构体转换成 java bean
+        """
+
         def _jni_mt(jni_type: str):
             return jni_type.replace('Array', '')[1:].title()
 
@@ -333,6 +355,12 @@ class Struct:
         return body
 
     def gen_jni_method(self, module_name: str, ai_type: str) -> str:
+        """
+        根据头文件中定义的接口，生成对应的 jni 方法
+        :param module_name: 算法模块名
+        :param ai_type: 算法类型，用于 jni 层埋点统计
+        """
+
         body = f'// generated via {self}\n'
         body += self.rtype.cpp_type + f' Q{module_name}_{self.name}'
         # jni 方法参数列表
@@ -440,6 +468,10 @@ class Struct:
         return body
 
     def gen_native_method(self) -> str:
+        """
+        根据头文件中定义的接口，生成 java 层的 native 方法定义
+        """
+
         body = f'// generated via {self}\n'
         # 构建 jni 方法，没有方法体
         body += '  private static native '
@@ -455,6 +487,10 @@ class Struct:
         return body
 
     def gen_jni_method_signature(self, module_name) -> str:
+        """
+        生成 jni 方法签名
+        :param module_name: 算法模块名
+        """
         # "{java 方法名}", "{java 方法签名}", (void *) jni 方法实现
         # return fmt.format(self.name, self.signature(), module_name, self.name)
         return f'"{self.name}", "{self.signature()}", (void *) Q{module_name}_{self.name}'
@@ -983,15 +1019,15 @@ class GenerateTask(CopyTask):
             print(f"'{settings}' 不存在！")
             exit(1)
         raw_lines = read_lines(settings)
-        with open(settings, mode='w') as f:
-            for line in raw_lines:
-                if '{module-name}' in line:
-                    line = line.replace('{module-name}', self.prj.module_name).replace('//', '')
-                    line = line[:line.find(' /* ')]
-                    f.write(line)
-                    f.write("\n//include ':Component-AI:{module-name}AI' /* 这一行是模板占位符，不要删除！！*/\n")
-                else:
-                    f.write(line)
+        for i in range(len(raw_lines)):
+            line = raw_lines[i]
+            if '{module-name}' in line:
+                temp = line.replace('{module-name}', self.prj.module_name).replace('//', '')
+                raw_lines[i] = temp[:temp.find(' /* ')]
+                raw_lines[i + 1] = line
+                break
+        with open(settings, mode='w') as sf:
+            sf.writelines(raw_lines)
         print('start modify config.gradle file...')
         # config.gradle upload-to-maven.sh
         config: str = self.prj.algo_root + '/config.gradle'
@@ -999,24 +1035,28 @@ class GenerateTask(CopyTask):
             print(f"'{config}' 不存在！")
             exit(1)
         raw_lines = read_lines(config)
-        with open(config, mode='w') as f:
-            for line in raw_lines:
-                if '{module-name-zh}' in line:
-                    f.write(line.replace('{module-name-zh}', self.prj.module_name_zh))
-                elif '{module-name}' in line:
-                    left = line.find('{module-name}')
-                    right = line.rfind('{module-name}')
+        new_lines = list[str]()
+        for line in raw_lines:
+            if '{module-name-zh}' in line:
+                new_lines.append(line.replace('{module-name-zh}', self.prj.module_name_zh))
+            elif '{module-name}' in line:
+                left = line.find('{module-name}')
+                right = line.rfind('{module-name}')
 
-                    f.write(line.replace('{module-name}', self.prj.module_name).replace('//', ''))
+                new_lines.append(line.replace('{module-name}', self.prj.module_name).replace('//', ''))
 
-                    if left == right:
-                        f.write('    //lib{module-name},\n')
-                    else:
-                        f.write("  // {module-name-zh}\n")
-                        f.write("  //lib{module-name} = [artifact: '{module-name}AI',"
-                                " module: ':Component-AI:{module-name}AI']\n")
+                if left == right:
+                    new_lines.append('    //lib{module-name},\n')
                 else:
-                    f.write(line)
+                    new_lines.append("  // {module-name-zh}\n")
+                    new_lines.append("  //lib{module-name} = [artifact: '{module-name}AI',"
+                                     " module: ':Component-AI:{module-name}AI']\n")
+            else:
+                if 'gVersion' in line:
+                    pass
+                new_lines.append(line)
+        with open(config, mode='w') as cf:
+            cf.writelines(new_lines)
 
         compile_script: str = self.prj.algo_root + '/upload-to-maven.sh'
         if not os.path.exists(compile_script):
@@ -1024,23 +1064,19 @@ class GenerateTask(CopyTask):
             exit(1)
         print('start modify upload-to-maven.sh file...')
         raw_lines = read_lines(compile_script)
-        new_lines: list[str] = []
-        for index in range(len(raw_lines)):
-            line = raw_lines[index]
+        for i in range(len(raw_lines)):
+            line = raw_lines[i]
             if '{module-name}' in line:
-                # 先处理上面一行，使用 pop() 方法删除上一个元素，处理之后再追加
-                prev_line = new_lines.pop().replace('\n', '')
-                new_lines.append(prev_line + ' \\\n')
+                # 先处理上一行，处理之后再追加
+                raw_lines[i - 1] = raw_lines[i - 1].replace('\n', '') + ' \\\n'
                 # 处理这一行
-                line = line.replace('{module-name}', self.prj.module_name).replace('#', '')
-                new_lines.append(line[:line.find(' \\ /*')] + '\n')
+                temp = line.replace('{module-name}', self.prj.module_name).replace('#', '')
+                raw_lines[i] = temp[:temp.find(' \\ /*')] + '\n'
                 # 追加后面的
-                new_lines.append('    #:Component-AI:{module-name}AI:"$task" \\ /* 这一行是模板占位符，不要删除！！*/\n')
-            else:
-                new_lines.append(line)
-        with open(compile_script, mode='w') as f:
-            f.writelines(new_lines)
-            f.write('\n')
+                raw_lines.insert(i + 1, line)
+                break
+        with open(compile_script, mode='w') as csf:
+            csf.writelines(raw_lines)
 
 
 class AlgoCache:
@@ -1102,7 +1138,15 @@ def run_main_flow(cwd: str):
         else:
             # 非首次更新，需要以下信息
             print(f'首次更新，还需提供以下信息：')
-    ai_type__ = read_opt("算法类型（正整数）：")
+
+    def num_tester(n__: str) -> bool:
+        try:
+            return int(n__) >= 0
+        except ValueError as e:
+            print(e)
+            return False
+
+    ai_type__ = read_opt("算法类型（正整数）：", tester=num_tester)
     module_name__ = read_opt("算法组件名（多个单词时以空格分割）：").lower()
     module_name_zh__ = read_opt("算法组件名（中文）：").lower()
     prj_info__ = PrjInfo(cwd, module_name__, module_name_zh__)
@@ -1167,7 +1211,7 @@ def run_test():
 
 if __name__ == '__main__':
 
-    run_test()
+    # run_test()
 
     # 算法工程根目录
     cwd__ = os.path.dirname(__file__)
