@@ -11,12 +11,12 @@ import urllib3
 from colorama import Fore
 from prettytable import PrettyTable
 
-from src.com.binlee.python.util import file_util
+from com.binlee.python.util import file_util
 
 
 class QueryArgs:
     __from_stations = "北京 天津 秦皇岛 石家庄 大连 长春 上海 青岛 日照".split()
-    __to_stations = "郑州 杭州 广州 武汉 长沙 深圳 成都 拉萨 兰州 日喀则".split()
+    __to_stations = "郑州 杭州 广州 武汉 长沙 深圳 成都 拉萨 兰州".split()
 
     def __init__(self) -> None:
         self.from_ = ''
@@ -36,8 +36,9 @@ class QueryArgs:
         self.force_refresh_ = False
 
     def __random_init__(self):
-        self.from_ = random.choice(self.__from_stations)
-        self.to_ = random.choice(self.__to_stations)
+        index = random.randint(0, len(self.__from_stations) - 1)
+        self.from_ = self.__from_stations[index]
+        self.to_ = self.__to_stations[index]
         # 未来 15 天随机时间
         start = int(time.time() / (24 * 3600))
         random_time = random.randint(start, start + 15) * 24 * 3600

@@ -1,12 +1,11 @@
-import os
 import sys
 import urllib.parse
 
 import jsonpath
 import requests
 
-from src.com.binlee.python.util import img_util
-from src.com.binlee.python.util import file_util
+from com.binlee.python.util import img_util
+from com.binlee.python.util import file_util
 
 
 def get_images(args: list[str]):
@@ -17,7 +16,7 @@ def get_images(args: list[str]):
     print(f"get_images() url: {url}")
 
     with requests.get(url=url) as r:
-        if r.headers["Content-Type"].find("application/json") > 0:
+        if r.headers["Content-Type"].find("application/json") >= 0:
             image_urls: list[str] = jsonpath.jsonpath(r.json(), "$..path")
             saver = img_util.ImageSaver(originals=image_urls,
                                         output_dir=file_util.create_out_dir(__file__, 'images'))

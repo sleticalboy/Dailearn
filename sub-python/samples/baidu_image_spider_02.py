@@ -1,12 +1,11 @@
 import json
-import os
 import re
 import sys
 import urllib.parse
 
-from src.com.binlee.python.util import file_util
-from src.com.binlee.python.util import img_util
-from src.com.binlee.python.util import web_util
+from com.binlee.python.util import file_util
+from com.binlee.python.util import img_util
+from com.binlee.python.util import web_util
 
 
 def parse_one_page(kw: str, page_num: int, baiduid: str, saver: img_util.ImageSaver):

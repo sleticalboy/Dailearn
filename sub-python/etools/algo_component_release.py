@@ -69,7 +69,30 @@ def is_clean_git_repo(cwd: str) -> bool:
     return is_clean
 
 
-def find_latest_git_tag_and_last_tag_hash(cwd: str) -> tuple[str, str]:
+def get_git_tag_hash(tag_name: str, cwd: str) -> str:
+    # 找到一个 tag 的 commit id
+    with subprocess.Popen(f"git show {tag_name} --pretty='%h'", shell=True, text=True,
+                          cwd=cwd, stdout=subprocess.PIPE) as proc:
+        proc.wait()
+        pattern = re.compile(r'^[0-9a-f]{8}$')
+        for line in proc.stdout.readlines():
+            line = line.strip().replace('\n', '')
+            if line != '' and pattern.match(line):
+                return line
+        proc.terminate()
+        return ''
+
+
+class GitTag:
+    def __init__(self, tag_name: str, cwd: str):
+        self.name = tag_name
+        self.sha1 = get_git_tag_hash(tag_name, cwd)
+
+    def __str__(self):
+        return f'"{self.name} -> {self.sha1}"'
+
+
+def find_latest_and_last_tag(cwd: str) -> (GitTag, GitTag):
     """
     找到当前 git 工程的最新 tag 和上一个 tag 及其 hash 值(commit id)
     :param cwd: git 工程根目录
@@ -107,19 +130,87 @@ def find_latest_git_tag_and_last_tag_hash(cwd: str) -> tuple[str, str]:
         short_tags[k] = tags[k]
     print(f'all tags: {short_tags}')
 
-    # 找到上一个 tag 的 commit id
-    proc = subprocess.Popen(f"git show {tags[keys[1]]} --pretty='%h'", shell=True, text=True,
-                            cwd=cwd, stdout=subprocess.PIPE)
-    last_tag_hash: str
-    pattern = re.compile(r'^[0-9a-f]{8}$')
-    while True:
-        line = proc.stdout.readline().strip().replace('\n', '')
-        if line != '' and pattern.match(line):
-            last_tag_hash = line
+    latest = GitTag(tags[keys[0]], cwd)
+    last = GitTag(tags[keys[1]], cwd)
+
+    print(f"latest tag: {latest}, last tag: {last}")
+    return latest, last
+
+
+def get_server_versions() -> list[str]:
+    check_url = 'http://nexus.quvideo.com/nexus/content/repositories/mobile_public_v2/com/quvideo/mobile/component/engine/commonAI/'
+    with requests.get(check_url) as r:
+        version_pattern = re.compile(r'\d+\.\d+\.\d+')
+        # texts = []
+        # for item in r.text.split('\n'):
+        #     item = item.strip()
+        #     texts.append(item)
+        version_map: dict[int, str] = {}
+        for item in version_pattern.findall(''.join(r.text)):
+            version_map[int(item.replace('.', ''))] = item
+        return list(version_map.values())
+
+
+def inc_version(text: str, release: bool = False) -> str:
+    import math
+    # test: 4.5.301 -> 4.5.302
+    # release: 4.5.3 -> 4.6.4
+    __current = text[text.rfind(' ') + 1:].replace('\'', '')
+    segments = __current.split('.')
+    if release:
+        fix = math.floor((int(segments[2]) * math.pow(10, 3 - len(segments[2])) + 100) / 100)
+        minor = int(segments[1])
+        if fix >= 10:
+            minor += 1
+            fix = 0
+        if minor >= 10:
+            segments[1] = '0'
+            segments[0] = str(int(segments[0]) + 1)
+        else:
+            segments[1] = str(minor)
+        segments[2] = str(fix)
+    else:
+        fix = int(int(segments[2]) * math.pow(10, 3 - len(segments[2]))) + 1
+        temp = str(fix)
+        # 补齐
+        segments[2] = '0' * (3 - len(temp)) + temp
+    __next = '.'.join(segments)
+    print(f"{__current} -> {segments} -> {__next}")
+    return __next
+
+
+def change_version_if_needed(cwd: str, release: bool) -> str:
+    if release:
+        return ''
+
+    # 生成下一个可用版本号
+    def gen_next_version(old: str) -> str:
+        remote_versions = get_server_versions()
+        next_ = inc_version(old)
+        while next_ in remote_versions:
+            print(f'{next_} exists, try next!')
+            next_ = inc_version(next_)
+        return next_
+
+    # 读取文件
+    with open(cwd + '/config.gradle', mode='r') as cf:
+        contents = cf.readlines()
+    # 如果是 debug 类型，自动生成新的版本号
+    next_version = ''
+    # 修改 config 文件内容
+    for i in range(len(contents)):
+        line = contents[i]
+        if 'gVersion' in line:
+            # 修改版本号
+            old_version = line[line.rfind(' ') + 1:-1]
+            next_version = gen_next_version(old_version)
+            contents[i] = line.replace(old_version, f"'{next_version}'")
+            print(f"version old: {old_version}, new: '{next_version}'")
             break
-    proc.terminate()
-    print(f"latest tag: {tags[keys[0]]}, last tag: {tags[keys[1]]} -> {last_tag_hash}")
-    return tags[keys[0]], last_tag_hash
+    # 写入文件
+    with open(cwd + '/config.gradle', mode='w') as f:
+        f.writelines(contents)
+    return next_version
 
 
 class ReleaseNotes:
@@ -127,48 +218,51 @@ class ReleaseNotes:
     获取最近提交日志：新功能、修复问题、作者
     """
 
-    def __init__(self, last_tag_hash, cwd):
-        self.last_tag_hash = last_tag_hash
-        self.cwd = cwd
+    def __init__(self, cwd, latest, last):
+        self.latest_sha1: str = latest
+        self.last_sha1: str = last
+        self.cwd: str = cwd
         self.authors: dict[str, str] = {}
         self.features: list[str] = []
         self.issues: list[str] = []
         self.test_notes: list[str] = []
         self.engine_notes: list[str] = []
-        self.__collect__()
+        self.__parse_logs__()
 
-    def __collect__(self):
+    def __parse_single_line__(self, line: str):
+        segments: list = line.split(' | ')
+        print(segments[-1])
+        author_email = segments[2].strip().split(' ')
+        self.authors[author_email[0]] = author_email[1]
+        log: str = segments[3].strip()
+        if log.startswith("fix:"):
+            self.issues.append(log[4:].strip())
+        elif log.startswith("feat:"):
+            self.features.append(log[5:].strip())
+        elif log.startswith("update:"):
+            self.features.append(log[7:].strip())
+        elif log.startswith("note:") or log.startswith("test:"):
+            self.test_notes.append(log[5:].strip())
+        elif log.startswith("engine:"):
+            self.engine_notes.append(log[7:].strip())
+
+    def __parse_logs__(self):
         proc = subprocess.Popen("git log --pretty='%h | %ad | %an %ae | %s' --date=short",
                                 shell=True, text=True, cwd=self.cwd, stdout=subprocess.PIPE)
-        # 遍历到上次 tag 中断
-        is_last_tag = False
-        # 通过 tag 来处理，每发布一次就打一个 tag
-        while not is_last_tag:
+        # 测试版本收集上一个 tag 到最新之间的所有提交内容
+        started = self.latest_sha1 == ''
+        while True:
             line = proc.stdout.readline().replace('\n', '').strip()
-            if not line:
+            if not started and line.startswith(self.latest_sha1):
+                started = True
+                print(">>>>>找到最新 tag， 开始收集日志！>>>>>")
+            if started and line.startswith(self.last_sha1):
+                print("<<<<<找到上一个 tag， 中断！<<<<<")
                 break
-            if line.startswith(self.last_tag_hash):
-                print("找到上一个 tag， 中断！")
-                break
-            if line.isspace() or len(line) == 0:
-                continue
-
-            print(line)
-            segments: list = line.split(' | ')
-            author_email = segments[2].strip().split(' ')
-            self.authors[author_email[0]] = author_email[1]
-            log: str = segments[3].strip()
-            if log.startswith("fix:"):
-                self.issues.append(log[4:].strip())
-            elif log.startswith("feat:"):
-                self.features.append(log[5:].strip())
-            elif log.startswith("update:"):
-                self.features.append(log[7:].strip())
-            elif log.startswith("note:") or log.startswith("test:"):
-                self.test_notes.append(log[5:].strip())
-            elif log.startswith("engine:"):
-                self.engine_notes.append(log[7:].strip())
+            if started and line != '':
+                self.__parse_single_line__(line)
         proc.terminate()
+        # 打印处理结果
         self.__dump__()
 
     def __dump__(self):
@@ -196,10 +290,10 @@ class ReleaseNotes:
         )
 
 
-def notify_to_feishu(latest_tag: str, notes: ReleaseNotes):
+def notify_to_feishu(version_name: str, notes: ReleaseNotes):
     """
     通过飞书机器人 API 发送升级通知
-    :param latest_tag: 最新 tag，即当前发布版本
+    :param version_name: 一般来说最新 tag 即当前发布版本，debug 版本除外
     :param notes: 发布日志
     :return:
     """
@@ -209,9 +303,9 @@ def notify_to_feishu(latest_tag: str, notes: ReleaseNotes):
         "msg_type": "interactive",
         "card": {
             "header": {
-                "template": "blue",
+                "template": "red",
                 "title": {
-                    "content": f"Android 算法组件 {latest_tag} 发布",
+                    "content": f"Android 算法组件 {version_name} 发布",
                     "tag": "plain_text"
                 }
             },
@@ -250,26 +344,31 @@ def notify_to_feishu(latest_tag: str, notes: ReleaseNotes):
         print(f"content: {r.text}")
 
 
-def exec_task(cwd: str, task_type='debug') -> int:
+def exec_task(cwd: str) -> int:
     """
     执行任务
     :param cwd: 工作目录
-    :param task_type: 任务类型 debug/release/upload
     :return: 执行任务返回值
     """
-    cmd = f'upload-to-maven.sh {task_type}'
-    proc = subprocess.Popen(f"bash {cmd}", shell=True, cwd=cwd, text=True, stdout=subprocess.PIPE)
-    print(f"cmd '{cmd}' running...")
-    proc.wait()
-    if proc.returncode != 0:
+    cmd = f"bash upload-to-maven.sh upload"
+    proc = subprocess.Popen(cmd, shell=True, cwd=cwd, text=True, stdout=subprocess.PIPE)
+    print(f"waiting for cmd '{cmd}' running...")
+    outputs: list[str] = []
+    while True:
+        line = proc.stdout.readline()
+        if not line:
+            break
+        line = line.replace('\n', '').strip()
+        print(line)
+        if line != '':
+            outputs.append(line)
+    if proc.returncode is not None:
         print(f"'{cmd}' failed with {proc.returncode}")
-        for line in proc.stdout.readlines():
-            print(line.replace('\n', '').strip())
-        return proc.returncode
-    return 0
+        print('\n'.join(outputs))
+    return 0 if proc.returncode is None else proc.returncode
 
 
-def run_main_work_flow(args: list):
+def run_main_work_flow(args: list[str]):
     """
     执行主流程
     :param args: 参数列表，扩展用
@@ -285,24 +384,26 @@ def run_main_work_flow(args: list):
         print("当前目录不是一个 git 工程目录！", file=sys.stderr)
         exit(1)
 
-    # 如果当前工程有没有提交的文件：
-    # 1、中断流程，手动提交代码然后再次执行脚本发布；
-    # 2、自动提交并发布；
-    if not is_clean_git_repo(cwd=git_work_dir):
+    # 如果当前工程有未提交的文件：
+    # 1、如果是正式版本则中断流程，提示提交代码然后再次执行脚本发布；
+    # 2、如果是测试版本则自动修改版本号并发布；
+    is_release = args[0] == 'release'
+    if not is_clean_git_repo(cwd=git_work_dir) and is_release:
         print("有未提交的文件，请先提交！", file=sys.stderr)
-        # exit(1)
-
-    # 找到最新 tag 和上一个 tag 的 hash 值
-    latest_tag, last_tag_hash = find_latest_git_tag_and_last_tag_hash(cwd=git_work_dir)
-
-    ret = 0
+        exit(1)
+    # 修改版本号
+    debug_version = change_version_if_needed(cwd=git_work_dir, release=is_release)
+    # 找到最新 tag 和上一个 tag
+    latest_tag, last_tag = find_latest_and_last_tag(cwd=git_work_dir)
     # 执行发布脚本
-    # ret = exec_task(cwd=git_work_dir, task_type=args[0])
+    ret = 0
+    ret = exec_task(cwd=git_work_dir)
+    print(f'exec upload task {ret}')
     if ret == 0:
         # 解析 git log 拼装 release note
-        notes = ReleaseNotes(last_tag_hash=last_tag_hash, cwd=git_work_dir)
+        notes = ReleaseNotes(cwd=git_work_dir, latest=latest_tag.sha1 if is_release else '', last=last_tag.sha1)
         # 通过飞书机器人 API 发送升级通知
-        notify_to_feishu(latest_tag, notes)
+        notify_to_feishu(latest_tag.name if is_release else f'v{debug_version}(测试版)', notes)
         pass
     else:
         print(f"exec task failed: {ret}")
@@ -312,7 +413,7 @@ def usage():
     """
     打印脚本用法
     """
-    print(f"usage: {sys.argv[0]} task_type", file=sys.stderr)
+    print(f"usage: {sys.argv[0]} task_type[debug/release]", file=sys.stderr)
     exit(1)
 
 

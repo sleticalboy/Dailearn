@@ -51,5 +51,5 @@ def run_num_test():
 
 
 if __name__ == '__main__':
-    # run_version_test()
-    run_num_test()
+    run_version_test()
+    # run_num_test()

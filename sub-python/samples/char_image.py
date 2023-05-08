@@ -3,7 +3,7 @@
 import argparse
 
 from PIL import Image
-from src.com.binlee.python.util import file_util
+from com.binlee.python.util import file_util
 
 # 命令行输入参数处理
 parser = argparse.ArgumentParser()

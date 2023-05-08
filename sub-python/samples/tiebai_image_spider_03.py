@@ -1,10 +1,9 @@
-import os
 import re
 import sys
 
-from src.com.binlee.python.util import img_util
-from src.com.binlee.python.util import web_util
-from src.com.binlee.python.util import file_util
+from com.binlee.python.util import img_util
+from com.binlee.python.util import web_util
+from com.binlee.python.util import file_util
 
 
 def parse_image_urls(html: str) -> list[str]:
