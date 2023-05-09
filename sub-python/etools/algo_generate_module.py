@@ -9,6 +9,13 @@ import time
 import zipfile
 
 
+def like_array(pt: str, name: str) -> bool:
+    if '*' in pt and name:
+        if 'box' in name:
+            return True
+    return False
+
+
 class TypeMapper:
     # ai type -> jni type & sig
     # int* 是传递地址过去
@@ -42,22 +49,22 @@ class TypeMapper:
         # c 中定义的枚举和结构体在这里根据代码动态添加
     }
 
-    def java_sig(self, pt: str, allow_missed: bool = False):
+    def java_sig(self, pt: str, allow_missed: bool = False, name: str = None):
         if 'std::vector' in pt:
             raw_type = pt.replace('std::vector', '').replace('<', '').replace('>', '')
             sj = self.java_sig(raw_type, allow_missed)
             return '[' + sj if sj != '' else sj
         try:
             sig = self.__map[pt if pt in self.__map else pt.replace('*', '')].split()[1]
-            return '[' + sig if '**' in pt else sig
+            return '[' + sig if like_array(pt, name) else sig
         except KeyError as e:
             if allow_missed and pt not in self.__map:
                 return ''
             raise e
 
-    def java(self, pt: str, allow_missed: bool = False) -> str:
+    def java(self, pt: str, allow_missed: bool = False, name: str = None) -> str:
         def __wrap(jtype: str) -> str:
-            return jtype + '[]' if '**' in pt else jtype
+            return jtype + '[]' if like_array(pt, name) else jtype
 
         if 'std::vector' in pt:
             # 原始类型
@@ -76,7 +83,7 @@ class TypeMapper:
                 return ''
             raise e
 
-    def jni(self, pt: str, allow_missed: bool = False) -> str:
+    def jni(self, pt: str, allow_missed: bool = False, name: str = None) -> str:
         if 'std::vector' in pt:
             left = pt.find('<')
             right = pt.find('>')
@@ -85,7 +92,7 @@ class TypeMapper:
             return tj + 'Array' if tj != '' else tj
         try:
             ctype = self.__map[pt if pt in self.__map else pt.replace('*', '')].split()[0]
-            return ctype + 'Array' if '**' in pt else ctype
+            return ctype + 'Array' if like_array(pt, name) else ctype
         except KeyError as e:
             if allow_missed and pt not in self.__map:
                 return ''
@@ -139,15 +146,15 @@ class Field:
                 # 如果是数组类型，记一下数组长度
                 self.arr_len = fname[left + 1:right].strip() if left != right else ''
         # java 中的数据类型，这里可能会报错，可以延后处理
-        self.java_type = types_.java(self.cpp_type, allow_missed)
+        self.java_type = types_.java(self.cpp_type, allow_missed, self.name)
         # jni 中的数据类型
-        self.jni_type = types_.jni(self.cpp_type, allow_missed)
+        self.jni_type = types_.jni(self.cpp_type, allow_missed, self.name)
         # jni 签名
-        self.jni_sig = types_.java_sig(self.cpp_type, allow_missed)
+        self.jni_sig = types_.java_sig(self.cpp_type, allow_missed, self.name)
         # print(self)
 
     def __str__(self):
-        return f'{self.__kv__}\n{self.__dict__}'
+        return f'{self.__dict__}'
 
 
 class StructType(enum.Enum):
@@ -291,6 +298,7 @@ class Struct:
             return jni_type.replace('Array', '')[1:].title()
 
         body = f'{self.name} *to_cpp_struct_{self.name}(JNIEnv *env, jobject obj) ' + '{\n'
+        print('generate -> ' + body)
         statements = f'  auto/*{self.name}*/ _out_ = new {self.name}();\n'
         statements += f'  jclass clazz = env->FindClass("{types_.java_sig(self.name)}");\n'
         statements += f'  jfieldId fid;\n'
@@ -323,10 +331,11 @@ class Struct:
         def _jni_mt(jni_type: str):
             return jni_type.replace('Array', '')[1:].title()
 
-        body = f'jobject to_java_bean_{self.name}(JNIEnv *env, {self.name} *value) ' + '{\n'
-        statements = f'  jclass clazz = env->FindClass("{types_.java_sig(self.name)}");\n'
-        statements += f'  jobject obj = env->NewObject(clazz, env->GetMethodID(clazz, "<init>", "()V"));\n'
-        statements += f'  jfieldId fid;\n'
+        body = f'jobject to_java_bean_{self.name}(JNIEnv *env, {self.name} *value, jobject obj) ' + '{\n'
+        print('generate -> ' + body)
+        statements = f'  jfieldId fid;\n'
+        statements += f'  jclass clazz = env->FindClass("{types_.java_sig(self.name)}");\n'
+        statements += f'  // jobject obj = env->NewObject(clazz, env->GetMethodID(clazz, "<init>", "()V"));\n'
         for f in self.fields:
             if '[]' in f.java_type:
                 statements += f'  // 从 cpp 获取 {f.name} -> {f.cpp_type}\n'
@@ -446,16 +455,25 @@ class Struct:
             if self.is_init_method():
                 statements += f'  return XIAIInitResultC2J(env, _res_, (long) _handle_));\n'
             else:
-                # 返回之前，还要把数据结构转成 java bean，需要知道是什么结构体才能就行转换
+                # 返回之前，还要把 cpp struct 转成 java bean
                 if len(structs_to_convert) > 0:
                     statements += '  // 结构体转成 java bean\n'
                     statements += '  if (_res_ == XYAI_NO_ERROR) {\n'
                     for f in structs_to_convert:
-                        if f.cpp_type == 'XYAIFrameInfo*':
-                            # AIFrameInfoC2J(env, &frameOut, out);
-                            statements += f'    AIFrameInfoC2J(env, &_{f.name}_, {f.name});\n'
-                        # 我们目前只实现这一个，其他的用到了再处理
                         statements += f"    // TODO 转换 '{f.cpp_type}' to '{f.name}'\n"
+                        if f.cpp_type == 'XYAIFrameInfo*':
+                            statements += f'    AIFrameInfoC2J(env, &_{f.name}_, {f.name});\n'
+                        elif f.cpp_type == 'XYInt32*':
+                            # 这很可能是个数组类型
+                            if like_array(f.cpp_type, f.name):
+                                statements += f"    jint len = env->GetArrayLength({f.name});\n"
+                                statements += f"    env->SetIntArrayRegion({f.name}, 0, len, _{f.name}_);\n"
+                            else:
+                                print(f)
+                        else:
+                            # 我们目前只实现这一个，其他的用到了再处理
+                            statements += f"    to_java_bean_{f.cpp_type.replace('*', '')}(env, _{f.name}_, {f.name});\n"
+
                     statements += '  }\n'
                 if self.rtype.java_type == 'java.lang.String':
                     statements += '  return env->NewStringUTF(_res_);\n'
@@ -1023,8 +1041,8 @@ class GenerateTask(CopyTask):
             line = raw_lines[i]
             if '{module-name}' in line:
                 temp = line.replace('{module-name}', self.prj.module_name).replace('//', '')
-                raw_lines[i] = temp[:temp.find(' /* ')]
-                raw_lines[i + 1] = line
+                raw_lines[i] = temp[:temp.find(' /* ')] + '\n'
+                raw_lines.insert(i + 1, line)
                 break
         with open(settings, mode='w') as sf:
             sf.writelines(raw_lines)
@@ -1215,12 +1233,17 @@ if __name__ == '__main__':
 
     # 算法工程根目录
     cwd__ = os.path.dirname(__file__)
+    cwd__ += '/../out'
     if not os.path.exists(cwd__ + '/Component-AI'):
         # 脚本必须在算法工程根目录执行
         print(f"脚本必须在算法工程根目录执行！当前：'{cwd__}'", file=sys.stderr)
         exit(1)
     print(f"project root: '{cwd__}'")
     # 使用说明
-    usage()
+    # usage()
     # 开始运行主流程
-    run_main_flow(cwd__)
+    # run_main_flow(cwd__)
+    # 新增算法模块
+    algo_lib_dir__ = '/home/binlee/code/open-source/quvideo/XYAlgLibs/AutoCrop-component/SingleTrack'
+    GenerateTask(PrjInfo(cwd__, 'single track', '单物体跟踪'), AlgoParser(algo_lib_dir__, '124')).process()
+    print('新增完成！')
