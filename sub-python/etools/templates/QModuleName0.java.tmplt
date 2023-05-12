@@ -1,6 +1,7 @@
 package com.quvideo.mobile.component.{pkg-name};
 
-import com.quvideo.mobile.component.common.*;
+import com.quvideo.mobile.component.common.AIInitResult;
+import com.quvideo.mobile.component.common.QAIBase;
 
 /**
  * @author wuzhongyou

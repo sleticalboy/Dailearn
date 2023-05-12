@@ -23,11 +23,18 @@ def replace_header(line: str) -> str:
         pure_name = line.strip()[9:]
         if '<' in pure_name or '"' in pure_name:
             pure_name = pure_name[1:-1]
-        print(f'search header line >>>> {line}')
+        # print(f'search header line >>>> {line}')
         if pure_name in jni_header_map__:
             line = f'#include {jni_header_map__[pure_name]}\n'
-            print(f'new header line >>>> {line}')
+            # print(f'new header line >>>> {line}')
     return line
+
+
+def is_path(ct: str, name: str) -> bool:
+    if not name:
+        return False
+    ln = name.lower()
+    return 'dir' in ln or 'path' in ln or 'model' in name
 
 
 def is_array(ct: str, name: str) -> bool:
@@ -74,6 +81,7 @@ class TypeMapper:
         'XYChar*': 'jstring Ljava/lang/String;',
         'XYString': 'jstring Ljava/lang/String;',
         'std::string': 'jstring Ljava/lang/String;',
+        'XyFaceAttrManager': 'jlong J',
         # 作为数组类型
         'std::vector': 'jobject [',
         'XYAIFrameInfo': 'jobject Lcom/quvideo/mobile/component/common/AIFrameInfo;',
@@ -102,7 +110,11 @@ class TypeMapper:
 
     def java(self, pt: str, allow_missed: bool = False, name: str = None) -> str:
         def __wrap(jtype: str) -> str:
-            return jtype + '[]' if is_array(pt, name) else jtype
+            if is_array(pt, name):
+                return jtype + '[]'
+            if is_path(pt, name):
+                return 'jstring'
+            return jtype
 
         if 'std::vector' in pt:
             # 原始类型
@@ -206,7 +218,7 @@ class Field:
                 is_arr |= True
                 self.cpp_type += '*'
                 self.name = self.name.replace('*', '')
-            self.arr_len = '' if index < 0 else temp_name[index + 1:-1]
+            self.arr_len = '' if index < 0 else temp_name[index + 1:-1].strip()
             self.java_type = types_.java(self.cpp_type, allow_missed, self.name)
             self.jni_type = types_.jni(self.cpp_type, allow_missed, self.name)
             self.jni_sig = types_.java_sig(self.cpp_type, allow_missed, self.name)
@@ -220,11 +232,15 @@ class Field:
             self.cpp_type = self.__kv__[:index]
             self.name = self.__kv__[index + 1:]
             if '&' in self.name:
+                self.cpp_type += '&'
                 self.name = self.name.replace('&', '')
-            # java 中的数据类型，这里可能会报错，可以延后处理
-            self.java_type = types_.java(self.cpp_type, allow_missed, self.name)
+            if '*' in self.name:
+                self.cpp_type += '*'
+                self.name = self.name.replace('*', '')
             # jni 中的数据类型
             self.jni_type = types_.jni(self.cpp_type, allow_missed, self.name)
+            # java 中的数据类型，这里可能会报错，可以延后处理
+            self.java_type = types_.java(self.cpp_type, allow_missed, self.name)
             # jni 签名
             self.jni_sig = types_.java_sig(self.cpp_type, allow_missed, self.name)
             if self.java_type == '' and '&' in self.cpp_type:
@@ -333,18 +349,18 @@ class Struct:
         是否是初始化方法，算法库中的初始化方法返回值要转成 java 中的 AIInitResult 类
         """
         lmn = self.name.lower()
-        return 'init' in lmn or 'create' in lmn
+        return 'init' in lmn or 'create' in lmn or 'load' in lmn
 
     def is_release_method(self):
         """
         是否是释放算法句柄方法
         """
-        ln = self.name.lower()
-        return 'release' in ln and 'handler' in ln
+        ln = self.__raw__.lower()
+        return 'release' in ln and ('handle' in ln or len(self.fields) == 0)
 
     def is_common_release_method(self) -> bool:
-        ln = self.name.lower()
-        return 'release' in ln and 'handler' not in ln
+        ln = self.__raw__.lower()
+        return 'release' in ln and ('handle' not in ln or len(self.fields) > 0)
 
     def signature(self, pkg_name: str = None) -> str:
         if self.stype == StructType.METHOD:
@@ -634,6 +650,46 @@ class Struct:
         body += f" {self.name}({args_list.rstrip(', ')});\n"
         return body
 
+    def gen_biz_method(self, module_name: str) -> str:
+        if self.is_init_method() or self.is_release_method():
+            return ''
+
+        def title_camel(word: str) -> str:
+            new_word = word[0].lower()
+            under_line = word.find('_')
+            if under_line > 0:
+                new_word += word[1:under_line] + word[under_line + 1:].title()
+            else:
+                new_word += word[1:]
+            return new_word
+
+        method_body = f'// generate via {self}\n'
+        param_list = ''
+        caller_args = ''
+        java_rtype = self.rtype
+        for f in self.fields:
+            if 'output' in f.name.lower():
+                java_rtype = f
+
+        for i, f in enumerate(self.fields, 1):
+            caller_args += f'{f.name}, '
+            if f != java_rtype:
+                param_list += f'{f.java_type} {f.name}, '
+
+        method_body += f"  public {java_rtype.java_type} {title_camel(self.name)}({param_list.rstrip(', ')}) " + '{\n'
+        if java_rtype != self.rtype:
+            method_body += f'    {java_rtype.java_type} {java_rtype.name} = new {java_rtype.java_type}();\n'
+        method_body += f"    final int res = Q{module_name}.{self.name}({caller_args.rstrip(', ')});\n"
+        method_body += '    if (res != 0) {\n'
+        method_body += f'      android.util.Log.w("{module_name}", "{title_camel(self.name)}() failed: " + res);\n'
+        method_body += '    }\n'
+        if java_rtype != self.rtype:
+            method_body += f'    return {java_rtype.name};\n'
+        else:
+            method_body += f'    return res;\n'
+        method_body += '  }'
+        return method_body
+
     def gen_jni_method_signature(self, module_name) -> str:
         """
         生成 jni 方法签名
@@ -724,6 +780,28 @@ def read_content(path: str, flatmap: bool = False) -> str:
         return f.read()
 
 
+def extract_consts(lines: list[str]) -> list[str]:
+    consts = []
+
+    def is_const_definition(const_line: str) -> bool:
+        pieces = const_line.split()
+        return len(pieces) > 2 and pieces[2].isdigit()
+
+    for line in lines:
+        line = line.replace('\n', '')
+        if line == '' or not line.startswith('#define '):
+            continue
+        index = line.find('/*')
+        if index > 0:
+            line = line[:index].strip()
+        index = line.find('//')
+        if index > 0:
+            line = line[:index].strip()
+        if is_const_definition(line):
+            consts.append(line[7:].strip())
+    return consts
+
+
 def extract_structs(lines: list[str]) -> list[str]:
     ss: list[str] = []
     s = ''
@@ -789,16 +867,33 @@ def extract_methods(lines: list[str]) -> set[str]:
         if temp.startswith('#') or temp.startswith('//'):
             continue
         # method 开始
-        if 'XYAI_PUBLIC' in line and '(' in line:
+        if ('XYAI_PUBLIC' in line or 'XY_LIB_EXPORT' in line) and '(' in line:
             started = True
         if started:
-            m += line.replace('\n', '').strip()
+            m += line.replace('\n', '').replace('XYAI_PUTLIC', '').replace('XY_LIB_EXPORT', '').strip()
         # method 结束
         if started and ');' in line:
             started = False
             ms.add(m)
             m = ''
     return ms
+
+
+def extract_itf_properties(lines: list[str]) -> list[str]:
+    # #define CARTOON_LITE_FORWARD_MODE (CARTOON_LITE_PARAM_CODE_ORIGIN + 1)
+    # #define XYFaceDet_Input_FrameInfo XYFaceDet_ParamId_Base + 0
+    props = list[str]()
+    started = False
+    for line in lines:
+        if line.startswith('#ifndef '):
+            started = True
+            continue
+        if started and line.startswith('#define ') and '+' in line:
+            props.append(line.split()[1])
+            continue
+        if started and line.startswith('#endif '):
+            started = False
+    return props
 
 
 class LineHandler:
@@ -846,22 +941,23 @@ class AlgoParser:
                 self.model_files.extend(extract_file(item))
 
         # ###### 代码生成所需要的变量 ######
-        # 统一接口名
+        # 统一接口名以及属性
         self.itf_impl_name = ''
+        self.properties = list[str]()
         # 算法库名
         self.libraries = list[str]()
         # 算法库头文件
         self.headers = set[str]()
         # 命名空间
         self.using_nss = set[str]()
-        # 算法中定义的普通接口方法
-        self.methods = AlgoStructs(StructType.METHOD)
-        # 结构体
-        self.structs = AlgoStructs(StructType.STRUCT)
-        # 枚举
-        self.enums = AlgoStructs(StructType.ENUM)
         # 常量
         self.consts = set[str]()
+        # 枚举
+        self.enums = AlgoStructs(StructType.ENUM)
+        # 结构体
+        self.structs = AlgoStructs(StructType.STRUCT)
+        # 算法中定义的普通接口方法
+        self.methods = AlgoStructs(StructType.METHOD)
 
     def __str__(self):
         formatter = "release notes:{}\nlibraries:{}\nheaders:{}\nmodels:{}"
@@ -881,14 +977,11 @@ class AlgoParser:
             self.headers.add(f'#include "{header_name}"')
             if 'XYAICommon.h' in header_path or 'XYAISDK.h' in header_path:
                 continue
-            # 常量
             raw_lines = read_lines(header_path)
-            for line in raw_lines:
-                line = line.replace('\n', '')
-                if line.startswith('#define ') and '(' not in line and line.find(' ') != line.rfind(' '):
-                    line = line.replace('#define', '').strip()
-                    # print(f"find constant: {line.split()} in '{header_name}'")
-                    self.consts.add(line)
+            # 常量
+            for cs in extract_consts(raw_lines):
+                print(f"find constant: {cs} in '{header_name}'")
+                self.consts.add(cs.replace('#define', '').strip())
             # 枚举
             for es in extract_enums(raw_lines):
                 # print(f"find {es} in '{header_name}'")
@@ -912,11 +1005,14 @@ class AlgoParser:
                 itf_names: list[str] = itf_pattern.findall(__text)
                 if itf_names and len(itf_names) > 0:
                     self.itf_impl_name = itf_names[0]
+                    for ps in extract_itf_properties(raw_lines):
+                        self.properties.append(ps)
+                    print(f'find interface name: {itf_names}, all properties:\n' + '\n'.join(self.properties))
             if self.itf_impl_name == '' and self.methods.size() == 0:
                 # 普通接口
                 for define in extract_methods(raw_lines):
                     # print(f"find method '{define}' in '{header_name}'")
-                    self.methods.add(define.replace('XYAI_PUBLIC ', ''))
+                    self.methods.add(define)
         # 算法库名
         for lib_path in self.library_files:
             lib_name: str = os.path.basename(lib_path)
@@ -1026,12 +1122,14 @@ class GenerateTask(CopyTask):
         self.__line_handler.register('{algo-nss}', '\n'.join(self.parser.using_nss))
         self.__line_handler.register('{convert-methods}', self.__gen_convert_methods__())
         self.__line_handler.register('{itf-name}', self.parser.itf_impl_name)
+        self.__line_handler.register('{itf-properties}', self.__gen_itf_properties__())
         self.__line_handler.register('{jni-methods}', self.__gen_jni_methods__())
         self.__line_handler.register('{jni-register-methods}', self.__gen_native_register_array__())
         self.__line_handler.register('{init-method}', self.parser.methods.get_init_method())
         self.__line_handler.register('{native-methods}', self.__gen_native_methods__())
         self.__line_handler.register('{algo-lib-name}',
                                      self.parser.libraries[0] if len(self.parser.libraries) > 0 else '')
+        self.__line_handler.register('{biz-methods}', self.__gen_biz_methods__())
 
     def process(self):
         super().process()
@@ -1189,6 +1287,38 @@ class GenerateTask(CopyTask):
         for m in self.parser.methods:
             signatures.append('{' + m.gen_jni_method_signature(self.prj.module_name) + '}')
         return ',\n  '.join(signatures)
+
+    def __gen_itf_properties__(self) -> str:
+        input_properties: list[str] = []
+        output_properties: list[str] = []
+        for prop in self.parser.properties:
+            if 'output' in prop.lower():
+                output_properties.append(prop)
+            else:
+                input_properties.append(prop)
+        statements = '  // TODO 以下为默认实现，请根据实际需求修改\n'
+        statements += f'/*  // 设置属性\n'
+        for prop in input_properties:
+            statements += f'  algoItf->SetProp({prop}, xxx);\n'
+        statements += f'  // 算法处理\n'
+        statements += '  res = algoItf->ForwardProcess();\n'
+        statements += '  ALOGE_IF(TAG, res != 0, "ForwardProcess() failed: 0x%x", res)\n'
+        statements += f'  // 获取结果\n'
+        for prop in output_properties:
+            statements += f'  algoItf->GetProp({prop}, xxx);\n'
+        statements += '  if (res == XYAI_NO_ERROR) {\n'
+        statements += '    // 结构体转转为 java bean\n'
+        statements += '  }\n*/'
+        return statements
+
+    def __gen_biz_methods__(self) -> str:
+        methods: list[str] = []
+        for m in self.parser.methods:
+            method_body = m.gen_biz_method(self.prj.module_name)
+            # print(f'java biz method =====>\n{method_body}')
+            if method_body != '':
+                methods.append(method_body)
+        return '\n'.join(methods)
 
     def __modify_compile_scripts__(self):
         print('start modify settings.gradle file...')
@@ -1348,6 +1478,7 @@ def usage():
         '{module-name-zh}': '算法模块中文名',
         '{algo-nss}': '算法命名空间',
         '{itf-name}': '算法统一接口名字',
+        '{itf-properties}': '算法统一接口所需属性',
         '{pkg-name}': 'java 包名',
         '{ai-type}': '算法类型，与模型下发有关',
         '{lower-name}': '大写_模块名',
@@ -1358,6 +1489,7 @@ def usage():
         '{jni-register-methods}': 'jni 静态注册方法映射数组',
         '{init-method}': '算法初始化方法，其返回值比较特殊 AIInitResult',
         '{convert-methods}': 'cpp 结构体和 java bean 相互转化方法',
+        '{biz-methods}': 'AIXxx.java 中定义的业务接口',
     }
     align = len(max(placeholders.keys(), key=len)) + 1
     print("===============================代码模板占位符说明===============================")
@@ -1407,18 +1539,18 @@ if __name__ == '__main__':
     algo_lib_dirs.append(alg_lib_dir + '/XYFaceLandmark/XYFaceLandmark_Android_2.0.2_20221010')
     pattern = re.compile(r'[A-z][a-z]*')
     for ai, sub_dir_ in enumerate(algo_lib_dirs, 0):
-        word: str = os.path.basename(sub_dir_).replace('XY', '').replace('AI', '')
+        algo_name_: str = os.path.basename(sub_dir_).replace('XY', '').replace('AI', '')
         pieces_ = []
-        if '-' in word:
-            pieces_ = word.split('-')
-        elif '_' in word:
-            pieces_ = word.split('_')
+        if '-' in algo_name_:
+            pieces_ = algo_name_.split('-')
+        elif '_' in algo_name_:
+            pieces_ = algo_name_.split('_')
         else:
-            pieces_.append(word)
+            pieces_.append(algo_name_)
         for pi in range(len(pieces_[1:])):
             pieces_[pi + 1] = pieces_[pi + 1].title()
         words = re.findall(pattern, ''.join(pieces_))
         name__ = ' '.join(words).lower().replace('android', '').strip()
-        print(f'{word} -> {words} -> {name__}')
+        print(f'{algo_name_} -> {words} -> {name__}')
         GenerateTask(PrjInfo(cwd__, name__, f'zh-[{name__}]'), AlgoParser(sub_dir_, str(123 + ai))).process()
         print(f"新增 '{name__}' 完成！\n\n")

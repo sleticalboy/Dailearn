@@ -4,6 +4,7 @@
 
 #include "jni.h"
 {imported-headers}
+#include "../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"
 #include "../../../../AlgoBase/commonAI/src/main/jni/XYAIStructExchange.h"
 #include "../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"
 
@@ -17,73 +18,53 @@ jobject Q{module-name}_Init(JNIEnv *env, jclass clazz, jstring model_path) {
   ScopedString path(env, model_path);
   ALOGD(TAG, "%s model path: %s", __func__, path.c_str())
 
-  auto ir = new {itf-name}();
-  FUNC_ENTER(__func__, (long) ir)
-  int res = ir->Init(path.c_str());
+  auto algoItf = new {itf-name}();
+  FUNC_ENTER(__func__, (long) algoItf)
+  int res = algoItf->Init(path.c_str());
   FUNC_EXIT(env, __func__, res, {ai-type}, AV)
   if (res != XYAI_NO_ERROR) {
     ALOGE(TAG, "%s error: 0x%x", __func__, res)
   }
-  return XYAIInitResultC2J(env, res, res == XYAI_NO_ERROR ? (long) ir : 0);
+  return XYAIInitResultC2J(env, res, res == XYAI_NO_ERROR ? (long) algoItf : 0);
 }
 
 jint Q{module-name}_SetProp(JNIEnv *env, jclass clazz, jlong handle, jint key, jlong value) {
-  auto ir = ({itf-name} *) handle;
-  int res =  ir->SetProp(key, (void *) value);
+  auto algoItf = ({itf-name} *) handle;
+  int res =  algoItf->SetProp(key, (void *) value);
   ALOGD(TAG, "%s, res: 0x%x", __func__, res)
   return res;
 }
 
 jint Q{module-name}_ForwardProcess(JNIEnv *env, jclass clazz, jlong handle) {
-  auto ir = ({itf-name} *) handle;
+  auto algoItf = ({itf-name} *) handle;
   FUNC_ENTER(__func__ , handle)
-  int res = ir->ForwardProcess();
+  int res = algoItf->ForwardProcess();
   FUNC_EXIT(env, __func__, res, {ai-type}, AV)
   return res;
 }
 
 jint Q{module-name}_GetProp(JNIEnv *env, jclass clazz, jlong handle, jint key, jlong value) {
-  auto ir = ({itf-name} *) handle;
-  int res = ir->GetProp(key, (void *) value);
+  auto algoItf = ({itf-name} *) handle;
+  int res = algoItf->GetProp(key, (void *) value);
   ALOGD(TAG, "%s, res: 0x%x", __func__, res)
   return res;
 }
 
 jstring Q{module-name}_GetVersion(JNIEnv *env, jclass clazz) {
-  auto ir = std::unique_ptr<{itf-name}>(new {itf-name}());
-  return env->NewStringUTF(ir->GetAISDKVersion());
+  auto algoItf = std::unique_ptr<{itf-name}>(new {itf-name}());
+  return env->NewStringUTF(algoItf->GetAISDKVersion());
 }
 
 void Q{module-name}_Release(JNIEnv *env, jclass clazz, jlong handle) {
-  auto ir = ({itf-name} *) handle;
-  ir->Release();
+  auto algoItf = ({itf-name} *) handle;
+  algoItf->Release();
 }
 
 jint Q{module-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject input,/* jint width, jint height, */jobject output) {
   ALOGE(TAG, "%s enter", __func__)
-  auto ir = ({itf-name} *) handle;
-  auto frame = std::unique_ptr<XYAIFrameInfo>(AIFrameInfoJ2C(env, input));
-  ALOGE(TAG, "%s input w: %d, h: %d, fmt: %d, pCache: %p", __func__, frame->width, frame->height, frame->format, frame->pCache)
-  int res = ir->SetProp(RESTORE_INPUT_IMG, frame.get());
-  ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_INPUT_IMG) failed: 0x%x", res)
-
-  //ALOGE(TAG, "%s expected w: %d, h: %d, fmt: %d", __func__, width, height, frame->format)
-  //res = ir->SetProp(RESTORE_EXPECTED_WID, &width);
-  //ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_WID) failed: 0x%x", res)
-  //res = ir->SetProp(RESTORE_EXPECTED_HEI, &height);
-  //ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_HEI) failed: 0x%x", res)
-
-  res = ir->SetProp(RESTORE_EXPECTED_FMT, &frame->format);
-  ALOGE_IF(TAG, res != 0, "SetProp(RESTORE_EXPECTED_FMT) failed: 0x%x", res)
-  res = ir->ForwardProcess();
-  ALOGE_IF(TAG, res != 0, "ForwardProcess() failed: 0x%x", res)
-  XYAIFrameInfo result = {};
-  res = ir->GetProp(RESTORE_OUTPUT_IMG, &result);
-  ALOGE_IF(TAG, res != 0, "GetProp(RESTORE_OUTPUT_IMG) failed: 0x%x", res)
-  ALOGE(TAG, "%s output w: %d, h: %d, fmt: %d, pCache: %p", __func__, result.width, result.height, result.format, result.pCache)
-  if (res == XYAI_NO_ERROR) {
-    AIFrameInfoC2J(env, &result, output);
-  }
+  auto algoItf = ({itf-name} *) handle;
+  int res = XYAI_NO_ERROR;
+{itf-properties}
   ALOGE(TAG, "%s exit: %d", __func__, res)
   return res;
 }
