@@ -8,13 +8,28 @@ import sys
 import time
 import zipfile
 
-
 jni_header_map__ = {
     'XYAICommon.h': '"../../../../AlgoBase/commonAI/src/main/jni/XYAICommon.h"',
     'XYAISDK.h': '"../../../../AlgoBase/commonAI/src/main/jni/XYAISDK.h"',
     'XYAIStructExchange.h': '"../../../../AlgoBase/commonAI/src/main/jni/XYAIStructExchange.h"',
     'method_tracer.h': '"../../../../AlgoBase/commonAI/src/main/jni/method_tracer.h"',
 }
+
+
+# xy_analysis_face_attr -> xyAnalysisFaceAttr
+def title_camel_word(word: str) -> str:
+    if '_' in word:
+        pieces = word.split('_')
+        for i in range(len(pieces)):
+            pieces[i] = pieces[i].title()
+        word = ''.join(pieces)
+    return word[0].lower() + word[1:]
+
+
+# java.lang.String -> String
+def pure_java_name(jtype: str) -> str:
+    last_dot = jtype.rfind('.')
+    return jtype if last_dot < 0 else jtype[last_dot + 1:]
 
 
 # 修改 include 路径
@@ -31,10 +46,10 @@ def replace_header(line: str) -> str:
 
 
 def is_path(ct: str, name: str) -> bool:
-    if not name:
+    if not name or 'char' not in ct:
         return False
     ln = name.lower()
-    return 'dir' in ln or 'path' in ln or 'model' in name
+    return 'dir' in ln or 'path' in ln or 'model' in ln
 
 
 def is_array(ct: str, name: str) -> bool:
@@ -46,11 +61,9 @@ def is_array(ct: str, name: str) -> bool:
     :param name: 参数名
     :return:
     """
-    if '**' in ct:
-        return True
     if '*' in ct and name:
-        name = name.lower()
-        if 'box' in name or 'list' in name or 'points' in name:
+        ln = name.lower()
+        if 'box' in ln or 'list' in ln or 'points' in ln or 'matrix' in ln:
             return True
     return False
 
@@ -70,6 +83,7 @@ class TypeMapper:
         'XYLong': 'jlong J',
         'XYBool': 'jboolean Z',
         'char': 'jchar C',
+        'uint8_t': 'jchar C',
         'XYChar': 'jchar C',
         'XYInt8': 'jchar C',
         'XYUInt8': 'jchar C',
@@ -92,6 +106,7 @@ class TypeMapper:
         'XYAIPoint': 'jobject Lcom/quvideo/mobile/component/common/AIPoint;',
         'XYAIPointf': 'jobject Lcom/quvideo/mobile/component/common/AIPointF;',
         'InitResult': 'jobject Lcom/quvideo/mobile/component/common/AIInitResult;',
+        'XYFACEINFO': 'jobject Lcom/quvideo/mobile/component/common/AIFaceInfo;',
         # c 中定义的枚举和结构体在这里根据代码动态添加
     }
 
@@ -102,7 +117,11 @@ class TypeMapper:
             return '[' + sj if sj != '' else sj
         try:
             sig = self.__map[pt if pt in self.__map else pt.replace('*', '')].split()[1]
-            return '[' + sig if is_array(pt, name) else sig
+            if is_array(pt, name):
+                return '[' + sig
+            if is_path(pt, name):
+                return 'Ljava/lang/String;'
+            return sig
         except KeyError as e:
             if allow_missed and pt not in self.__map:
                 return ''
@@ -110,10 +129,10 @@ class TypeMapper:
 
     def java(self, pt: str, allow_missed: bool = False, name: str = None) -> str:
         def __wrap(jtype: str) -> str:
-            if is_array(pt, name):
+            if is_array(pt, name) and not is_path(pt, name):
                 return jtype + '[]'
             if is_path(pt, name):
-                return 'jstring'
+                return 'java.lang.String'
             return jtype
 
         if 'std::vector' in pt:
@@ -142,15 +161,20 @@ class TypeMapper:
             return tj + 'Array' if tj != '' else tj
         try:
             ctype = self.__map[pt if pt in self.__map else pt.replace('*', '')].split()[0]
-            return ctype + 'Array' if is_array(pt, name) else ctype
+            if is_array(pt, name) and not is_path(pt, name):
+                return ctype + 'Array'
+            if is_path(pt, name):
+                return 'jstring'
+            return ctype
         except KeyError as e:
             if allow_missed and pt not in self.__map:
                 return ''
             raise e
 
     def append(self, pt: str, val: str):
-        self.__map[pt] = val
-        print(f'append() {pt} -> {val}')
+        if pt not in self.__map:
+            self.__map[pt] = val
+            print(f'append() {pt} -> {val}')
 
     def dump(self):
         for k, v in self.__map.items():
@@ -205,6 +229,7 @@ class Field:
             # 枚举数组，其实就是 int 数组
             # VShotCropMode* shot_crop_mode
             # XYAIRect rect; // 标签外接矩形框
+            # XYInt32 MAX_NUMBER_FOR_DETECTION = 1;
             semicolom = self.__kv__.find('//')
             declaration = self.__kv__ if semicolom < 0 else self.__kv__[:semicolom].strip()
             self.comment = '' if semicolom < 0 else self.__kv__[semicolom + 2:].strip()
@@ -212,13 +237,21 @@ class Field:
             self.cpp_type = declaration[:space].strip()
             temp_name = declaration[space + 1:].replace(';', '').strip()
             index = temp_name.find('[')
-            is_arr = index > 0
+            if index > 0:
+                is_arr = True
+                self.arr_len = temp_name[index + 1:-1].strip()
+            else:
+                is_arr = False
+                self.arr_len = ''
+                index = temp_name.find('=')
+                if index > 0:
+                    self.value = temp_name[index + 1:].strip()
+                index = temp_name.find(' ')
             self.name = temp_name if index < 0 else temp_name[:index]
             if '*' in self.name:
                 is_arr |= True
                 self.cpp_type += '*'
                 self.name = self.name.replace('*', '')
-            self.arr_len = '' if index < 0 else temp_name[index + 1:-1].strip()
             self.java_type = types_.java(self.cpp_type, allow_missed, self.name)
             self.jni_type = types_.jni(self.cpp_type, allow_missed, self.name)
             self.jni_sig = types_.java_sig(self.cpp_type, allow_missed, self.name)
@@ -230,13 +263,23 @@ class Field:
             index = self.__kv__.find(' ')
             # 数据类型和名字
             self.cpp_type = self.__kv__[:index]
+            if 'void' == self.cpp_type.lower().replace('*', ''):
+                self.cpp_type = self.cpp_type.lower().replace('void', 'XYHandle')
+            # XYInt32 matchMatrix[MAX_FACE_NUM * MAX_FACE_NUM]
             self.name = self.__kv__[index + 1:]
-            if '&' in self.name:
-                self.cpp_type += '&'
-                self.name = self.name.replace('&', '')
-            if '*' in self.name:
+            if '[' in self.name:
+                print(f'>>>>>>>>>{self.name}')
+                self.cpp_type += '*'
+                self.name = self.name[:self.name.find('[')]
+            elif '**' in self.name:
+                self.cpp_type += '**'
+                self.name = self.name.replace('**', '')
+            elif '*' in self.name:
                 self.cpp_type += '*'
                 self.name = self.name.replace('*', '')
+            elif '&' in self.name:
+                self.cpp_type += '&'
+                self.name = self.name.replace('&', '')
             # jni 中的数据类型
             self.jni_type = types_.jni(self.cpp_type, allow_missed, self.name)
             # java 中的数据类型，这里可能会报错，可以延后处理
@@ -261,6 +304,10 @@ class Field:
     def arr_component_type(self) -> str:
         return self.jni_type[1:-5].title()
 
+    def is_handle(self) -> bool:
+        ln = self.name.lower()
+        return self.jni_type == 'jlong' and ('handle' in ln or 'ptr' in ln or 'manager' in ln)
+
     def __str__(self):
         return f'{self.__dict__}'
 
@@ -277,14 +324,10 @@ class Struct:
         elif stype == StructType.ENUM:
             self.__parse_enum__(raw)
         else:
-            # print(f'start parse struct: {raw}')
             self.__parse_struct__(raw)
-            # print(f'finish parse struct -> {self}')
 
     def __str__(self):
-        if self.stype == StructType.STRUCT:
-            return 'struct {' + self.__raw__
-        return self.__raw__
+        return f"'{self.__raw__}'"
 
     def __parse_method__(self, raw: str):
         # 第一个左括号
@@ -298,7 +341,7 @@ class Struct:
             self.rtype = Field(first_half[1] + " r___")
         else:
             self.rtype = Field(first_half[0] + " r___")
-        fields_str = raw[first_index + 1: raw.rfind(')')]
+        fields_str = raw[first_index + 1: raw.rfind(')')].strip()
         # 参数列表键值对
         for kv in fields_str.split(','):
             if kv and '//' not in kv:
@@ -339,10 +382,19 @@ class Struct:
         for kv in raw[left + 1: right].strip().split('\n'):
             if kv == '':
                 continue
-            kv = kv.strip()
+            kv = ' '.join(kv.strip().split())
             if kv.startswith('//'):
                 continue
-            self.fields.append(Field(kv, self.stype))
+            # 多声明要分离开
+            # int x, y, w, h; // face rectangle -> x
+            multi_declarations = kv[kv.find(' ') + 1:kv.find(';')].split(', ')
+            if len(multi_declarations) > 1:
+                dtype = kv.split()[0]
+                comment = kv[kv.find(';') + 2:]
+                for decl in multi_declarations:
+                    self.fields.append(Field(f'{dtype} {decl}; {comment} -> {decl}', self.stype))
+            else:
+                self.fields.append(Field(kv, self.stype))
 
     def is_init_method(self) -> bool:
         """
@@ -355,21 +407,28 @@ class Struct:
         """
         是否是释放算法句柄方法
         """
+        # void xy_release_face_attr(XyFaceAttrManager **ptrManager);
         ln = self.__raw__.lower()
-        return 'release' in ln and ('handle' in ln or len(self.fields) == 0)
+        if 'release' in ln:
+            if len(self.fields) == 1 and self.fields[0].is_handle():
+                return True
+            return 'handle' in ln or len(self.fields) == 0
+        return False
 
     def is_common_release_method(self) -> bool:
+        # void xy_free_attr_data(XyFaceAttr **attrs);
         ln = self.__raw__.lower()
-        return 'release' in ln and ('handle' not in ln or len(self.fields) > 0)
+        if 'release' in ln or 'free' in ln:
+            if len(self.fields) == 1 and not self.fields[0].is_handle():
+                return True
+        return False
 
     def signature(self, pkg_name: str = None) -> str:
         if self.stype == StructType.METHOD:
-            # print(f'{self}')
             signature = '('
             for f in (self.fields[1:] if self.is_init_method() else self.fields):
                 signature += f.jni_sig
-            signature += ')' + types_.java('InitResult' if self.is_init_method() else self.rtype.cpp_type)
-            # print(f'signature: {signature}\n')
+            signature += ')' + types_.java_sig('InitResult' if self.is_init_method() else self.rtype.cpp_type)
             return signature
         # 结构体签名，转成 java
         return f'jobject Lcom/quvideo/mobile/component/{pkg_name}/{self.name};'
@@ -415,6 +474,8 @@ class Struct:
                 body += f'  /** {f.comment} */\n'
             if f.arr_len != '':
                 body += f"  public {f.java_type} {f.name} = new {f.java_type.replace('[]', '')}[{f.arr_len}];\n"
+            elif f.value != '':
+                body += f"  public {f.java_type} {f.name} = {f.value};\n"
             else:
                 body += f'  public {f.java_type} {f.name};\n'
         body += '}'
@@ -517,6 +578,32 @@ class Struct:
         body += '}\n'
         return body
 
+    def gen_native_method(self) -> str:
+        """
+        根据头文件中定义的接口，生成 java 层的 native 方法定义
+        """
+
+        body = f'// generated via {self}\n'
+        # 构建 jni 方法，没有方法体
+        body += '  private static native '
+        # 方法返回值，算法初始化时的返回值要特殊处理
+        body += 'AIInitResult' if self.is_init_method() else pure_java_name(self.rtype.java_type)
+        # 方法参数列表，算法初始化时跳过 handle 参数
+        args_list = ''
+        counter = 0
+        for f in self.fields:
+            if self.is_init_method() and f.is_handle():
+                continue
+            args_list += pure_java_name(f.java_type) + ' ' + f.name + ', '
+            counter += 1
+            if counter % 3 == 0:
+                args_list += '\n    '
+        args_list = args_list.strip().rstrip(',')
+        if args_list != '':
+            args_list = '\n    ' + args_list + '\n  '
+        body += f' {self.name}({args_list});\n'
+        return body
+
     def gen_jni_method(self, module_name: str, ai_type: str) -> str:
         """
         根据头文件中定义的接口，生成对应的 jni 方法
@@ -533,7 +620,7 @@ class Struct:
             converts = '  // cpp -> java 数据类型转换\n'
             converts += '  if (_res_ == XYAI_NO_ERROR) {\n'
             for sf in structs_to_convert:
-                # print(f"{sf.cpp_type}' 转换为 '{sf.java_type}' -> '{sf.name}'")
+                print(f"{sf.cpp_type}' 转换为 '{sf.java_type}' -> '{sf.name}'")
                 converts += f"    // '{sf.cpp_type}' 转换为 '{sf.java_type}' -> '{sf.name}'\n"
                 if sf.cpp_type == 'XYAIFrameInfo*':
                     converts += f'    AIFrameInfoC2J(env, &_{sf.name}_, {sf.name});\n'
@@ -542,126 +629,128 @@ class Struct:
                                  f"env->GetArrayLength({sf.name}), _{sf.name}_);\n")
                 elif sf.is_struct():
                     converts += f"    to_javabean_{sf.cpp_type.replace('*', '')}(env, &_{sf.name}_, {sf.name});\n"
+                else:
+                    print(f'??? {sf}')
             return converts + '  }\n'
 
-        body = f'// generated via {self}\n'
-        body += ('jobject' if self.is_init_method() else self.rtype.cpp_type) + f' Q{module_name}_{self.name}'
+        # 方法声明
+        if self.is_init_method():
+            method_decl = f'jobject Q{module_name}_{self.name}'
+        elif self.is_common_release_method():
+            method_decl = f'{self.rtype.cpp_type} Q{module_name}_{self.name}'
+        elif self.is_release_method():
+            method_decl = f'void Q{module_name}_{self.name}'
+        else:
+            method_decl = f'{self.rtype.cpp_type} Q{module_name}_{self.name}'
+
         # jni 方法参数列表
-        args_list = 'JNIEnv *env, jclass clazz'
-        if len(self.fields) > 0:
-            args_list += ', \n' + ' ' * 8
-        # 方法体内的语句
-        statements = ''
+        args_list = '  '
         # 算法接口调用时入参
         caller_args = ''
-
-        for i, f in enumerate(self.fields, 1):
-            # 处理方法定义参数列表
-            args_list += f.jni_type + ' ' + f.name + ', '
-            # 语句定义，java -> cpp 数据结构转换
-            # 特殊处理初始化和释放函数
-            if self.is_init_method():
-                statements += f'  {f.cpp_type} _{f.name}_ = nullptr;\n'
-                caller_args += f'&_{f.name}_, '
-            elif self.is_release_method():
-                statements += f'  XYHandle _{f.name}_ = (XYHandle) {f.name};\n'
-                caller_args += f'&_{f.name}_'
-            elif self.is_common_release_method():
-                statements += f"  {f.cpp_type} _{f.name}_ = to_struct_{f.cpp_type.replace('*', '')}(env, {f.name});\n"
-                caller_args += ('' if '*' in f.cpp_type else '&') + f'_{f.name}_, '
+        # 方法体内的语句
+        statements = ''
+        _handle_field: Field = None
+        counter = 0
+        for f in self.fields:
+            counter += 1
+            if self.is_common_release_method():
+                args_list += f.jni_type + ' ' + f.name + ', '
+                caller_args += ('&' if '**' in f.cpp_type else '') + f'_{f.name}_, '
+                statements += f"  {f.cpp_type[:-1]} _{f.name}_ = to_struct_{f.cpp_type.replace('*', '')}(env, {f.name});\n"
             # 特殊处理的参数：XYHandle*/XYChar*/std:string/XYAIRect*/XYAIFrameInfo*/数组
-            elif 'XYHandle*' == f.cpp_type:
-                statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}) {f.name};\n'
-                caller_args = f'_{f.name}_, '
-            elif 'XYChar*' == f.cpp_type:
+            elif f.is_handle():
+                if self.is_init_method():
+                    if f.is_handle():
+                        _handle_field = f
+                        counter -= 1
+                    else:
+                        args_list += f.jni_type + ' ' + f.name + ', '
+                    caller_args += f'&_{f.name}_, '
+                    statements += f'  {f.cpp_type[:-1]} _{f.name}_ = nullptr;\n'
+                elif self.is_release_method():
+                    args_list += f.jni_type + ' ' + f.name + ', '
+                    caller_args += f'&_{f.name}_'
+                    statements += f'  {f.cpp_type[:-1]} _{f.name}_ = ({f.cpp_type[:-1]}) {f.name};\n'
+                else:
+                    args_list += f.jni_type + ' ' + f.name + ', '
+                    caller_args = f'_{f.name}_, '
+                    statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}) {f.name};\n'
+            elif 'XYChar*' == f.cpp_type or 'char*' == f.cpp_type:
                 # jstring -> XYChar*
-                statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type})ScopedString(env, {f.name}).c_str();\n'
+                args_list += f.jni_type + ' ' + f.name + ', '
                 caller_args += f'_{f.name}_, '
+                statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}) ScopedString(env, {f.name}).c_str();\n'
             elif 'std::string' == f.cpp_type:
                 # jstring -> std::string
-                statements += f'  {f.cpp_type} _{f.name}_ = {f.cpp_type}(ScopedString(env, {f.name}).c_str());\n'
+                args_list += f.jni_type + ' ' + f.name + ', '
                 caller_args += f'_{f.name}_, '
+                statements += f'  {f.cpp_type} _{f.name}_ = {f.cpp_type}(ScopedString(env, {f.name}).c_str());\n'
             elif 'XYAIFrameInfo*' == f.cpp_type and 'input' in f.name:
-                statements += f'  auto _{f.name}_ = std::unique_ptr<XYAIFrameInfo>(AIFrameInfoJ2C(env, {f.name}));\n'
+                args_list += f.jni_type + ' ' + f.name + ', '
                 caller_args += f'_{f.name}_.get(), '
+                statements += f'  auto _{f.name}_ = std::unique_ptr<XYAIFrameInfo>(AIFrameInfoJ2C(env, {f.name}));\n'
             elif f.is_array():
+                args_list += f.jni_type + ' ' + f.name + ', '
                 left = f.cpp_type.find('*')
                 right = f.cpp_type.rfind('*')
                 cpp_type = f.cpp_type if left == right else f.cpp_type[:right]
-                statements += f"  {cpp_type} _{f.name}_ = "
-                statements += f"new {cpp_type.replace('*', '')}[env->GetArrayLength({f.name})];\n"
+                is_vector = 'vector' in cpp_type
+                statements += f'  {cpp_type} _{f.name}_ = new {cpp_type.replace("*", "").replace("&", "")}'
+                statements += f"{'(' if is_vector else '['}env->GetArrayLength({f.name}){')' if is_vector else ']'};\n"
                 caller_args += f'&_{f.name}_, '
                 structs_to_convert.append(f)
             elif f.is_struct():
-                statements += f"  {f.cpp_type.replace('*', '')} _{f.name}_;\n"
+                print(f'handle struct type param: {f.cpp_type} {f.name}')
+                args_list += f.jni_type + ' ' + f.name + ', '
                 caller_args += f'&_{f.name}_, '
+                statements += f"  {f.cpp_type.replace('*', '')} _{f.name}_;\n"
                 structs_to_convert.append(f)
             else:
                 # print(f'handle other type param: {f.cpp_type} {f.name}')
-                statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}){f.name};\n'
+                args_list += f.jni_type + ' ' + f.name + ', '
                 caller_args += f'_{f.name}_, '
+                statements += f'  {f.cpp_type} _{f.name}_ = ({f.cpp_type}){f.name};\n'
             # 换行处理
-            if i % 3 == 0 and i != len(self.fields):
-                args_list += '\n' + ' ' * 8
+            if counter > 0 and counter % 3 == 0:
+                args_list += '\n' + ' ' * 4
                 caller_args += '\n' + ' ' * 8
 
+        if args_list != '':
+            args_list = 'JNIEnv *env, jclass clazz,\n  ' + args_list.rstrip().rstrip(',')
+        else:
+            args_list = 'JNIEnv *env, jclass clazz'
+        caller_args = caller_args.rstrip().rstrip(',')
         # 方法返回
-        if 'void' in self.rtype.cpp_type.lower():
-            statements += f"  {self.name}({caller_args.rstrip(', ')});\n"
+        if self.rtype.jni_type == 'void':
+            statements += f'  {self.name}({caller_args});\n'
         else:
             # 埋点代码：方法执行前
-            statements += f"\n  FUNC_ENTER(__func__, {'0' if self.is_init_method() else '_handle_'})\n"
-            # 调用算法接口处理
-            statements += f"  {self.rtype.cpp_type} _res_ = {self.name}({caller_args.rstrip(', ')});\n"
+            _handle_name = '0' if self.is_init_method() else ('handle' if not _handle_field else _handle_field.name)
+            statements += f"\n  FUNC_ENTER(__func__, {_handle_name})\n"
+            statements += f'  {self.rtype.cpp_type} _res_ = {self.name}({caller_args});\n'
             # 埋点代码：方法执行后
             statements += f'  FUNC_EXIT(env, __func__, _res_, {ai_type}, AV)\n'
+            # java -> cpp 数据结构转换
+            statements += handle_data_convert()
+            # 方法返回值处理
             if self.is_init_method():
-                statements += f'  return XIAIInitResultC2J(env, _res_, (long) _handle_));\n'
+                _handle_name = '0' if not _handle_field else f'_{_handle_field.name}_'
+                statements += f'  return XIAIInitResultC2J(env, _res_, (long) {_handle_name}));\n'
+            elif 'String' in self.rtype.java_type:
+                statements += '  return env->NewStringUTF(_res_);\n'
             else:
-                # 方法返回前要把 cpp 数据转成 java 数据
-                statements += handle_data_convert()
-                # 方法返回值处理
-                if self.rtype.java_type == 'java.lang.String':
-                    statements += '  return env->NewStringUTF(_res_);\n'
-                else:
-                    statements += '  return _res_;\n'
-        body = body.rstrip(', ') + f"({args_list.rstrip(', ')})" + ' {\n'
-        body += '  // TODO 下面是默认实现，请根据实际需求进行修改！\n'
+                statements += '  return _res_;\n'
+
+        body = f'// generated via {self}\n'
+        body += f"{method_decl}({args_list})" + ' {\n'
+        body += f'  // TODO 下面是默认实现，请根据实际需求进行修改！\n'
         body += statements
         body += '}\n'
-        return body
-
-    def gen_native_method(self) -> str:
-        """
-        根据头文件中定义的接口，生成 java 层的 native 方法定义
-        """
-
-        body = f'  // generated via {self}\n'
-        # 构建 jni 方法，没有方法体
-        body += '  private static native '
-        # 方法返回值，算法初始化时的返回值要特殊处理
-        body += types_.java('InitResult' if self.is_init_method() else self.rtype.cpp_type)
-        # 方法参数列表，算法初始化时跳过第一个参数
-        args_list = ''
-        for i, f in enumerate(self.fields[1:] if self.is_init_method() else self.fields, 1):
-            if i > 2 and i & i % 2 == 1:
-                args_list += '\n' + ' ' * 8
-            args_list += f.java_type + ' ' + f.name + ', '
-        body += f" {self.name}({args_list.rstrip(', ')});\n"
         return body
 
     def gen_biz_method(self, module_name: str) -> str:
         if self.is_init_method() or self.is_release_method():
             return ''
-
-        def title_camel(word: str) -> str:
-            new_word = word[0].lower()
-            under_line = word.find('_')
-            if under_line > 0:
-                new_word += word[1:under_line] + word[under_line + 1:].title()
-            else:
-                new_word += word[1:]
-            return new_word
 
         method_body = f'// generate via {self}\n'
         param_list = ''
@@ -670,24 +759,45 @@ class Struct:
         for f in self.fields:
             if 'output' in f.name.lower():
                 java_rtype = f
+        counter = 0
+        for f in self.fields:
+            if 'AIFrameInfo' in f.java_type and 'input' in f.name.lower():
+                param_list += f'Bitmap {f.name}, '
+                caller_args += f'new AIFrameInfo({f.name}), '
+                counter += 1
+                if counter % 3 == 0:
+                    param_list += '\n    '
+            elif f != java_rtype:
+                param_list += f'{pure_java_name(f.java_type)} {f.name}, '
+                caller_args += f'{f.name}, '
+                counter += 1
+                if counter % 3 == 0:
+                    param_list += '\n    '
+            else:
+                caller_args += f'{f.name}, '
+            if counter % 3 == 0:
+                caller_args += '\n        '
 
-        for i, f in enumerate(self.fields, 1):
-            caller_args += f'{f.name}, '
-            if f != java_rtype:
-                param_list += f'{f.java_type} {f.name}, '
+        param_list = param_list.strip().rstrip(',')
+        caller_args = caller_args.strip().rstrip(',')
 
-        method_body += f"  public {java_rtype.java_type} {title_camel(self.name)}({param_list.rstrip(', ')}) " + '{\n'
+        pure_name = pure_java_name(java_rtype.java_type)
         if java_rtype != self.rtype:
-            method_body += f'    {java_rtype.java_type} {java_rtype.name} = new {java_rtype.java_type}();\n'
-        method_body += f"    final int res = Q{module_name}.{self.name}({caller_args.rstrip(', ')});\n"
+            method_body += f'  public Pair<Integer, {pure_name}> '
+        else:
+            method_body += f'  public {pure_name} '
+        method_body += f'{title_camel_word(self.name)}({param_list}) ' + '{\n'
+        if java_rtype != self.rtype:
+            method_body += f'    {pure_name} {java_rtype.name} = new {pure_name}();\n'
+        method_body += f'    int res = Q{module_name}.{self.name}({caller_args});\n'
         method_body += '    if (res != 0) {\n'
-        method_body += f'      android.util.Log.w("{module_name}", "{title_camel(self.name)}() failed: " + res);\n'
+        method_body += f'      android.util.Log.w("{module_name}", "{title_camel_word(self.name)}() failed: " + res);\n'
         method_body += '    }\n'
         if java_rtype != self.rtype:
-            method_body += f'    return {java_rtype.name};\n'
+            method_body += f'    return Pair.create(res, {java_rtype.name});\n'
         else:
             method_body += f'    return res;\n'
-        method_body += '  }'
+        method_body += '  }\n'
         return method_body
 
     def gen_jni_method_signature(self, module_name) -> str:
@@ -695,8 +805,7 @@ class Struct:
         生成 jni 方法签名
         :param module_name: 算法模块名
         """
-        # "{java 方法名}", "{java 方法签名}", (void *) jni 方法实现
-        # return fmt.format(self.name, self.signature(), module_name, self.name)
+        # "{java 方法名}", "{java 方法签名}", (void *) jni_method_impl
         return f'"{self.name}", "{self.signature()}", (void *) Q{module_name}_{self.name}'
 
 
@@ -834,8 +943,8 @@ def extract_structs(lines: list[str]) -> list[str]:
     return ss
 
 
-def extract_enums(lines: list[str]) -> set[str]:
-    es: set[str] = set()
+def extract_enums(lines: list[str]) -> list[str]:
+    es: list[str] = list()
     e = ''
     started = False
     for line in lines:
@@ -850,16 +959,16 @@ def extract_enums(lines: list[str]) -> set[str]:
         # enum 结束
         if started and '}' in line and ';' in line:
             started = False
-            es.add(e)
+            es.append(e)
             e = ''
     return es
 
 
-def extract_methods(lines: list[str]) -> set[str]:
+def extract_methods(lines: list[str]) -> list[str]:
     # int XYAI_PUBLIC Chorus_init();
     # int XYAI_PUBLIC Chorus_compute(float* pWav, int length, std::vector<float>& Chorus, int &Chorus_size);
     # int XYAI_PUBLIC Chorus_release();
-    ms: set[str] = set()
+    ms: list[str] = list()
     m = ''
     started = False
     for line in lines:
@@ -874,7 +983,7 @@ def extract_methods(lines: list[str]) -> set[str]:
         # method 结束
         if started and ');' in line:
             started = False
-            ms.add(m)
+            ms.append(m)
             m = ''
     return ms
 
@@ -920,13 +1029,22 @@ class AlgoParser:
 
     def __init__(self, root: str, ai_type: str):
         self.ai_type = ai_type
+
+        # 过滤掉 CMakeLists.txt 文件
+        def note_tester(p: str) -> bool:
+            return 'CMakeLists' not in p
+
         # 更新日志: [README.md, releasenote.txt]
-        self.release_notes = find_files(root, ['.md', '.txt'])
+        self.release_notes = find_files(root, ['.md', '.txt'], tester=note_tester)
+
+        # 过滤掉非 Android 静态库
+        def lib_tester(p: str) -> bool:
+            return 'android' in p.lower()
 
         # 库文件: lib/[android, Android]/[arm64-v8a, arm32-v8a, armeabi-v7a]/*.a
-        self.library_files = find_files(root, ['.a'])
+        self.library_files = find_files(root, ['.a'], tester=lib_tester)
 
-        # 过滤掉这两个文件
+        # 过滤掉这两个头文件
         def header_tester(p: str) -> bool:
             return 'XYAISDK.h' not in p and 'XYAICommon.h' not in p
 
@@ -945,7 +1063,7 @@ class AlgoParser:
         self.itf_impl_name = ''
         self.properties = list[str]()
         # 算法库名
-        self.libraries = list[str]()
+        self.libraries = set[str]()
         # 算法库头文件
         self.headers = set[str]()
         # 命名空间
@@ -1017,7 +1135,7 @@ class AlgoParser:
         for lib_path in self.library_files:
             lib_name: str = os.path.basename(lib_path)
             if lib_name not in self.libraries:
-                self.libraries.append(lib_name.replace('lib', '').replace('.a', ''))
+                self.libraries.add(lib_name.replace('lib', '').replace('.a', ''))
 
 
 class PrjInfo:
@@ -1127,9 +1245,7 @@ class GenerateTask(CopyTask):
         self.__line_handler.register('{jni-register-methods}', self.__gen_native_register_array__())
         self.__line_handler.register('{init-method}', self.parser.methods.get_init_method())
         self.__line_handler.register('{native-methods}', self.__gen_native_methods__())
-        self.__line_handler.register('{algo-lib-name}',
-                                     self.parser.libraries[0] if len(self.parser.libraries) > 0 else '')
-        self.__line_handler.register('{biz-methods}', self.__gen_biz_methods__())
+        self.__line_handler.register('{algo-lib-names}', ('\n' + ' ' * 8).join(self.parser.libraries))
 
     def process(self):
         super().process()
@@ -1204,15 +1320,16 @@ class GenerateTask(CopyTask):
         # AI{self.name}.java 提供给业务使用
         with open(self.prj.java_dir + f'/Q{self.prj.module_name}.java', mode='w') as f:
             # 判断使用统一接口还是普通接口模板
-            zero = '' if self.parser.itf_impl_name != '' else '0'
-            for line in read_lines(self.prj.tmplt + f'/QModuleName{zero}.java.tmplt'):
-                self.__write_line(line, f)
+            if self.parser.itf_impl_name == '':
+                f.write(self.__gen_native_api__())
+            else:
+                for line in read_lines(self.prj.tmplt + f'/QModuleName_java.tmplt'):
+                    self.__write_line(line, f)
         with open(self.prj.java_dir + f'/QE{self.prj.module_name}Client.java', mode='w') as f:
-            for line in read_lines(self.prj.tmplt + '/QEModuleNameClient.java.tmplt'):
+            for line in read_lines(self.prj.tmplt + '/QEModuleNameClient_java.tmplt'):
                 self.__write_line(line, f)
         with open(self.prj.java_dir + f'/AI{self.prj.module_name}.java', mode='w') as f:
-            for line in read_lines(self.prj.tmplt + '/AIModuleName.java.tmplt'):
-                self.__write_line(line, f)
+            f.write(self.__gen_biz_api__())
 
         # 混淆规则
         with open(f"{self.prj.path}/consumer-rules.pro", mode='w') as f:
@@ -1222,7 +1339,7 @@ class GenerateTask(CopyTask):
 
         # build.gradle 脚本
         with open(f"{self.prj.path}/build.gradle", mode='w') as f:
-            for line in read_lines(self.prj.tmplt + '/build.gradle.tmplt'):
+            for line in read_lines(self.prj.tmplt + '/build_gradle.tmplt'):
                 self.__write_line(line, f)
 
     def __gen_native_methods__(self) -> str:
@@ -1244,19 +1361,19 @@ class GenerateTask(CopyTask):
         print(f"start generate CMakeLists.txt file...")
         with open(f"{self.prj.path}/CMakeLists.txt", mode='w') as f:
             # 通过模板读取
-            for line in read_lines(self.prj.tmplt + '/CMakeLists.txt.tmplt'):
+            for line in read_lines(self.prj.tmplt + '/CMakeLists_txt.tmplt'):
                 self.__write_line(line, f)
 
     def __generate_cpp_union__(self):
         with open(f"{self.prj.jni_dir}/{self.prj.lower_name}_jni.cpp", mode='w') as f:
             # 模板要根据算法接口类型来选择
-            for line in read_lines(self.prj.tmplt + '/lower_name_jni.cpp.tmplt'):
+            for line in read_lines(self.prj.tmplt + '/lower_name_jni_cpp.tmplt'):
                 self.__write_line(line, f)
 
     def __generate_cpp_common__(self):
         with open(f"{self.prj.jni_dir}/{self.prj.lower_name}_jni.cpp", mode='w') as f:
             # 模板要根据算法接口类型来选择
-            for line in read_lines(self.prj.tmplt + '/lower_name_jni_0.cpp.tmplt'):
+            for line in read_lines(self.prj.tmplt + '/lower_name_jni_0_cpp.tmplt'):
                 self.__write_line(line, f)
 
     def __gen_convert_methods__(self) -> str:
@@ -1281,6 +1398,26 @@ class GenerateTask(CopyTask):
             methods.append(body)
         # 所有方法之间以换行符分割
         return '\n'.join(methods)
+
+    def __gen_native_api__(self) -> str:
+        body = f'package com.quvideo.mobile.component.{self.prj.pkg_name};\n\n'
+        body += f'import com.quvideo.mobile.component.common.*;\n\n'
+        today = time.strftime("%Y-%m-%d", time.localtime())
+        body += f'/**\n * Created on {today}\n *\n * @author {getpass.getuser()}\n */\n'
+        body += f'public final class Q{self.prj.module_name} extends QAIBase ' + '{\n\n'
+        body += '  private long handle;\n\n'
+        body += f'  Q{self.prj.module_name}() ' + '{\n'
+        body += f'    super(QE{self.prj.module_name}Client.getAiType());\n'
+        body += '  }\n\n'
+        body += '  static long handleCreate() {\n'
+        body += f'    return new Q{self.prj.module_name}().initHandle();\n'
+        body += '  }\n\n'
+        body += '  @Override protected AIInitResult create(InitArgs args) {\n'
+        body += f'    return {self.parser.methods.get_init_method()}(args.modelPath);\n'
+        body += '  }\n\n'
+        body += f'{self.__gen_native_methods__()}\n'
+        body += '}'
+        return body
 
     def __gen_native_register_array__(self) -> str:
         signatures: list[str] = []
@@ -1311,13 +1448,41 @@ class GenerateTask(CopyTask):
         statements += '  }\n*/'
         return statements
 
+    def __gen_biz_api__(self) -> str:
+        body = f'package com.quvideo.mobile.component.{self.prj.pkg_name};\n\n'
+        body += f'import android.graphics.Bitmap;\n'
+        body += f'import android.util.Pair;\n'
+        body += f'import com.quvideo.mobile.component.common.*;\n\n'
+        today = time.strftime("%Y-%m-%d", time.localtime())
+        body += f'/**\n * Created on {today}\n *\n * @author {getpass.getuser()}\n */\n'
+        body += f'public final class AI{self.prj.module_name} ' + '{\n\n'
+        body += '  private long handle;\n\n'
+        body += f'  AI{self.prj.module_name}() ' + '{\n'
+        body += f'    handle = Q{self.prj.module_name}.handleCreate();\n'
+        body += '  }\n\n'
+        body += f'{self.__gen_biz_methods__()}\n'
+        body += '  /** 释放算法句柄 */\n'
+        body += '  public void release() {\n'
+        body += '    if (handle == 0) return;\n'
+        body += f'    Q{self.prj.module_name}.nativeRelease(handle);\n'
+        body += '    handle = 0;\n'
+        body += '  }\n'
+        body += '}'
+        return body
+
     def __gen_biz_methods__(self) -> str:
         methods: list[str] = []
-        for m in self.parser.methods:
-            method_body = m.gen_biz_method(self.prj.module_name)
-            # print(f'java biz method =====>\n{method_body}')
-            if method_body != '':
-                methods.append(method_body)
+        if self.parser.itf_impl_name == '':
+            for m in self.parser.methods:
+                method_body = m.gen_biz_method(self.prj.module_name)
+                if method_body != '':
+                    methods.append(method_body)
+        else:
+            method_body = f'// generate via {self.parser.itf_impl_name}\n'
+            method_body += f'  public void forward() ' + '{\n'
+            method_body += f'    // TODO 请自行实现\n'
+            method_body += '  }\n'
+            methods.append(method_body)
         return '\n'.join(methods)
 
     def __modify_compile_scripts__(self):
@@ -1483,13 +1648,12 @@ def usage():
         '{ai-type}': '算法类型，与模型下发有关',
         '{lower-name}': '大写_模块名',
         '{upper-name}': '小写_模块名',
-        '{algo-lib-name}': '算法静态库名，去掉前缀和后缀',
+        '{algo-lib-names}': '算法静态库名，去掉前缀和后缀',
         '{native-methods}': 'java 层定义的 native 方法',
         '{jni-methods}': 'cpp 中要实现的在 java 层定义的 native 方法',
         '{jni-register-methods}': 'jni 静态注册方法映射数组',
         '{init-method}': '算法初始化方法，其返回值比较特殊 AIInitResult',
         '{convert-methods}': 'cpp 结构体和 java bean 相互转化方法',
-        '{biz-methods}': 'AIXxx.java 中定义的业务接口',
     }
     align = len(max(placeholders.keys(), key=len)) + 1
     print("===============================代码模板占位符说明===============================")
@@ -1518,20 +1682,9 @@ def list_files(root_dir: str, output: list[str]):
             output.append(os.path.join(root_dir, sub_dir))
 
 
-if __name__ == '__main__':
-    # 算法工程根目录
-    cwd__ = os.path.dirname(__file__)
-    cwd__ += '/../out'
-    if not os.path.exists(cwd__ + '/Component-AI'):
-        # 脚本必须在算法工程根目录执行
-        print(f"脚本必须在算法工程根目录执行！当前：'{cwd__}'", file=sys.stderr)
-        exit(1)
-    print(f"project root: '{cwd__}'")
-    # 使用说明
-    # usage()
-    # 开始运行主流程
-    # run_main_flow(cwd__)
-    # 新增算法模块
+def run_main_test():
+    _cwd = os.path.dirname(__file__) + '/../out'
+    # 遍历所有算法库测试新增算法模块
     algo_lib_dirs = []
     alg_lib_dir = '/home/binlee/code/open-source/quvideo/XYAlgLibs'
     list_files(alg_lib_dir, algo_lib_dirs)
@@ -1552,5 +1705,23 @@ if __name__ == '__main__':
         words = re.findall(pattern, ''.join(pieces_))
         name__ = ' '.join(words).lower().replace('android', '').strip()
         print(f'{algo_name_} -> {words} -> {name__}')
-        GenerateTask(PrjInfo(cwd__, name__, f'zh-[{name__}]'), AlgoParser(sub_dir_, str(123 + ai))).process()
+        GenerateTask(PrjInfo(_cwd, name__, f'zh-[{name__}]'), AlgoParser(sub_dir_, str(123 + ai))).process()
         print(f"新增 '{name__}' 完成！\n\n")
+    exit(0)
+
+
+if __name__ == '__main__':
+    # 测试代码
+    run_main_test()
+
+    # 算法工程根目录
+    _cwd_ = os.path.dirname(__file__)
+    if not os.path.exists(_cwd_ + '/Component-AI'):
+        # 脚本必须在算法工程根目录执行
+        print(f"脚本必须在算法工程根目录执行！当前：'{_cwd_}'", file=sys.stderr)
+        exit(1)
+    print(f"project root: '{_cwd_}'")
+    # 使用说明
+    usage()
+    # 开始运行主流程
+    run_main_flow(_cwd_)

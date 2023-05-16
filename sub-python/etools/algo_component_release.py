@@ -141,10 +141,6 @@ def get_server_versions() -> list[str]:
     check_url = 'http://nexus.quvideo.com/nexus/content/repositories/mobile_public_v2/com/quvideo/mobile/component/engine/commonAI/'
     with requests.get(check_url) as r:
         version_pattern = re.compile(r'\d+\.\d+\.\d+')
-        # texts = []
-        # for item in r.text.split('\n'):
-        #     item = item.strip()
-        #     texts.append(item)
         version_map: dict[int, str] = {}
         for item in version_pattern.findall(''.join(r.text)):
             version_map[int(item.replace('.', ''))] = item
@@ -182,10 +178,11 @@ def inc_version(text: str, release: bool = False) -> str:
 def change_version_if_needed(cwd: str, release: bool) -> str:
     if release:
         return ''
+    # 获取 server 端所有已知版本号
+    remote_versions = get_server_versions()
 
     # 生成下一个可用版本号
     def gen_next_version(old: str) -> str:
-        remote_versions = get_server_versions()
         next_ = inc_version(old)
         while next_ in remote_versions:
             print(f'{next_} exists, try next!')

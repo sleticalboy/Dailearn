@@ -60,7 +60,7 @@ void Q{module-name}_Release(JNIEnv *env, jclass clazz, jlong handle) {
   algoItf->Release();
 }
 
-jint Q{module-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject input,/* jint width, jint height, */jobject output) {
+jint Q{module-name}_Forward4J(JNIEnv *env, jclass clazz, jlong handle, jobject input, jobject output) {
   ALOGE(TAG, "%s enter", __func__)
   auto algoItf = ({itf-name} *) handle;
   int res = XYAI_NO_ERROR;

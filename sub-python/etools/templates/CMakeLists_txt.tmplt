@@ -29,7 +29,7 @@ add_library(XYAIMImageRestore STATIC IMPORTED)
 
 # 这里加载，并且找到相应的 libxxx.a
 set_target_properties( # Specifies the target library.
-        {algo-lib-name}
+        {algo-lib-names}
 
         # Specifies the parameter you want to define.
         PROPERTIES IMPORTED_LOCATION
@@ -75,5 +75,5 @@ target_link_libraries( # Specifies the target library.
         XYFastCV
         XYAIBridge
         XYAlgoStruct
-        {algo-lib-name}
+        {algo-lib-names}
         ${log-lib})
