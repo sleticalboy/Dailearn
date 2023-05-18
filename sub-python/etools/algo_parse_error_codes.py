@@ -11,8 +11,6 @@ def like_error(name: str) -> bool:
     for kw in error_like:
         if kw in name:
             return True
-    # if '(' not in name:
-    #     print(f'like_error() {name}')
     return False
 
 
@@ -74,16 +72,15 @@ def extract_consts(lines: list[str], consts_map: dict[int, set[str]]):
         parse_const_def(line[7:].strip())
 
 
-def get_file_ext(path: str) -> str:
-    index = path.rfind('.')
-    return '' if index < 0 else path[index:]
-
-
 def find_files(root: str, suffixes: list[str] = None, tester=None) -> list[str]:
     output: list[str] = []
 
     def filter_file(path: str) -> bool:
         return tester is None or (tester and tester(path))
+
+    def get_file_ext(path: str) -> str:
+        index = path.rfind('.')
+        return '' if index < 0 else path[index:]
 
     def recursive_find(path: str):
         if os.path.isfile(path):
