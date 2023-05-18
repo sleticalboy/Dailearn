@@ -60,6 +60,8 @@
     android:usesCleartextTraffic="true">
     <activity
       android:name="com.binlee.learning.IndexActivity"
+      android:resizeableActivity="true"
+      android:supportsPictureInPicture="true"
       android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />

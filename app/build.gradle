@@ -74,6 +74,8 @@ dependencies {
 
   //coroutines
   implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
+
+  implementation 'com.squareup.curtains:curtains:1.2.4'
   //debug版本
   debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakcanary_version"
 }

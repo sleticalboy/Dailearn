@@ -1,11 +1,14 @@
 package com.binlee.learning
 
 import android.Manifest
+import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.res.AssetManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.util.Rational
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -46,6 +49,18 @@ class IndexActivity : BaseActivity() {
 
   override fun whenPermissionResult(permissions: Array<out String>, grantResults: BooleanArray) {
     if (grantResults[0]) loadJvmti()
+  }
+
+  override fun onResume() {
+    super.onResume()
+    mBind!!.root.postDelayed({
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val params = PictureInPictureParams.Builder()
+          .setAspectRatio(Rational(16, 9))
+          .build()
+        enterPictureInPictureMode(params)
+      }
+    }, 2000L)
   }
 
   private fun loadJvmti() {
