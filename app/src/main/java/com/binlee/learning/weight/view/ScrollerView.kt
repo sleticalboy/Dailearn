@@ -20,7 +20,7 @@ class ScrollerView @JvmOverloads constructor(
 ) : ViewGroup(context, attrs, defStyle) {
 
   private val mTouchSlop // 最小滑动距离
-      : Int = ViewConfiguration.get(context).scaledTouchSlop
+      : Int = ViewConfiguration.get(getContext()).scaledTouchSlop
   private val mScroller // 辅助滑动
       : Scroller = Scroller(context)
   private var mDownX // 手指按下时 x 的位置

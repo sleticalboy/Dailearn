@@ -1,6 +1,7 @@
 package com.binlee.learning
 
 import android.Manifest
+import android.app.ActivityManager
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.res.AssetManager
@@ -51,14 +52,20 @@ class IndexActivity : BaseActivity() {
     if (grantResults[0]) loadJvmti()
   }
 
-  override fun onResume() {
-    super.onResume()
-    mBind!!.root.postDelayed({
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val params = PictureInPictureParams.Builder()
+  private fun enterPipMode() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val params = PictureInPictureParams.Builder()
           .setAspectRatio(Rational(16, 9))
           .build()
-        enterPictureInPictureMode(params)
+      enterPictureInPictureMode(params)
+    }
+    mBind!!.root.postDelayed({
+      val mgr = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+      var m = mgr.javaClass.getDeclaredMethod("getService").apply { isAccessible = true }
+      var service = m.invoke(mgr)
+      Log.d(TAG, "enterPipMode() ams: $service")
+      for (proc in mgr.runningAppProcesses) {
+        Log.d(TAG, "enterPipMode() running proc name: ${proc.processName}")
       }
     }, 2000L)
   }
@@ -206,6 +213,10 @@ class IndexActivity : BaseActivity() {
         Log.d(TAG, "item click with: ${item.clazz}")
         if (item.cls == "crack_hidden_api") {
           reflectHiddenApiWithoutWarning()
+          return@setOnClickListener
+        }
+        if (item.cls == "enter_pip_mode") {
+          enterPipMode()
           return@setOnClickListener
         }
         if (item.clazz == Any::class || item.cls == "java.lang.Object") {

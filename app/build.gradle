@@ -62,7 +62,7 @@ dependencies {
   implementation("com.jakewharton.retrofit:retrofit2-rxjava2-adapter:$rxjava_adapter_version")
   implementation("androidx.exifinterface:exifinterface:$exif_interface")
   implementation("com.airbnb.android:lottie:$lottie_version")
-  implementation 'org.chromium.net:cronet-embedded:102.5005.125'
+  implementation 'org.chromium.net:cronet-embedded:108.5359.79'
   compileOnly("com.google.code.gson:gson:$gson")
   implementation("com.github.bumptech.glide:glide:$glide_version")
 
@@ -73,7 +73,7 @@ dependencies {
   implementation project(path: ':lib_dl:host')
 
   //coroutines
-  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1'
 
   implementation 'com.squareup.curtains:curtains:1.2.4'
   //debug版本

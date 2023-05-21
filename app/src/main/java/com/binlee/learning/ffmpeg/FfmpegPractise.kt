@@ -276,7 +276,7 @@ class FfmpegPractise : BaseActivity() {
       .alpha(0f)
       .setDuration(1000L)
       .setListener(object : AnimatorListenerAdapter() {
-        override fun onAnimationEnd(animation: Animator?) {
+        override fun onAnimationEnd(animation: Animator) {
           binding.tvRecordedDuration.text = ""
           binding.tvRecordedDuration.alpha = 1f
         }

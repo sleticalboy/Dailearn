@@ -254,11 +254,11 @@ class CameraActivity : BaseActivity() {
           .setDuration(500L)
           .setListener(object : AnimatorListenerAdapter() {
 
-            override fun onAnimationStart(animation: Animator?) {
+            override fun onAnimationStart(animation: Animator) {
               // 设置模糊背景
             }
 
-            override fun onAnimationEnd(animation: Animator?) {
+            override fun onAnimationEnd(animation: Animator) {
               alpha = 1f
             }
           })
