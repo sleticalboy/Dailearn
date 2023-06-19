@@ -5,7 +5,6 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Vibrator
 import android.provider.MediaStore.Video.Media
@@ -17,12 +16,10 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.AbsListView
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.TextView
 import android.widget.Toast
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
@@ -36,6 +33,8 @@ import com.binlee.learning.ffmpeg.AVFormat.fromPath
 import com.binlee.learning.ffmpeg.IPlayer.State
 import com.binlee.learning.ffmpeg.IPlayer.State.PLAYING
 import com.binlee.learning.ffmpeg.IPlayer.State.STOPPED
+import com.binlee.learning.ffmpeg.model.FileItem
+import com.binlee.learning.ffmpeg.ui.FileListAdapter
 import com.example.ffmpeg.FfmpegHelper
 import java.io.File
 import java.text.SimpleDateFormat
@@ -65,8 +64,8 @@ class FfmpegPractise : BaseActivity() {
     startRecordAudio()
   }
 
-  private lateinit var audioAdapter: ArrayAdapter<String>
-  private lateinit var videoAdapter: ArrayAdapter<String>
+  private lateinit var audioAdapter: FileListAdapter
+  private lateinit var videoAdapter: FileListAdapter
 
   private var isAudio = false
 
@@ -88,8 +87,8 @@ class FfmpegPractise : BaseActivity() {
     val half = metrics.widthPixels / 2f
     binding.viewCover.setOnTouchListener { _, event ->
       isAudio = event.rawX < half
-      Log.d(TAG, "onTouch() raw(${event.rawX}, ${event.rawY}) -> (${event.x}, ${event.y})" +
-          " ${if (isAudio) "audio" else "video"} list")
+      // Log.d(TAG, "onTouch() raw(${event.rawX}, ${event.rawY}) -> (${event.x}, ${event.y})" +
+      //     " ${if (isAudio) "audio" else "video"} list")
       binding.tvDirName.text = getExternalFilesDir(if (isAudio) "audio" else "video")?.absolutePath
       false
     }
@@ -114,8 +113,8 @@ class FfmpegPractise : BaseActivity() {
     binding.btnStartPlay.setOnClickListener { playOrPause() }
     binding.btnScanFiles.setOnClickListener { scanFiles(isAudio) }
 
-    audioAdapter = createArrayAdapter()
-    videoAdapter = createArrayAdapter()
+    audioAdapter = FileListAdapter()
+    videoAdapter = FileListAdapter()
     binding.lvAudioList.adapter = audioAdapter
     binding.lvVideoList.adapter = videoAdapter
     binding.lvAudioList.setOnItemClickListener { _, _, position, _ -> onListItemClick(position) }
@@ -149,22 +148,10 @@ class FfmpegPractise : BaseActivity() {
     binding.rbMediaCodec.performClick()
   }
 
-  private fun createArrayAdapter(): ArrayAdapter<String> {
-    return object: ArrayAdapter<String>(this, android.R.layout.simple_list_item_checked) {
-      override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val text = super.getView(position, convertView, parent) as TextView
-        text.textSize = 10f
-        super.getItem(position)?.let {
-          text.text = it.substring(it.lastIndexOf('/') + 1)
-        }
-        return text
-      }
-    }
-  }
-
   private fun onListItemClick(position: Int) {
-    (if (isAudio) binding.lvAudioList else binding.lvVideoList).setItemChecked(position, true)
-    mCurrentPath = (if (isAudio) audioAdapter else videoAdapter).getItem(position)
+    val adapter = if (isAudio) audioAdapter else videoAdapter
+    adapter.setChecked(position)
+    mCurrentPath = adapter.getPath(position)
     mAVFormat = fromPath(mCurrentPath)
     when (mAVFormat) {
       A_WAV -> {
@@ -200,9 +187,10 @@ class FfmpegPractise : BaseActivity() {
     if (item.menuInfo is AdapterView.AdapterContextMenuInfo && mCurrentPath != null) {
       if (item.itemId == R.id.delete) {
         mCurrentPath?.let {
-          if (File(it).delete()) {
-            Toast.makeText(application, "$it 删除成功!", Toast.LENGTH_SHORT).show()
-            (if (isAudio) audioAdapter else videoAdapter).remove(it)
+          val file = FileItem(File(it), false)
+          if (file.delete()) {
+            Toast.makeText(application, "$file 删除成功!", Toast.LENGTH_SHORT).show()
+            (if (isAudio) audioAdapter else videoAdapter).remove(file)
           }
         }
 
@@ -227,10 +215,10 @@ class FfmpegPractise : BaseActivity() {
 
   @Suppress("UNCHECKED_CAST")
   private fun scanFiles(isAudio: Boolean) {
-    val files = getExternalFilesDir(if (isAudio) "audio" else "video")?.list()?.asList()
+    val files = getExternalFilesDir(if (isAudio) "audio" else "video")?.listFiles()?.asList()
+    Log.d(TAG, "scanFiles() isAudio = $isAudio, $files")
     files?.let {
-      ((if (isAudio) binding.lvAudioList else binding.lvVideoList).adapter as ArrayAdapter<String>).clear()
-      ((if (isAudio) binding.lvAudioList else binding.lvVideoList).adapter as ArrayAdapter<String>).addAll(files)
+      (if (isAudio) audioAdapter else videoAdapter).replaceAll(it)
     }
   }
 

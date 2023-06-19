@@ -44,6 +44,7 @@ class IndexModel internal constructor() {
 
   private fun getTasks(): Result<List<ModuleItem>> {
     val array = arrayOf(
+      ModuleItem("进入画中画模式", "enter_pip_mode"),
       // 鲁班图片压缩
       ModuleItem("鲁班图片压缩", LubanActivity::class.java),
       // 插件管理

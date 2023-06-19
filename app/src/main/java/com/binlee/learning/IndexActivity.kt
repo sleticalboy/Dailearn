@@ -52,24 +52,6 @@ class IndexActivity : BaseActivity() {
     if (grantResults[0]) loadJvmti()
   }
 
-  private fun enterPipMode() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      val params = PictureInPictureParams.Builder()
-          .setAspectRatio(Rational(16, 9))
-          .build()
-      enterPictureInPictureMode(params)
-    }
-    mBind!!.root.postDelayed({
-      val mgr = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-      var m = mgr.javaClass.getDeclaredMethod("getService").apply { isAccessible = true }
-      var service = m.invoke(mgr)
-      Log.d(TAG, "enterPipMode() ams: $service")
-      for (proc in mgr.runningAppProcesses) {
-        Log.d(TAG, "enterPipMode() running proc name: ${proc.processName}")
-      }
-    }, 2000L)
-  }
-
   private fun loadJvmti() {
     // JvmtiLoader.attachAgent(this)
   }
@@ -190,6 +172,15 @@ class IndexActivity : BaseActivity() {
       Log.d(TAG, "reflectHiddenApiWithoutWarning() AssetManager#addAssetPath: $method")
     } catch (e: Exception) {
       e.printStackTrace()
+    }
+  }
+
+  private fun enterPipMode() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val params = PictureInPictureParams.Builder()
+        .setAspectRatio(Rational(16, 9))
+        .build()
+      enterPictureInPictureMode(params)
     }
   }
 

@@ -17,7 +17,6 @@ import com.binlee.learning.ffmpeg.IPlayer.State.PLAYING
 import com.binlee.learning.ffmpeg.IPlayer.State.STOPPED
 import com.binlee.learning.ffmpeg.Packet
 import java.io.RandomAccessFile
-import java.util.LinkedList
 import kotlin.concurrent.thread
 
 /**
