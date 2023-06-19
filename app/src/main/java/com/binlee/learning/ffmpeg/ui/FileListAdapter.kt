@@ -1,6 +1,5 @@
 package com.binlee.learning.ffmpeg.ui
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,8 +13,9 @@ class FileListAdapter : BaseAdapter() {
   private val dataSet = ArrayList<FileItem>()
 
   fun setChecked(position: Int) {
-    dataSet[position].checked = !dataSet[position].checked
-    Log.d("FileList", "setChecked() ${dataSet[position].checked}")
+    for (i in dataSet.indices) {
+      dataSet[i].checked = if (i == position) !dataSet[i].checked else false
+    }
     notifyDataSetChanged()
   }
 
@@ -43,11 +43,7 @@ class FileListAdapter : BaseAdapter() {
       checkedText.textSize = 10f
     }
     checkedText.text = getItem(position).file.name
-    if (getItem(position).checked) {
-      checkedText.isChecked = true
-    } else {
-      checkedText.toggle()
-    }
+    checkedText.isChecked = getItem(position).checked
     return checkedText
   }
 
@@ -61,6 +57,11 @@ class FileListAdapter : BaseAdapter() {
     for (i in it.indices) {
       dataSet.add(FileItem(it[i], false))
     }
+    notifyDataSetChanged()
+  }
+
+  fun add(item: FileItem) {
+    dataSet.add(item)
     notifyDataSetChanged()
   }
 }

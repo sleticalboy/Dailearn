@@ -277,7 +277,7 @@ class FfmpegPractise : BaseActivity() {
         }
         mCurrentPath = null
       } else {
-        (binding.lvAudioList.adapter as ArrayAdapter<String>).add(it.substring(it.lastIndexOf('/') + 1))
+        audioAdapter.add(FileItem(File(it), false))
         Toast.makeText(this, "录制结束", Toast.LENGTH_SHORT).show()
       }
     }
