@@ -1,9 +1,8 @@
-package com.binlee.learning.camera.v1
+package com.binlee.learning.camera.v2
 
 import android.Manifest
 import android.view.View
 import com.binlee.learning.base.BaseActivity
-import com.binlee.learning.camera.CameraV2
 import com.binlee.learning.databinding.ActivityEmptyBinding
 
 /**

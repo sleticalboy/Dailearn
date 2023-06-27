@@ -18,6 +18,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.Display;
 import androidx.annotation.NonNull;
+import com.binlee.learning.camera.v1.CameraV1;
 import java.io.FileOutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

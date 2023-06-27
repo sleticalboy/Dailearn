@@ -1,4 +1,4 @@
-package com.binlee.learning.camera
+package com.binlee.learning.camera.v1
 
 import android.app.Activity
 import android.content.Intent
@@ -16,6 +16,9 @@ import android.util.Size
 import android.view.*
 import android.view.ViewGroup.MarginLayoutParams
 import androidx.annotation.VisibleForTesting
+import com.binlee.learning.camera.CameraX
+import com.binlee.learning.camera.Face
+import com.binlee.learning.camera.errorStr
 import java.io.File
 import java.io.IOException
 import kotlin.math.round
@@ -309,8 +312,10 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
     Log.d(TAG, "openCamera() select preview size from: ${params.get("preview-size-values")}")
     // 根据图片尺寸选择预览尺寸
     val previewSize = params.previewSize
-    val optimizedSize = CameraX.optimizePreviewSize(activity, params.supportedPreviewSizes,
-      pictureSize.width * 1f / pictureSize.height)
+    val optimizedSize = CameraX.optimizePreviewSize(
+      activity, params.supportedPreviewSizes,
+      pictureSize.width * 1f / pictureSize.height
+    )
     val size = if (!previewSize.equals(optimizedSize)) {
       params.setPreviewSize(optimizedSize.width, optimizedSize.height)
       Size(optimizedSize.height, optimizedSize.width)
@@ -367,7 +372,8 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
     val point = PointF(round(x), round(y))
     val surfaceSpec = Point(surfaceView.width, surfaceView.height)
     val focusSpec = Point(width, width)
-    Log.d(TAG, "autoFocus() pos: $point, surface: $surfaceSpec, focus: $focusSpec" +
+    Log.d(
+      TAG, "autoFocus() pos: $point, surface: $surfaceSpec, focus: $focusSpec" +
         ", region: [${surfaceView.left}, ${surfaceView.top}, ${surfaceView.right}, ${surfaceView.bottom}]")
     if (mMatrix == null) {
       mMatrix = Matrix()
@@ -484,7 +490,34 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
   fun setSceneMode(mode: String?) {
     val params = mCamera!!.parameters
     params.sceneMode = mode
+    mCamera!!.parameters = params
     Log.d(TAG, "setSceneMode() mode: $mode")
+  }
+
+  fun getInitialParams(): Parameters? {
+    return mInitParams
+  }
+
+  fun setFlashMode(mode: String?) {
+    val params = mCamera!!.parameters
+    params.flashMode = mode
+    mCamera!!.parameters = params
+    Log.d(TAG, "setFlashMode() mode: $mode")
+  }
+
+  fun getFlashMode(): String {
+    return mCamera!!.parameters.flashMode
+  }
+
+  fun getWhiteBalance(): String {
+    return mCamera!!.parameters.whiteBalance
+  }
+
+  fun setWhiteBalance(value: String?) {
+    val params = mCamera!!.parameters
+    params.whiteBalance = value
+    mCamera!!.parameters = params
+    Log.d(TAG, "setWhiteBalance() value: $value")
   }
 
   companion object {

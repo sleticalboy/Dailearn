@@ -1,4 +1,4 @@
-package com.binlee.learning.camera;
+package com.binlee.learning.camera.v2;
 
 import android.Manifest;
 import android.content.Context;
@@ -24,6 +24,7 @@ import android.view.SurfaceView;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
+import com.binlee.learning.camera.CameraException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;

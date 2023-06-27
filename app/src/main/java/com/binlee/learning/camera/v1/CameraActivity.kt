@@ -12,14 +12,14 @@ import android.view.MotionEvent
 import android.view.TextureView.SurfaceTextureListener
 import android.view.View
 import android.view.View.OnTouchListener
-import android.view.ViewGroup
+import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Toast
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
-import com.binlee.learning.camera.CameraV1
-import com.binlee.learning.camera.CameraV1.Callback
+import com.binlee.learning.camera.CameraViews
 import com.binlee.learning.camera.CameraX
 import com.binlee.learning.camera.Face
+import com.binlee.learning.camera.v1.CameraV1.Callback
 import com.binlee.learning.databinding.ActivityCameraBinding
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayout.Tab
@@ -49,7 +49,7 @@ class CameraActivity : BaseActivity() {
       val height = width * 1f / preferredPreviewSize.width * preferredPreviewSize.height
       Log.d(TAG, "tryStartPreview() size: $preferredPreviewSize, real w: $width, h: $height")
       // 调整预览窗口大小
-      val params = binding.surfaceView.layoutParams as ViewGroup.MarginLayoutParams
+      val params = binding.surfaceView.layoutParams as MarginLayoutParams
       params.width = width
       params.height = height.roundToInt()
       binding.surfaceView.layoutParams = params
@@ -134,19 +134,19 @@ class CameraActivity : BaseActivity() {
     binding.bottomCover.setOnClickListener { }
 
     binding.btnSettings.setOnClickListener {
-      Toast.makeText(this, "Open Settings!", Toast.LENGTH_SHORT).show()
+      // Toast.makeText(this, "Open Settings!", Toast.LENGTH_SHORT).show()
     }
     binding.btnFlashMode.setOnClickListener {
-      Toast.makeText(this, "Open Flash Mode!", Toast.LENGTH_SHORT).show()
+      CameraViews.showFlashMode(this@CameraActivity, it, mCamera)
     }
     binding.btnExposure.setOnClickListener {
-      Toast.makeText(this, "Open Exposure!", Toast.LENGTH_SHORT).show()
+      // CameraViews.showExposure(this@CameraActivity, it, mCamera)
     }
     binding.btnWhiteBalance.setOnClickListener {
-      Toast.makeText(this, "Open White Balance!", Toast.LENGTH_SHORT).show()
+      CameraViews.showWhiteBalance(this@CameraActivity, it, mCamera)
     }
     binding.btnRatio.setOnClickListener {
-      Toast.makeText(this, "Open Ratio!", Toast.LENGTH_SHORT).show()
+      // Toast.makeText(this, "Open Ratio!", Toast.LENGTH_SHORT).show()
     }
 
     // 点击对焦、上下滑动切换相机、左右滑动切换场景模式
@@ -177,7 +177,7 @@ class CameraActivity : BaseActivity() {
             // 左右滑动切换场景模式
             if (abs(diffX) >= minDistance && abs(diffX) > abs(diffY)) {
               var pos = binding.tabScenes.selectedTabPosition
-              pos = if (diffX > 0) {
+              pos = if (diffX < 0) {
                 // 向右滑动
                 (pos + 1) % binding.tabScenes.tabCount
               } else {
