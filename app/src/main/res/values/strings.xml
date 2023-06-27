@@ -80,6 +80,8 @@
   <!--scene-mode=auto-->
   <!--auto,landscape,snow,beach,sunset,night,portrait,sports,steadyphoto,candlelight,fireworks,party,night-portrait,theatre,action-->
   <!--自动，风景，雪，海滩，日落，夜晚，人像，运动，稳定照片，烛光，烟花，派对，夜间人像，剧院，动作-->
+  <!--AR,hdr-->
+  <!--增强现实，高动态静态景像-->
   <string name="camera_scn_mode">取景模式</string>
   <string-array name="camera_scn_modes">
     <item>自动,auto</item>
@@ -97,5 +99,7 @@
     <item>夜间人像,night-portrait</item>
     <item>剧院,theatre</item>
     <item>动作,action</item>
+    <item>增强现实,AR</item>
+    <item>HDR 模式,hdr</item>
   </string-array>
 </resources>

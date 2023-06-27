@@ -28,9 +28,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
-public class FaceView extends View {
+public final class FaceView extends View {
 
-  private final String TAG = "FaceView";
+  private static final String TAG = "FaceView";
   // The value for android.hardware.Camera.setDisplayOrientation.
   private int mDisplayOrientation;
   // The orientation compensation for the face indicator to make it look

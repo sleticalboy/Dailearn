@@ -71,11 +71,8 @@ public final class CameraV2 {
 
   private void openCompat(Context context) throws IOException {
     Camera camera = Camera.open(CAMERA_FACING_BACK);
-    camera.setPreviewCallback(new Camera.PreviewCallback() {
-      @Override
-      public void onPreviewFrame(byte[] data, Camera camera) {
-        //
-      }
+    camera.setPreviewCallback((data, camera1) -> {
+      //
     });
     SurfaceView sv = new SurfaceView(context);
     camera.setPreviewDisplay(sv.getHolder());
@@ -119,37 +116,33 @@ public final class CameraV2 {
         }
         Size size = temp == null ? new Size(1920, 1080) : temp[0];
         // init image reader
-        ImageReader ir =
-          ImageReader.newInstance(size.getWidth(), size.getHeight(), ImageFormat.JPEG, 2);
-        ir.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-          @Override
-          public void onImageAvailable(ImageReader reader) {
-            // when image is available, we save it to file
-            Image image = reader.acquireNextImage();
-            int format = image.getFormat();
-            // which format ?
-            // ImageFormat.JPEG
-            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-            buffer.rewind();
-            byte[] data = new byte[buffer.limit()];
-            buffer.get(data);
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = 1;
-            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
-            // save bitmap to file
-            try {
-              FileOutputStream fos = new FileOutputStream("file name");
-              bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-              fos.flush();
-              fos.close();
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-
-            // ImageFormat.YUV_420_888 -> do stuff
-            // ImageFormat.DEPTH16 -> do stuff
-            image.close();
+        ImageReader ir = ImageReader.newInstance(size.getWidth(), size.getHeight(), ImageFormat.JPEG, 2);
+        ir.setOnImageAvailableListener(reader -> {
+          // when image is available, we save it to file
+          Image image = reader.acquireNextImage();
+          int format = image.getFormat();
+          // which format ?
+          // ImageFormat.JPEG
+          ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+          buffer.rewind();
+          byte[] data = new byte[buffer.limit()];
+          buffer.get(data);
+          BitmapFactory.Options options = new BitmapFactory.Options();
+          options.inSampleSize = 1;
+          Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+          // save bitmap to file
+          try {
+            FileOutputStream fos = new FileOutputStream("file name");
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            fos.flush();
+            fos.close();
+          } catch (IOException e) {
+            e.printStackTrace();
           }
+
+          // ImageFormat.YUV_420_888 -> do stuff
+          // ImageFormat.DEPTH16 -> do stuff
+          image.close();
         }, handler);
         // create a capture session
         // 1, prepare surfaces

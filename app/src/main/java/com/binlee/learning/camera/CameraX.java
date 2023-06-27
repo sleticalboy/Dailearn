@@ -205,7 +205,7 @@ public class CameraX {
     if (!TextUtils.isEmpty(prefix)) {
       return String.format("%s_%s_%s", prefix, FORMAT.format(System.currentTimeMillis()), suffix);
     } else {
-      return String.format("%s_%s", FORMAT.format(System.currentTimeMillis()), suffix);
+      return String.format("%s%s", FORMAT.format(System.currentTimeMillis()), suffix);
     }
   }
 

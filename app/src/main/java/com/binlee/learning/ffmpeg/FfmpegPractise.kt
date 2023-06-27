@@ -5,6 +5,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Vibrator
 import android.provider.MediaStore.Video.Media
@@ -19,7 +20,6 @@ import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.AbsListView
 import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import com.binlee.learning.R
 import com.binlee.learning.base.BaseActivity
@@ -90,6 +90,13 @@ class FfmpegPractise : BaseActivity() {
       // Log.d(TAG, "onTouch() raw(${event.rawX}, ${event.rawY}) -> (${event.x}, ${event.y})" +
       //     " ${if (isAudio) "audio" else "video"} list")
       binding.tvDirName.text = getExternalFilesDir(if (isAudio) "audio" else "video")?.absolutePath
+      if (isAudio) {
+        binding.lvAudioList.setBackgroundColor(Color.GRAY)
+        binding.lvVideoList.setBackgroundColor(Color.WHITE)
+      } else {
+        binding.lvVideoList.setBackgroundColor(Color.GRAY)
+        binding.lvAudioList.setBackgroundColor(Color.WHITE)
+      }
       false
     }
 

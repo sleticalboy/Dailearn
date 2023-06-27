@@ -296,7 +296,7 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
     camera.setDisplayOrientation(mDisplayOrientation)
 
     mInitParams = camera.parameters
-    // dumpParameters(mInitParams, "default", null)
+    dumpParameters(mInitParams, "default", null)
 
     val params = camera.parameters
     params.pictureFormat = ImageFormat.JPEG
@@ -476,8 +476,9 @@ class CameraV1(private val activity: Activity, private val callback: Callback?) 
   }
 
   fun filterSceneModes(map: Map<String, String>): Map<String, String> {
+    // 这个值获取出来可能为 null
     val supported = mInitParams!!.supportedSceneModes
-    return map.filter { supported.contains(it.key) }
+    return if (supported == null) emptyMap() else map.filter { supported.contains(it.key) }
   }
 
   fun setSceneMode(mode: String?) {
