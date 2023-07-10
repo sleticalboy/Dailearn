@@ -3,6 +3,9 @@ import subprocess
 import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+# 工作目录
+work_dir = '../out'
+
 
 def formtted_err(raw: str) -> str:
     if raw == '':
@@ -21,7 +24,7 @@ class ErrorMap:
         self.__load__()
 
     def __load__(self):
-        with open('../out/errors.json', mode='r') as f:
+        with open(f'{work_dir}/errors.json', mode='r') as f:
             self.error_map = json.load(f)
 
     def reload(self):
@@ -52,7 +55,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html')
             self.end_headers()
             self.wfile.write('<h1>Hello Python Server</h1>'.encode('utf-8'))
-        elif '/api/v1/query_err' in self.path:
+        elif '/api/v1/errs/query' in self.path:
             r = urllib.parse.urlparse(self.path)
             # response format: {data:, status:, message:}
             response = {}
@@ -67,7 +70,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                     response['data'] = []
             else:
                 response['status'] = 400
-                response['message'] = '查询格式错误：xxx/query_err?{二/十/十六进制错误码}'
+                response['message'] = '查询格式错误：/api/v1/errs/query?{二/十/十六进制错误码}'
                 response['data'] = []
             print(f'parsed path: {r}')
             print(f'msg: {response}')
@@ -75,11 +78,14 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+        elif '/api/v1/errs/force_update' in self.path:
+            # 强制更新错误码
+            pass
         else:
             self.send_error(404, 'Not Found')
 
     def do_POST(self):
-        if '/api/v1/update_err' in self.path:
+        if '/api/v1/errs/update' in self.path:
             content_length = int(self.headers['Content-Length'])
             # 读取响应内容并处理（一定要按照长度读取，否则会阻塞客户端）
             request_body = self.rfile.read(content_length).decode('utf-8')
@@ -112,7 +118,11 @@ def run_main_flow():
     try:
         # Create a web server and define the handler to manage the incoming request
         server_ = HTTPServer((ip, port_number), RequestHandlerClass=HttpHandler)
-        print(f'Started httpserver on http://{ip}:{port_number}')
+        addr = f'http://{ip}:{port_number}'
+        print(f'Started httpserver on {addr}')
+        print(f'querry[GET]: {addr}/api/v1/errs/query')
+        print(f'update[GET]: {addr}/api/v1/errs/force_update')
+        print(f'update[POST]: {addr}/api/v1/errs/update')
         # Wait forever for incoming htto requests
         server_.serve_forever()
     except OSError or KeyboardInterrupt:

@@ -1,9 +1,13 @@
 import json
 import os
+import time
+
+import schedule
 
 error_like = ['_not', 'not_', '_no', 'no_', '_null', 'null_', '_fail', 'fail_', '_err', 'err_', '_error', 'error_',
               '_found', 'found_', '_invalid', 'invalid_', '_find', 'find_', '_exist', 'exist_', '_zero', 'zero_',
               '_unsupported', '_inconsistency', '_illegal', 'illegal_', 'out_of', '_too_', '_dont_', 'ok']
+work_dir = '../out'
 
 
 def like_error(name: str) -> bool:
@@ -99,8 +103,34 @@ def find_files(root: str, suffixes: list[str] = None, tester=None) -> list[str]:
     return output
 
 
-def run_main_flow():
-    path = '/home/binlee/code/open-source/quvideo/XYAlgLibs'
+def read_token() -> str:
+    with open(f'{work_dir}/gitlab-asses-token.txt') as f:
+        return f.readline()
+
+
+def update_project(path: str):
+    access_token = read_token()
+    # 首次 clone 项目：
+    # git clone http://bin:{token}@gitlab.quvideo.com/Engine/XYAlgLibs.git --depth=1
+    # clone 之后进入目录下，执行如下命令：
+    # git config url."http://oauth2:{token}@gitlab.quvideo.com".insteadof "http://gitlab.quvideo.com"
+    if os.path.exists(path):
+        print('start updating project: XYAlgLibs...')
+        res = os.system(f"""cd {path} && git pull""")
+        print(f'update project: {res}')
+    else:
+        print('start cloning project: XYAlgLibs...')
+        cmd = f"""
+        git clone http://bin:{access_token}@gitlab.quvideo.com/Engine/XYAlgLibs.git --depth=1 {path};
+        git config url."http://oauth2:{access_token}@gitlab.quvideo.com".insteadof "http://gitlab.quvideo.com"
+        """
+        res = os.system(cmd)
+        print(f'clone project: {res}')
+
+
+def parse_errors_once():
+    path = f'{work_dir}/XYAlgLibs'
+    update_project(path)
     balck_list = ['ios', 'mac', 'ubuntu', 'centos', 'windows']
 
     def header_filter(p: str) -> bool:
@@ -127,8 +157,23 @@ def run_main_flow():
         formatted_err = hex_err[0:2] + hex_err[2:].zfill(8)
         print(f'{formatted_err}: {all_consts[err]}')
         copy_consts[formatted_err] = list(all_consts[err])
-    with open('../out/errors.json', mode='w') as f:
+    with open(f'{work_dir}/errors.json', mode='w') as f:
         json.dump(copy_consts, fp=f)
+
+
+def test_job():
+    a_token = read_token()
+    print(f"do test job... {a_token}")
+
+
+def run_main_flow():
+    # 每 6~12 小时更新一次，或者强制更新
+    # schedule.every(3).hours.do(parse_errors_once)
+    # 测试
+    schedule.every(2).seconds.do(test_job)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
 
 def run_main_test():
@@ -138,6 +183,13 @@ def run_main_test():
     exit(0)
 
 
+def run_update_project_test():
+    path = f'{work_dir}/XYAlgLibs'
+    update_project(path)
+    exit(0)
+
+
 if __name__ == '__main__':
     # run_main_test()
+    # run_update_project_test()
     run_main_flow()
