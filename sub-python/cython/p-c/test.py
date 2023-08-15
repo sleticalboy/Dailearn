@@ -1,4 +1,4 @@
-from hello import call_hello, call_hey
+import hello
 
-call_hey()
-call_hello("python")
+hello.call_hey()
+hello.call_hello(b"python")

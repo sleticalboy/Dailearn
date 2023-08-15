@@ -1,7 +1,6 @@
-from cpython.bytes cimport PyBytes_FromStringAndSize
-from cpython.bytes cimport PyBytes_AS_STRING
+from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString, PyBytes_Check, PyBytes_FromObject
 
-cdef extern from 'hello-clib.c':
+cdef extern from 'hello-clib.h':
     void hey();
     void hello(char *s);
 
@@ -9,6 +8,11 @@ def call_hey():
     hey()
 
 def call_hello(s):
-    cdef bytes p_str = PyBytes_FromStringAndSize(s, len(s))
-    cdef char *c_str_ptr = <char *>PyBytes_AS_STRING(p_str)
-    hello(c_str_ptr)
+    print(f's is: {s}, is str: {PyBytes_Check(s)}')
+    # cdef bytes bb = PyBytes_FromObject(s)
+    # print('bb is ', bb)
+    cdef char *name = PyBytes_AsString(s)
+    # print(f's stris is: {name}')
+    # cdef bytes b = PyBytes_FromString(name)
+    # print(f's is: {b}')
+    hello(name)

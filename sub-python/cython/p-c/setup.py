@@ -1,7 +1,11 @@
-from distutils.core import setup
+from distutils.core import setup, Extension
 
 from Cython.Build import cythonize
 
-setup(
-    ext_modules=cythonize('hello.pyx')
+ext = Extension(
+    name='hello',
+    sources=['hello.pyx', 'hello-clib.c'],
+    language='c',
 )
+
+setup(ext_modules=cythonize(ext))
