@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+message AlgoInput {
+  map<string, string> iargs = 1;
+}
+
+message AlgoOutput {
+  map<string, string> oargs = 1;
+}
