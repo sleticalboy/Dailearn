@@ -1,8 +1,6 @@
 
 algo_args_pb2.py
-algo_args.pb.h
-algo_args.pb.cc
 
+gen*
 cmake-build-debug
-
 sample

@@ -1,5 +1,6 @@
 #include <python3.10/Python.h>
-#include "algo_args.pb.h"
+#include <dirent.h>
+#include "gencc/algo_args.pb.h"
 
 void call_hello() {
   // 调用简单语句
@@ -65,14 +66,15 @@ void call_algo_obj(PyObject *pm) {
   // 调用 AlgoProc 实例方法 process
   PyObject *func = PyObject_GetAttrString(algo, "process");
   if (PyCallable_Check(func)) {
-    AlgoInput input{};
-    auto args = input.mutable_iargs();
-    args->operator[]("a") = "a";
-    args->operator[]("b") = "b";
-    args->operator[]("c") = "c";
-    printf("c algo input is: %s\n", input.ShortDebugString().c_str());
+    AlgoRequest request{};
+    request.set_algo_name("prj-parse");
+    auto inputs = request.mutable_inputs();
+    inputs->operator[]("a") = "a";
+    inputs->operator[]("b") = "b";
+    inputs->operator[]("c") = "c";
+    printf("c algo request is: %s\n", request.ShortDebugString().c_str());
     PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, PyBytes_FromString(input.SerializeAsString().c_str()));
+    PyTuple_SetItem(tuple, 0, PyBytes_FromString(request.SerializeAsString().c_str()));
     PyObject *ret = PyObject_CallObject(func, tuple);
     if (ret == nullptr) {
       printf("PyObject_CallObject() failed!\n");
@@ -90,9 +92,9 @@ void call_algo_obj(PyObject *pm) {
     what_type(Py_TYPE(ret), &PyList_Type, "py list");
     what_type(Py_TYPE(ret), &PySet_Type, "py set");
     what_type(Py_TYPE(ret), &PyDict_Type, "py dict");
-    AlgoOutput output{};
-    output.ParseFromString(PyBytes_AsString(ret));
-    printf("c algo output is: %s\n", output.ShortDebugString().c_str());
+    AlgoResponse response{};
+    response.ParseFromString(PyBytes_AsString(ret));
+    printf("c algo response is: %s\n", response.ShortDebugString().c_str());
   }
   // 调用 AlgoProc 实例方法 release
   func = PyObject_GetAttrString(algo, "release");
@@ -130,6 +132,33 @@ void call_get_dict(PyObject *pm) {
   }
 }
 
+std:: string find_algo_impl_module(const std::string &who) {
+  std::string algo_impl;
+  char *cwd = new char[64];
+  getcwd(cwd, 64);
+  std::string root = std::string(cwd) + "/" + who;
+  delete[] cwd;
+  printf("%s() starting find algo module in: %s\n", __func__, root.c_str());
+  auto dir = opendir(root.c_str());
+  struct dirent *f;
+  while ((f = readdir(dir)) != nullptr) {
+    // 过滤当前目录以及父目录，否则会导致死循环
+    if (strcmp(f->d_name, ".") == 0 || strcmp(f->d_name, "..") == 0) continue;
+
+    // printf("%s() -> %s\n", __func__, f->d_name);
+    auto s = std::string(f->d_name);
+    auto pos = s.rfind('.');
+    if (pos == std::string::npos) continue;
+    auto name = s.substr(0, pos);
+    // printf("%s() pure name is: %s\n", __func__, name.c_str());
+    pos = name.rfind("_impl");
+    if (pos != std::string::npos && name.substr(pos) == "_impl" && name.find("algo_") == 0) {
+      return name;
+    }
+  }
+  return "";
+}
+
 int main() {
   // 初始化
   Py_Initialize();
@@ -137,16 +166,29 @@ int main() {
 
   // 导入当前目录
   PyRun_SimpleString("import sys");
-  PyRun_SimpleString("sys.path.append('./')");
-  // 导入文件
-  PyObject *pm = PyImport_ImportModule("samples");
-  printf("%s() pm: %p\n", __func__, pm);
+  PyRun_SimpleString("sys.path.append('src')");
+  // 找到并导入当前算法脚本文件，命名规则要符合 algo_xxx_impl.py
+  auto algo_module = find_algo_impl_module("src");
+  if (algo_module.empty()) {
+    perror("cannot find an algo impl module.\n");
+    return 0;
+  }
+  printf("%s() find algo impl module: %s\n", __func__, algo_module.c_str());
+  PyObject *pm = PyImport_ImportModule(algo_module.c_str());
+  printf("%s() algo impl pm: %p\n", __func__, pm);
+  if (pm != nullptr) {
+    call_algo_obj(pm);
+  } else {
+    PyErr_Print();
+  }
+
+  pm = PyImport_ImportModule("samples");
+  printf("%s() samples pm: %p\n", __func__, pm);
   if (pm != nullptr) {
     call_no_arg_func(pm);
     call_arg_func(pm);
     call_print_list(pm);
     call_obj_func(pm);
-    call_algo_obj(pm);
     call_get_list(pm);
     call_get_dict(pm);
   } else {

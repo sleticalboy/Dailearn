@@ -1,9 +1,17 @@
 syntax = "proto3";
 
-message AlgoInput {
-  map<string, string> iargs = 1;
+message AlgoRequest {
+  string algo_name = 1;
+  map<string, string> inputs = 2;
 }
 
-message AlgoOutput {
-  map<string, string> oargs = 1;
+message AlgoResponse {
+  // 算法名
+  string algo_name = 1;
+  // 处理结果
+  map<string, string> outputs = 2;
+  // 状态码
+  int32 status = 3;
+  // 错误信息
+  string err_msg = 4;
 }

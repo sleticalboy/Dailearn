@@ -6,20 +6,17 @@ if [[ -f ./main ]]; then
   rm -rv ./main
 fi
 
-if [[ -f algo_args.pb.h ]]; then
-  rm -rv algo_args.pb.*
+if [[ -d src/gencc || -d src/genpy ]]; then
+  rm -rv src/gen*
 fi
 
-if [[ -f algo_args_pb2.py ]]; then
-  rm -rv algo_args_pb*
-fi
+mkdir -p {src/gencc,src/genpy} && touch src/genpy/__init__.py && touch src/__init__.py
+protoc --cpp_out=src/gencc --python_out=src/genpy algo_args.proto
 
-protoc --cpp_out=. --python_out=. algo_args.proto
-
-CFLAGS='-I. -I/usr/include/python3.10 -I/usr/include/google/protobuf'
+CFLAGS='-I./src/gencc -I/usr/include/python3.10 -I/usr/include/google/protobuf'
 LDFLAGS='-L/usr/lib/x86_64-linux-gnu/ -lpython3.10 -L/usr/lib -lprotobuf'
 
-g++ algo_args.pb.cc main.cc $CFLAGS $LDFLAGS -o sample
+g++ ./src/gencc/algo_args.pb.cc src/main.cc $CFLAGS $LDFLAGS -o sample
 
 # 运行程序
 ./sample
