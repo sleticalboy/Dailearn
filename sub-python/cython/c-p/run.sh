@@ -14,7 +14,7 @@ if [[ -f algo_args_pb2.py ]]; then
   rm -rv algo_args_pb*
 fi
 
-protoc --cpp_out=. --python_out=. --pyi_out=. algo_args.proto
+protoc --cpp_out=. --python_out=. algo_args.proto
 
 CFLAGS='-I. -I/usr/include/python3.10 -I/usr/include/google/protobuf'
 LDFLAGS='-L/usr/lib/x86_64-linux-gnu/ -lpython3.10 -L/usr/lib -lprotobuf'

@@ -19,6 +19,6 @@ add_executable(sample
         )
 # 链接动态库
 target_link_libraries(sample
-        /usr/lib/libprotobuf.so
+        /usr/lib/x86_64-linux-gnu/libprotobuf.so
         /usr/lib/x86_64-linux-gnu/libpython3.10.so
         )

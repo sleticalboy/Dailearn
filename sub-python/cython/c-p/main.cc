@@ -65,38 +65,33 @@ void call_algo_obj(PyObject *pm) {
   // 调用 AlgoProc 实例方法 process
   PyObject *func = PyObject_GetAttrString(algo, "process");
   if (PyCallable_Check(func)) {
-    // PyObject *dict = PyDict_New();
-    // PyDict_SetItemString(dict, "1", Py_BuildValue("s", "hello"));
     AlgoInput input{};
     auto args = input.mutable_iargs();
     args->operator[]("a") = "a";
     args->operator[]("b") = "b";
-    // auto size = (int) input.ByteSizeLong();
-    // auto *ibuf = new unsigned char [size];
-    // if (!input.SerializeToArray(ibuf, size)) {
-    //   printf("SerializeToArray() failed!\n");
-    //   return;
-    // }
-    // printf("c algo ibuf is: %s\n", ibuf);
-    auto ibuf = input.SerializeAsString();
-    printf("c algo ibuf is: %s\n", ibuf.c_str());
+    args->operator[]("c") = "c";
+    printf("c algo input is: %s\n", input.ShortDebugString().c_str());
     PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, Py_BuildValue("s", ibuf.c_str(), ibuf.size()));
+    PyTuple_SetItem(tuple, 0, PyBytes_FromString(input.SerializeAsString().c_str()));
     PyObject *ret = PyObject_CallObject(func, tuple);
     if (ret == nullptr) {
       printf("PyObject_CallObject() failed!\n");
       PyErr_Print();
       return;
     }
-    char *obuf;
-    if (PyArg_Parse(ret, "s", &obuf) != 0) {
-      printf("PyArg_Parse() failed!\n");
-      PyErr_Print();
-      return;
-    }
-    // printf("c algo buf is: %s\n", pbuf);
+    auto what_type = [](PyTypeObject *typ, PyTypeObject *exp, const char *desc) {
+      if (typ == exp) {
+        printf("PyObject is '%s'\n", desc);
+      }
+    };
+    what_type(Py_TYPE(ret), &PyLong_Type, "py long");
+    what_type(Py_TYPE(ret), &PyFloat_Type, "py float");
+    what_type(Py_TYPE(ret), &PyBytes_Type, "py bytes");
+    what_type(Py_TYPE(ret), &PyList_Type, "py list");
+    what_type(Py_TYPE(ret), &PySet_Type, "py set");
+    what_type(Py_TYPE(ret), &PyDict_Type, "py dict");
     AlgoOutput output{};
-    output.ParseFromString(std::string(obuf));
+    output.ParseFromString(PyBytes_AsString(ret));
     printf("c algo output is: %s\n", output.ShortDebugString().c_str());
   }
   // 调用 AlgoProc 实例方法 release
