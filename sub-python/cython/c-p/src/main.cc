@@ -2,6 +2,24 @@
 #include <dirent.h>
 #include "gencc/algo_args.pb.h"
 
+void debug_py_obj(PyObject *obj, const char *who) {
+  auto what_type = [&](PyTypeObject *typ, PyTypeObject *exp, const char *desc) {
+    if (typ == exp) {
+      printf("%s => PyObject is '%s'\n", who, desc);
+    }
+  };
+  what_type(Py_TYPE(obj), &PyLong_Type, "py long");
+  what_type(Py_TYPE(obj), &PyFloat_Type, "py float");
+  what_type(Py_TYPE(obj), &PyBytes_Type, "py bytes");
+  what_type(Py_TYPE(obj), &PyList_Type, "py list");
+  what_type(Py_TYPE(obj), &PySet_Type, "py set");
+  what_type(Py_TYPE(obj), &PyDict_Type, "py dict");
+  what_type(Py_TYPE(obj), &PyTuple_Type, "py tuple");
+  what_type(Py_TYPE(obj), &PyFunction_Type, "py function");
+  what_type(Py_TYPE(obj), &PyModule_Type, "py module");
+  what_type(Py_TYPE(obj), &PyMethod_Type, "py method");
+}
+
 void call_hello() {
   // 调用简单语句
   PyRun_SimpleString("print('hello via c call')");
@@ -10,6 +28,7 @@ void call_hello() {
 void call_no_arg_func(PyObject *pm) {
   // 调用无参函数
   PyObject *func = PyObject_GetAttrString(pm, "hello");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     PyObject_CallObject(func, nullptr);
   }
@@ -18,6 +37,7 @@ void call_no_arg_func(PyObject *pm) {
 void call_arg_func(PyObject *pm) {
   // 调用有参函数
   PyObject *func = PyObject_GetAttrString(pm, "add");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     // 以下两种方式均可构建一个 python tuple 对象
     // PyObject *tuple = PyTuple_New(2);
@@ -33,6 +53,7 @@ void call_arg_func(PyObject *pm) {
 
 void call_print_list(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(pm, "print_list");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     PyObject *list = PyList_New(0);
     PyList_Append(list, Py_BuildValue("i", 30));
@@ -53,6 +74,7 @@ void call_obj_func(PyObject *pm) {
   PyObject *tom = PyObject_CallObject(clazz, Py_BuildValue("(s)", "Tom"));
   // 调用 User 实例方法 say_hello
   PyObject *func = PyObject_GetAttrString(tom, "say_hello");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     PyObject_CallObject(func, nullptr);
   }
@@ -65,6 +87,7 @@ void call_algo_obj(PyObject *pm) {
   PyObject *algo = PyObject_CallObject(clazz, Py_BuildValue("(s)", "prj-parse"));
   // 调用 AlgoProc 实例方法 process
   PyObject *func = PyObject_GetAttrString(algo, "process");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     AlgoRequest request{};
     request.set_algo_name("prj-parse");
@@ -81,17 +104,7 @@ void call_algo_obj(PyObject *pm) {
       PyErr_Print();
       return;
     }
-    auto what_type = [](PyTypeObject *typ, PyTypeObject *exp, const char *desc) {
-      if (typ == exp) {
-        printf("PyObject is '%s'\n", desc);
-      }
-    };
-    what_type(Py_TYPE(ret), &PyLong_Type, "py long");
-    what_type(Py_TYPE(ret), &PyFloat_Type, "py float");
-    what_type(Py_TYPE(ret), &PyBytes_Type, "py bytes");
-    what_type(Py_TYPE(ret), &PyList_Type, "py list");
-    what_type(Py_TYPE(ret), &PySet_Type, "py set");
-    what_type(Py_TYPE(ret), &PyDict_Type, "py dict");
+    debug_py_obj(ret, __func__);
     AlgoResponse response{};
     response.ParseFromString(PyBytes_AsString(ret));
     printf("c algo response is: %s\n", response.ShortDebugString().c_str());
@@ -106,14 +119,15 @@ void call_algo_obj(PyObject *pm) {
 void call_get_list(PyObject *pm) {
   // 调用无参函数
   PyObject *func = PyObject_GetAttrString(pm, "get_list");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     PyObject *list = PyObject_CallObject(func, nullptr);
     Py_ssize_t size = PyList_Size(list);
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
       PyObject *it = PyList_GetItem(list, i);
       char *s;
       PyArg_Parse(it, "s", &s);
-      printf("list[%ld]: %s, ", i, s);
+      printf("list[%d]: %s, ", i, s);
     }
     printf("\n");
   }
@@ -122,6 +136,7 @@ void call_get_list(PyObject *pm) {
 void call_get_dict(PyObject *pm) {
   // 调用无参函数
   PyObject *func = PyObject_GetAttrString(pm, "get_dict");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     PyObject *dict = PyObject_CallObject(func, nullptr);
     char *name;
@@ -129,6 +144,85 @@ void call_get_dict(PyObject *pm) {
     PyArg_Parse(PyDict_GetItemString(dict, "name"), "s", &name);
     PyArg_Parse(PyDict_GetItemString(dict, "age"), "i", &age);
     printf("dict: name: %s, age: %d\n", name, age);
+  }
+}
+
+PyObject *wrapped_square(PyObject*, PyObject *args) {
+  // 这个 args 是 python 传过来的参数，类型是 tuple
+  debug_py_obj(args, __func__);
+  int num;
+  // static char *kwlist[] = {"num", nullptr};
+  // if (!PyArg_ParseTupleAndKeywords(args, kws, "i", kwlist, &num)) {
+  if (!PyArg_ParseTuple(args, "i", &num)) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to parse python args");
+    return nullptr;
+  }
+  return Py_BuildValue("i", num * num);
+}
+
+PyObject *wrapped_post_value(PyObject*, PyObject *args) {
+  // 这个 args 是 python 传过来的参数，类型是 tuple
+  debug_py_obj(args, __func__);
+  int num;
+  char *msg;
+  // 这三种方式均可以解析 tuple
+  // PyArg_Parse(PyTuple_GetItem(args, 0), "i", &num);
+  // PyArg_Parse(PyTuple_GetItem(args, 1), "s", &msg);
+  // if (!PyArg_Parse(args, "(is)", &num, &msg)) {
+  if (!PyArg_ParseTuple(args, "is", &num, &msg)) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to parse python args");
+    Py_RETURN_NONE;
+  }
+  printf("num: %d, msg: %s\n", num, msg);
+  // return Py_BuildValue("i", 0);
+  Py_RETURN_NONE;
+}
+
+PyObject *wrapped_sum_int(PyObject*, PyObject *args) {
+  // 这个 args 是 python 传过来的参数，类型是 tuple
+  debug_py_obj(args, __func__);
+  int a, b;
+  if (!PyArg_ParseTuple(args, "ii", &a, &b)) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to parse python args");
+    return nullptr;
+  }
+  printf("a: %d, b: %d\n", a, b);
+  return Py_BuildValue("i", a + b);
+}
+
+static PyMethodDef module_methods[] = {
+    {"square", wrapped_square, METH_VARARGS, "A c++ square function."},
+    {"post_value", wrapped_post_value, METH_VARARGS, "A c++ post_value function."},
+    {"sum_int", wrapped_sum_int, METH_VARARGS, "A c++ sum_int function."},
+    {nullptr}
+};
+
+static struct PyModuleDef M_native_functions = {
+    PyModuleDef_HEAD_INIT,
+    "native_functions",
+    "c++ 中定义的函数",
+    -1,
+    module_methods,
+};
+
+PyMODINIT_FUNC PyInit_nativeMethods(void) {
+  PyObject *m = PyModule_Create(&M_native_functions);
+  if (m == nullptr) {
+    PyErr_Print();
+    return nullptr;
+  }
+  return m;
+}
+
+void call_fptr(PyObject *pm) {
+  // 向 python 传递 c 函数指针
+  PyObject *func = PyObject_GetAttrString(pm, "call_c_fptr");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  if (PyCallable_Check(func)) {
+    PyObject *tuple = PyTuple_New(1);
+    PyTuple_SetItem(tuple, 0, PyInit_nativeMethods());
+    PyObject_CallObject(func, tuple);
+    PyErr_Print();
   }
 }
 
@@ -191,6 +285,7 @@ int main() {
     call_obj_func(pm);
     call_get_list(pm);
     call_get_dict(pm);
+    call_fptr(pm);
   } else {
     PyErr_Print();
   }

@@ -23,7 +23,21 @@ def get_list() -> list[str]:
 
 
 def get_dict():
-    return {
-        'name': 'tom',
-        'age': 30,
-    }
+    return {'name': 'tom', 'age': 30}
+
+
+def call_c_fptr(fptr):
+    if fptr is None:
+        return
+    print(f'call_c_fptr() fn ptr is: {fptr}, type: {type(fptr)}, doc: {fptr.__doc__}')
+    # 调用 c++ 函数并返回处理结果
+    s = fptr.square(3)
+    print(f"call_c_fptr() 3's square = {s}")
+
+    import time
+    for i in range(3):
+        # 把值回调给 c++
+        fptr.post_value(i, f'str {i}')
+        time.sleep(0.5)
+    s = fptr.sum_int(20, 32)
+    print(f"call_c_fptr() 20 + 32 = {s}")
