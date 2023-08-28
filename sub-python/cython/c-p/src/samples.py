@@ -1,3 +1,6 @@
+from typing import List
+
+
 class User(object):
     def __init__(self, name):
         self.name = name
@@ -18,7 +21,7 @@ def print_list(li):
     print(f"list is {li}, len: {len(li)}")
 
 
-def get_list() -> list[str]:
+def get_list() -> List[str]:
     return ['30', '99']
 
 

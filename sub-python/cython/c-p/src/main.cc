@@ -1,4 +1,4 @@
-#include <python3.10/Python.h>
+#include <python3.8/Python.h>
 #include <dirent.h>
 #include "gencc/algo_args.pb.h"
 
