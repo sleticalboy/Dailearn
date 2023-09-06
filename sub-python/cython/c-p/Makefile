@@ -8,20 +8,13 @@ CFLAGS = -I/usr/include/python3.8 -I/usr/include/google/protobuf -I./src/gencc
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu/ -lpython3.8 -L/usr/lib/ -lprotobuf
 
 prepare:
-	mkdir -p src/gencc && mkdir -p src/genpy && \
-	protoc --cpp_out=src/gencc --python_out=src/genpy algo_args.proto
+	touch src/__init__.py
 
-gen-pyi: # 生成 python 类存根，方便开发时使用 ide 调用
-	echo "not supported now!" && \
-	/home/binlee/code/open-source/my-protobuf/bin/protoc --pyi_out=src/genpy algo_args.proto
-
-sample: prepare gen-pyi
-	rm -rv src/genpy/*.pyi && \
-	g++ src/main.cc src/gencc/algo_args.pb.cc ${CFLAGS} ${LDFLAGS} -o $@
+sample: prepare
+	g++ src/main.cc ${CFLAGS} ${LDFLAGS} -o $@
 
 libalgo-agent-py.so: prepare
-	rm -rv src/genpy/*.pyi && \
-	g++ -shared -fPIC src/main.cc src/gencc/algo_args.pb.cc ${CFLAGS} ${LDFLAGS} -o $@
+	g++ -shared -fPIC src/main.cc ${CFLAGS} ${LDFLAGS} -o $@
 
 run: prepare sample
 	./sample

@@ -1,7 +1,6 @@
 import time
 
 from algo_base import AlgoProcBase
-from genpy.algo_args_pb2 import AlgoRequest, AlgoResponse
 
 
 class AlgoProc(AlgoProcBase):
@@ -15,34 +14,26 @@ class AlgoProc(AlgoProcBase):
     def __init__(self, algo_name):
         super().__init__(algo_name)
 
-    def process(self, args):
+    def process(self, args: dict) -> dict:
         super().process(args)
-        if isinstance(args, str):
-            args = args.encode()
-        request = AlgoRequest()
-        request.ParseFromString(args)
-        print(f"p algo request is: {request}, type: {type(request)}")
         time.sleep(0.5)
-        response = AlgoResponse()
-        response.outputs['1'] = '1'
-        response.outputs['2'] = '2'
-        response.outputs['3'] = '3'
-        # print(f"p algo output is: {o}, type: {type(o)}")
-        return response.SerializeToString()
+        rep = {
+            "python": b"cython",
+            "world": b"world"
+        }
+        print(f"p algo output is: {rep}, type: {type(rep)}")
+        return rep
 
     def release(self):
         super().release()
 
 
 if __name__ == '__main__':
-    proc = AlgoProc('prj-export')
-    req = AlgoRequest()
-    req.inputs['a'] = 'a'
-    req.inputs['b'] = 'b'
-    req.inputs['c'] = 'c'
-    buf = proc.process(req.SerializeToString())
-    proc.release()
-    print(f'output buf: {buf}, type: {type(buf)}')
-    rep = AlgoResponse()
-    rep.ParseFromString(buf)
-    print(f'output is: {rep}, type: {type(rep)}')
+    _proc = AlgoProc('prj-export')
+    _req = {
+        'hello': b'world',
+        'bytes': b'bytes',
+    }
+    _rep = _proc.process(_req)
+    _proc.release()
+    print(f'output rep: {_rep}, type: {type(_rep)}')

@@ -1,6 +1,7 @@
 #include <python3.8/Python.h>
 #include <dirent.h>
-#include "gencc/algo_args.pb.h"
+#include <string>
+#include <map>
 
 void debug_py_obj(PyObject *obj, const char *who) {
   auto what_type = [&](PyTypeObject *typ, PyTypeObject *exp, const char *desc) {
@@ -20,12 +21,12 @@ void debug_py_obj(PyObject *obj, const char *who) {
   what_type(Py_TYPE(obj), &PyMethod_Type, "py method");
 }
 
-void call_hello() {
+void test_hello_world() {
   // 调用简单语句
   PyRun_SimpleString("print('hello via c call')");
 }
 
-void call_no_arg_func(PyObject *pm) {
+void test_no_arg_func(PyObject *pm) {
   // 调用无参函数
   PyObject *func = PyObject_GetAttrString(pm, "hello");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
@@ -34,7 +35,7 @@ void call_no_arg_func(PyObject *pm) {
   }
 }
 
-void call_arg_func(PyObject *pm) {
+void test_arg_func(PyObject *pm) {
   // 调用有参函数
   PyObject *func = PyObject_GetAttrString(pm, "add");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
@@ -51,7 +52,7 @@ void call_arg_func(PyObject *pm) {
   }
 }
 
-void call_print_list(PyObject *pm) {
+void test_print_list(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(pm, "print_list");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
@@ -67,7 +68,7 @@ void call_print_list(PyObject *pm) {
   }
 }
 
-void call_obj_func(PyObject *pm) {
+void test_obj_func(PyObject *pm) {
   // 获取 User 类
   PyObject *clazz = PyObject_GetAttrString(pm, "User");
   // 创建 User 类实例 tom
@@ -80,7 +81,32 @@ void call_obj_func(PyObject *pm) {
   }
 }
 
-void call_algo_obj(PyObject *pm) {
+PyObject *to_py_dict(std::map<std::string, std::string> &raw_map) {
+  PyObject *pd = PyDict_New();
+  for (const auto &item: raw_map) {
+    PyDict_SetItemString(pd, item.first.data(), PyBytes_FromString(item.second.data()));
+  }
+  return pd;
+}
+
+void to_cpp_map(PyObject *pd, std::map<std::string, std::string> &dst) {
+  PyObject *keys = PyDict_Keys(pd);
+  Py_ssize_t len = PyList_Size(keys);
+  for (int i = 0; i < len; ++i) {
+    PyObject *ks = PyObject_Str(PyList_GetItem(keys, i));
+    auto _key = PyUnicode_AsUTF8(ks);
+    PyObject *vs = PyDict_GetItemString(pd, _key);
+    if (Py_TYPE(vs) == &PyBytes_Type) {
+      dst.operator[](_key) = PyBytes_AsString(vs);
+    } else {
+      dst.operator[](_key) = PyUnicode_AsUTF8(vs);
+    }
+    Py_DECREF(ks);
+    Py_DECREF(vs);
+  }
+}
+
+void test_algo_obj(PyObject *pm) {
   // 获取 AlgoProc 类
   PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProc");
   // 创建 AlgoProc 类实例 tom
@@ -89,15 +115,12 @@ void call_algo_obj(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(algo, "process");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
-    AlgoRequest request{};
-    request.set_algo_name("prj-parse");
-    auto inputs = request.mutable_inputs();
-    inputs->operator[]("a") = "a";
-    inputs->operator[]("b") = "b";
-    inputs->operator[]("c") = "c";
-    printf("c algo request is: %s\n", request.ShortDebugString().c_str());
+    auto req = std::map<std::string, std::string>();
+    req.operator[]("algo_name") = "prj-parse";
+    req.operator[]("hello") = "hello";
+    req.operator[]("cpp") = "world";
     PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, PyBytes_FromString(request.SerializeAsString().c_str()));
+    PyTuple_SetItem(tuple, 0, to_py_dict(req));
     PyObject *ret = PyObject_CallObject(func, tuple);
     if (ret == nullptr) {
       printf("PyObject_CallObject() failed!\n");
@@ -105,9 +128,11 @@ void call_algo_obj(PyObject *pm) {
       return;
     }
     debug_py_obj(ret, __func__);
-    AlgoResponse response{};
-    response.ParseFromString(PyBytes_AsString(ret));
-    printf("c algo response is: %s\n", response.ShortDebugString().c_str());
+    auto res = std::map<std::string, std::string>();
+    to_cpp_map(ret, res);
+    for (const auto &item: res) {
+      printf("res -> %s: %s\n", item.first.data(), item.second.data());
+    }
   }
   // 调用 AlgoProc 实例方法 release
   func = PyObject_GetAttrString(algo, "release");
@@ -116,7 +141,7 @@ void call_algo_obj(PyObject *pm) {
   }
 }
 
-void call_get_list(PyObject *pm) {
+void test_get_list(PyObject *pm) {
   // 调用无参函数
   PyObject *func = PyObject_GetAttrString(pm, "get_list");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
@@ -133,7 +158,7 @@ void call_get_list(PyObject *pm) {
   }
 }
 
-void call_get_dict(PyObject *pm) {
+void test_get_dict(PyObject *pm) {
   // 调用无参函数
   PyObject *func = PyObject_GetAttrString(pm, "get_dict");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
@@ -147,7 +172,7 @@ void call_get_dict(PyObject *pm) {
   }
 }
 
-PyObject *wrapped_square(PyObject*, PyObject *args) {
+PyObject *wrapped_square(PyObject *, PyObject *args) {
   // 这个 args 是 python 传过来的参数，类型是 tuple
   debug_py_obj(args, __func__);
   int num;
@@ -160,7 +185,7 @@ PyObject *wrapped_square(PyObject*, PyObject *args) {
   return Py_BuildValue("i", num * num);
 }
 
-PyObject *wrapped_post_value(PyObject*, PyObject *args) {
+PyObject *wrapped_post_value(PyObject *, PyObject *args) {
   // 这个 args 是 python 传过来的参数，类型是 tuple
   debug_py_obj(args, __func__);
   int num;
@@ -178,7 +203,7 @@ PyObject *wrapped_post_value(PyObject*, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-PyObject *wrapped_sum_int(PyObject*, PyObject *args) {
+PyObject *wrapped_sum_int(PyObject *, PyObject *args) {
   // 这个 args 是 python 传过来的参数，类型是 tuple
   debug_py_obj(args, __func__);
   int a, b;
@@ -191,9 +216,9 @@ PyObject *wrapped_sum_int(PyObject*, PyObject *args) {
 }
 
 static PyMethodDef module_methods[] = {
-    {"square", wrapped_square, METH_VARARGS, "A c++ square function."},
+    {"square",     wrapped_square,     METH_VARARGS, "A c++ square function."},
     {"post_value", wrapped_post_value, METH_VARARGS, "A c++ post_value function."},
-    {"sum_int", wrapped_sum_int, METH_VARARGS, "A c++ sum_int function."},
+    {"sum_int",    wrapped_sum_int,    METH_VARARGS, "A c++ sum_int function."},
     {nullptr}
 };
 
@@ -205,7 +230,7 @@ static struct PyModuleDef M_native_functions = {
     module_methods,
 };
 
-PyMODINIT_FUNC PyInit_nativeMethods(void) {
+PyMODINIT_FUNC PyInit_nativeFunctions(void) {
   PyObject *m = PyModule_Create(&M_native_functions);
   if (m == nullptr) {
     PyErr_Print();
@@ -214,19 +239,28 @@ PyMODINIT_FUNC PyInit_nativeMethods(void) {
   return m;
 }
 
-void call_fptr(PyObject *pm) {
+void test_set_cpp_callback(PyObject *pm) {
   // 向 python 传递 c 函数指针
-  PyObject *func = PyObject_GetAttrString(pm, "call_c_fptr");
+  PyObject *func = PyObject_GetAttrString(pm, "set_cpp_callback");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, PyInit_nativeMethods());
+    PyTuple_SetItem(tuple, 0, PyInit_nativeFunctions());
     PyObject_CallObject(func, tuple);
     PyErr_Print();
   }
 }
 
-std:: string find_algo_impl_module(const std::string &who) {
+void test_do_hard_work(PyObject *pm) {
+  // 调用无参函数
+  PyObject *func = PyObject_GetAttrString(pm, "do_hard_work");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  if (PyCallable_Check(func)) {
+    PyObject_CallObject(func, nullptr);
+  }
+}
+
+std::string find_algo_impl_module(const std::string &who) {
   std::string algo_impl;
   char *cwd = new char[64];
   getcwd(cwd, 64);
@@ -256,7 +290,7 @@ std:: string find_algo_impl_module(const std::string &who) {
 int main() {
   // 初始化
   Py_Initialize();
-  call_hello();
+  test_hello_world();
 
   // 导入当前目录
   PyRun_SimpleString("import sys");
@@ -271,7 +305,7 @@ int main() {
   PyObject *pm = PyImport_ImportModule(algo_module.c_str());
   printf("%s() algo impl pm: %p\n", __func__, pm);
   if (pm != nullptr) {
-    call_algo_obj(pm);
+    test_algo_obj(pm);
   } else {
     PyErr_Print();
   }
@@ -279,13 +313,16 @@ int main() {
   pm = PyImport_ImportModule("samples");
   printf("%s() samples pm: %p\n", __func__, pm);
   if (pm != nullptr) {
-    call_no_arg_func(pm);
-    call_arg_func(pm);
-    call_print_list(pm);
-    call_obj_func(pm);
-    call_get_list(pm);
-    call_get_dict(pm);
-    call_fptr(pm);
+    test_no_arg_func(pm);
+    test_arg_func(pm);
+    test_print_list(pm);
+    test_obj_func(pm);
+    test_get_list(pm);
+    test_get_dict(pm);
+
+    // 测试给 python 设置 cpp 回调
+    test_set_cpp_callback(pm);
+    test_do_hard_work(pm);
   } else {
     PyErr_Print();
   }

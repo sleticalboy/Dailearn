@@ -14,8 +14,8 @@ class AlgoProcBase(object):
         print(f"[{self.name}]#__init__()")
 
     @abstractmethod
-    def process(self, args):
-        print(f"[{self.name}]#process() input buf: {args}, type: {type(args)}")
+    def process(self, args: dict):
+        print(f"[{self.name}]#process() input: {args}, type: {type(args)}")
 
     @abstractmethod
     def release(self):

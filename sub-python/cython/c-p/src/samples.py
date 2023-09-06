@@ -29,18 +29,32 @@ def get_dict():
     return {'name': 'tom', 'age': 30}
 
 
-def call_c_fptr(fptr):
-    if fptr is None:
+class CallbackProxy:
+
+    def __init__(self):
+        self.callback = None
+
+
+proxy_ = CallbackProxy()
+
+
+def set_cpp_callback(callback):
+    proxy_.callback = callback
+    print(f'set_cpp_callback() cb: {callback}, cpp_cb: {proxy_.callback}')
+
+
+def do_hard_work():
+    if proxy_.callback is None:
         return
-    print(f'call_c_fptr() fn ptr is: {fptr}, type: {type(fptr)}, doc: {fptr.__doc__}')
+    print(f'do_hard_work() cb is: {proxy_.callback}, type: {type(proxy_.callback)}, doc: {proxy_.callback.__doc__}')
     # 调用 c++ 函数并返回处理结果
-    s = fptr.square(3)
+    s = proxy_.callback.square(3)
     print(f"call_c_fptr() 3's square = {s}")
 
     import time
     for i in range(3):
         # 把值回调给 c++
-        fptr.post_value(i, f'str {i}')
+        proxy_.callback.post_value(i, f'str {i}')
         time.sleep(0.5)
-    s = fptr.sum_int(20, 32)
+    s = proxy_.callback.sum_int(20, 32)
     print(f"call_c_fptr() 20 + 32 = {s}")
