@@ -11,18 +11,25 @@ class AlgoProc(AlgoProcBase):
     4、c 解析处理结果并转成结构体返回给 go；
     """
 
-    def __init__(self, algo_name):
-        super().__init__(algo_name)
+    def __init__(self, algo_name, known_args):
+        super().__init__(algo_name, known_args)
 
     def process(self, args: dict) -> dict:
         super().process(args)
+        self.check_input_args(args.keys())
+        print('model is being initialized...')
         time.sleep(0.5)
-        rep = {
-            "python": b"cython",
-            "world": b"world"
+        print('language is being detected...')
+        time.sleep(1.5)
+        print('result is being writing...')
+        time.sleep(2)
+        results = {
+            "language": b"en",
+            "duration_ms": 4000.67,
+            "data": []
         }
-        print(f"p algo output is: {rep}, type: {type(rep)}")
-        return rep
+        print(f"p algo output is: {results}, type: {type(results)}")
+        return results
 
     def release(self):
         super().release()

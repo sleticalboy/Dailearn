@@ -9,14 +9,26 @@ class AlgoProcBase(object):
     4、c 解析处理结果并转成结构体返回给 go；
     """
 
-    def __init__(self, algo_name):
+    def __init__(self, algo_name: str, known_args: dict):
         self.name = algo_name
-        print(f"[{self.name}]#__init__()")
+        self.known_args = known_args
+        print(f"[{algo_name}]#__init__()")
+        for k, v in known_args.items():
+            print(f'{k}: {v.decode()}')
 
     @abstractmethod
     def process(self, args: dict):
-        print(f"[{self.name}]#process() input: {args}, type: {type(args)}")
+        print(f"[{self.name}]#process() args: {args}")
 
     @abstractmethod
     def release(self):
         print(f"[{self.name}]#release()")
+
+    def check_input_args(self, keys):
+        """
+        检查参数是否合法
+        """
+        kl = self.known_args.keys()
+        for k in keys:
+            if k not in kl:
+                raise Exception(f"Unknown key '{k}'")

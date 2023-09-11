@@ -2,24 +2,36 @@
 #include <dirent.h>
 #include <string>
 #include <map>
+#include <vector>
+
+static std::map<PyTypeObject*, std::string> py_types{};
+
+void initialize_py_types() {
+  py_types.operator[](&PyBool_Type) = "py bool";
+  py_types.operator[](&PyLong_Type) = "py long";
+  py_types.operator[](&PyFloat_Type) = "py float";
+  py_types.operator[](&PyBytes_Type) = "py bytes";
+  py_types.operator[](&PyList_Type) = "py list";
+  py_types.operator[](&PyDict_Type) = "py dict";
+  py_types.operator[](&PySet_Type) = "py set";
+  py_types.operator[](&PyTuple_Type) = "py tuple";
+  py_types.operator[](&PyFunction_Type) = "py function";
+  py_types.operator[](&PyModule_Type) = "py module";
+  py_types.operator[](&PyMethod_Type) = "py method";
+}
 
 void debug_py_obj(PyObject *obj, const char *who) {
-  auto what_type = [&](PyTypeObject *typ, PyTypeObject *exp, const char *desc) {
-    if (typ == exp) {
-      printf("%s => PyObject is '%s'\n", who, desc);
-    }
-  };
-  what_type(Py_TYPE(obj), &PyLong_Type, "py long");
-  what_type(Py_TYPE(obj), &PyFloat_Type, "py float");
-  what_type(Py_TYPE(obj), &PyBytes_Type, "py bytes");
-  what_type(Py_TYPE(obj), &PyList_Type, "py list");
-  what_type(Py_TYPE(obj), &PySet_Type, "py set");
-  what_type(Py_TYPE(obj), &PyDict_Type, "py dict");
-  what_type(Py_TYPE(obj), &PyTuple_Type, "py tuple");
-  what_type(Py_TYPE(obj), &PyFunction_Type, "py function");
-  what_type(Py_TYPE(obj), &PyModule_Type, "py module");
-  what_type(Py_TYPE(obj), &PyMethod_Type, "py method");
+  auto it = py_types.find(Py_TYPE(obj));
+  if (it != py_types.end()) {
+    printf("%s => PyObject is '%s'\n", who, it->second.data());
+  }
 }
+
+struct Algo {
+  std::map<std::string, std::string> known_keys{};
+  std::map<std::string, std::string> input_args{};
+  std::map<std::string, std::string> output_args{};
+};
 
 void test_hello_world() {
   // 调用简单语句
@@ -95,32 +107,60 @@ void to_cpp_map(PyObject *pd, std::map<std::string, std::string> &dst) {
   for (int i = 0; i < len; ++i) {
     PyObject *ks = PyObject_Str(PyList_GetItem(keys, i));
     auto _key = PyUnicode_AsUTF8(ks);
-    PyObject *vs = PyDict_GetItemString(pd, _key);
+    PyObject *vs = PyDict_GetItem(pd, ks);
     if (Py_TYPE(vs) == &PyBytes_Type) {
       dst.operator[](_key) = PyBytes_AsString(vs);
+    } else if (Py_TYPE(vs) == &PyFloat_Type) {
+      dst.operator[](_key) = std::to_string(PyFloat_AsDouble(vs));
+    } else if (Py_TYPE(vs) == &PyList_Type) {
+      dst.operator[](_key) = "[]py list is unsupported now, sorry...";
     } else {
       dst.operator[](_key) = PyUnicode_AsUTF8(vs);
     }
+    PyErr_Print();
+    PyErr_Clear();
     Py_DECREF(ks);
     Py_DECREF(vs);
   }
 }
 
+PyObject *to_py_list(std::vector<std::string> &known_keys) {
+  PyObject *pl = PyList_New(0);
+  for (const auto &item: known_keys) {
+    PyList_Append(pl, PyBytes_FromString(item.data()));
+  }
+  return pl;
+}
+
 void test_algo_obj(PyObject *pm) {
+  // 已知参数
+  auto known_args = std::map<std::string, std::string>();
+  known_args.operator[]("algo_name") = "算法名";
+  known_args.operator[]("audio_path") = "音频路径";
+  known_args.operator[]("output_path") = "输出 json 路径";
+  known_args.operator[]("model_size") = "模型大小";
+  known_args.operator[]("op_type") = "当前操作类型";
+  known_args.operator[]("prompt") = "语气提示词";
+  known_args.operator[]("language") = "当前语言";
+
   // 获取 AlgoProc 类
   PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProc");
   // 创建 AlgoProc 类实例 tom
-  PyObject *algo = PyObject_CallObject(clazz, Py_BuildValue("(s)", "prj-parse"));
+  PyObject *ctor_tuple = PyTuple_New(2);
+  PyTuple_SetItem(ctor_tuple, 0, Py_BuildValue("s", "prj-parse"));
+  PyTuple_SetItem(ctor_tuple, 1, to_py_dict(known_args));
+  PyObject *algo = PyObject_CallObject(clazz, ctor_tuple);
   // 调用 AlgoProc 实例方法 process
   PyObject *func = PyObject_GetAttrString(algo, "process");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
-    auto req = std::map<std::string, std::string>();
-    req.operator[]("algo_name") = "prj-parse";
-    req.operator[]("hello") = "hello";
-    req.operator[]("cpp") = "world";
+    auto input_args = std::map<std::string, std::string>();
+    input_args.operator[]("algo_name") = "prj-parse";
+    input_args.operator[]("audio_path") = "/tmp/audio.wav";
+    input_args.operator[]("output_path") = "/tmp/results.json";
+    input_args.operator[]("model_size") = "medium";
     PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, to_py_dict(req));
+    PyTuple_SetItem(tuple, 0, to_py_dict(input_args));
     PyObject *ret = PyObject_CallObject(func, tuple);
     if (ret == nullptr) {
       printf("PyObject_CallObject() failed!\n");
@@ -262,8 +302,7 @@ void test_do_hard_work(PyObject *pm) {
 
 std::string find_algo_impl_module(const std::string &who) {
   std::string algo_impl;
-  char *cwd = new char[64];
-  getcwd(cwd, 64);
+  char *cwd = getcwd(nullptr, 0);
   std::string root = std::string(cwd) + "/" + who;
   delete[] cwd;
   printf("%s() starting find algo module in: %s\n", __func__, root.c_str());
@@ -291,6 +330,8 @@ int main() {
   // 初始化
   Py_Initialize();
   test_hello_world();
+
+  initialize_py_types();
 
   // 导入当前目录
   PyRun_SimpleString("import sys");
