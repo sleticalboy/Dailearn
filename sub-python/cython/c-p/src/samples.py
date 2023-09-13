@@ -58,3 +58,6 @@ def do_hard_work():
         time.sleep(0.5)
     s = proxy_.callback.sum_int(20, 32)
     print(f"call_c_fptr() 20 + 32 = {s}")
+    print('gen dir:', proxy_.callback.gen_path())
+    print('gen image name:', proxy_.callback.gen_path(suffix="png"))
+    print('gen image with additional:', proxy_.callback.gen_path(additional="hello", suffix='png'))

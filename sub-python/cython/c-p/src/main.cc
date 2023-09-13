@@ -1,8 +1,9 @@
-#include <python3.8/Python.h>
+#include <python3.7/Python.h>
 #include <dirent.h>
 #include <string>
 #include <map>
 #include <vector>
+#include <sstream>
 
 static std::map<PyTypeObject*, std::string> py_types{};
 
@@ -18,6 +19,7 @@ void initialize_py_types() {
   py_types.operator[](&PyFunction_Type) = "py function";
   py_types.operator[](&PyModule_Type) = "py module";
   py_types.operator[](&PyMethod_Type) = "py method";
+  py_types.operator[](Py_TYPE(Py_None)) = "py none";
 }
 
 void debug_py_obj(PyObject *obj, const char *who) {
@@ -26,12 +28,6 @@ void debug_py_obj(PyObject *obj, const char *who) {
     printf("%s => PyObject is '%s'\n", who, it->second.data());
   }
 }
-
-struct Algo {
-  std::map<std::string, std::string> known_keys{};
-  std::map<std::string, std::string> input_args{};
-  std::map<std::string, std::string> output_args{};
-};
 
 void test_hello_world() {
   // 调用简单语句
@@ -103,7 +99,7 @@ PyObject *to_py_dict(std::map<std::string, std::string> &raw_map) {
 
 void to_cpp_map(PyObject *pd, std::map<std::string, std::string> &dst) {
   PyObject *keys = PyDict_Keys(pd);
-  Py_ssize_t len = PyList_Size(keys);
+  Py_ssize_t len = keys == nullptr ? 0 : PyList_Size(keys);
   for (int i = 0; i < len; ++i) {
     PyObject *ks = PyObject_Str(PyList_GetItem(keys, i));
     auto _key = PyUnicode_AsUTF8(ks);
@@ -134,21 +130,26 @@ PyObject *to_py_list(std::vector<std::string> &known_keys) {
 
 void test_algo_obj(PyObject *pm) {
   // 已知参数
-  auto known_args = std::map<std::string, std::string>();
-  known_args.operator[]("algo_name") = "算法名";
-  known_args.operator[]("audio_path") = "音频路径";
-  known_args.operator[]("output_path") = "输出 json 路径";
-  known_args.operator[]("model_size") = "模型大小";
-  known_args.operator[]("op_type") = "当前操作类型";
-  known_args.operator[]("prompt") = "语气提示词";
-  known_args.operator[]("language") = "当前语言";
+  auto input_keys = std::map<std::string, std::string>();
+  input_keys.operator[]("algo_name") = "算法名";
+  input_keys.operator[]("audio_path") = "音频路径";
+  input_keys.operator[]("output_path") = "输出 json 路径";
+  input_keys.operator[]("model_size") = "模型大小";
+  input_keys.operator[]("op_type") = "当前操作类型";
+  input_keys.operator[]("prompt") = "语气提示词";
+  input_keys.operator[]("language") = "当前语言";
+  auto output_keys = std::map<std::string, std::string>();
+  output_keys.operator[]("language") = "检测到的语言";
+  output_keys.operator[]("duration") = "音频时长";
+  output_keys.operator[]("data") = "文本数据";
 
   // 获取 AlgoProc 类
-  PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProc");
-  // 创建 AlgoProc 类实例 tom
-  PyObject *ctor_tuple = PyTuple_New(2);
+  PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProcImpl");
+  // 创建 AlgoProc 类实例
+  PyObject *ctor_tuple = PyTuple_New(3);
   PyTuple_SetItem(ctor_tuple, 0, Py_BuildValue("s", "prj-parse"));
-  PyTuple_SetItem(ctor_tuple, 1, to_py_dict(known_args));
+  PyTuple_SetItem(ctor_tuple, 1, to_py_dict(input_keys));
+  PyTuple_SetItem(ctor_tuple, 2, to_py_dict(output_keys));
   PyObject *algo = PyObject_CallObject(clazz, ctor_tuple);
   // 调用 AlgoProc 实例方法 process
   PyObject *func = PyObject_GetAttrString(algo, "process");
@@ -255,11 +256,41 @@ PyObject *wrapped_sum_int(PyObject *, PyObject *args) {
   return Py_BuildValue("i", a + b);
 }
 
+PyObject *wrapped_gen_path(PyObject *, PyObject *args, PyObject *kwargs) {
+  // args 类型是 tuple, kwargs 类型为 dict
+
+  // def generate_path(self, suffix: str = None, additional: str = None) -> str:
+  char *suffix = nullptr;
+  char *addition = nullptr;
+  if (kwargs != nullptr) {
+    static char *kwlist[] = { "suffix", "additional", nullptr };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ss", (char **) kwlist, &suffix, &addition)) {
+      PyErr_SetString(PyExc_RuntimeError, "Failed to parse gen_path() kwargs");
+      return nullptr;
+    }
+    printf("kw args suffix: %s, additional: %s\n", suffix, addition);
+  }
+
+  std::stringstream path_;
+  if (suffix != nullptr && addition != nullptr) {
+    // 生成文件名，可以添加附带信息
+    path_ << "/algo-server/tmp/xxx-" << addition << "." << suffix;
+  } else if (suffix != nullptr) {
+    // 生成文件名
+    path_ << "/algo-server/tmp/xxx." << suffix;
+  } else {
+    // 生成目录，内部会先创建该目录
+    path_ << "/algo-server/tmp/xxx";
+  }
+  return Py_BuildValue("s", path_.str().c_str());
+}
+
 static PyMethodDef module_methods[] = {
-    {"square",     wrapped_square,     METH_VARARGS, "A c++ square function."},
-    {"post_value", wrapped_post_value, METH_VARARGS, "A c++ post_value function."},
-    {"sum_int",    wrapped_sum_int,    METH_VARARGS, "A c++ sum_int function."},
-    {nullptr}
+    {"square",     wrapped_square,                 METH_VARARGS, "A c++ square function."},
+    {"post_value", wrapped_post_value,             METH_VARARGS, "A c++ post_value function."},
+    {"sum_int",    wrapped_sum_int,                METH_VARARGS, "A c++ sum_int function."},
+    {"gen_path",   (PyCFunction) wrapped_gen_path, METH_VARARGS | METH_KEYWORDS, "A c++ sum_int function."},
+    {nullptr,      nullptr, 0,                                   nullptr}
 };
 
 static struct PyModuleDef M_native_functions = {
@@ -286,7 +317,8 @@ void test_set_cpp_callback(PyObject *pm) {
   if (PyCallable_Check(func)) {
     PyObject *tuple = PyTuple_New(1);
     PyTuple_SetItem(tuple, 0, PyInit_nativeFunctions());
-    PyObject_CallObject(func, tuple);
+    PyObject *r = PyObject_CallObject(func, tuple);
+    debug_py_obj(r, __func__);
     PyErr_Print();
   }
 }
