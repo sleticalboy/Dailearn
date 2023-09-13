@@ -4,8 +4,8 @@ CC	= $(CROSS)clang
 CXX	= $(CROSS)clang++
 LD	= $(CROSS)clang++
 
-CFLAGS = -I/usr/include/python3.7 -I/usr/include/google/protobuf -I./src/gencc
-LDFLAGS = -L/usr/lib/x86_64-linux-gnu/ -lpython3.7 -L/usr/lib/ -lprotobuf
+CFLAGS = -I/usr/include/python3.8 -I/usr/include/google/protobuf -I./src/gencc
+LDFLAGS = -L/usr/lib/x86_64-linux-gnu/ -lpython3.8 -L/usr/lib/ -lprotobuf
 
 prepare:
 	touch src/__init__.py

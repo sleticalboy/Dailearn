@@ -7,7 +7,7 @@ project(c-p)
 #set(CMAKE_CXX_COMPILER clang++)
 
 include_directories(
-        /usr/include/python3.7
+        /usr/include/python3.8
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -16,5 +16,5 @@ add_executable(sample
         )
 # 链接动态库
 target_link_libraries(sample
-        /usr/lib/x86_64-linux-gnu/libpython3.7.so
+        /usr/lib/x86_64-linux-gnu/libpython3.8.so
         )
