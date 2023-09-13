@@ -30,12 +30,8 @@ void test_arg_func(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(pm, "add");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
-    // 以下两种方式均可构建一个 python tuple 对象
-    // PyObject *tuple = PyTuple_New(2);
-    // PyTuple_SetItem(tuple, 0, Py_BuildValue("i", 2));
-    // PyTuple_SetItem(tuple, 1, Py_BuildValue("i", 3));
-    PyObject *tuple = Py_BuildValue("(i, i)", 2, 3);
-    PyObject *ret = PyObject_CallObject(func, tuple);
+    PyObject *ret = PyObject_CallObject(func, Py_BuildValue("(i, i)", 2, 3));
+    debug_py_obj(ret, __func__);
     int r;
     PyArg_Parse(ret, "i", &r);
     printf("2 + 3 = %d\n", r);
@@ -46,15 +42,18 @@ void test_print_list(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(pm, "print_list");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
-    PyObject *list = PyList_New(0);
-    PyList_Append(list, Py_BuildValue("i", 30));
-    PyList_Append(list, Py_BuildValue("f", 10.8));
-    PyList_Append(list, Py_BuildValue("d", 0.98));
-    PyList_Append(list, Py_BuildValue("s", "c string"));
-    PyList_Append(list, Py_BuildValue("(s, s, i)", "1 str", "2 str", 30));
-    PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, list);
-    PyObject_CallObject(func, tuple);
+    PyObject *list = Py_BuildValue("[ifds(s,s,i)]", 30, 10.8, 0.98, "a C str", "1-str", "2-str", 30);
+    PyObject_CallObject(func, Py_BuildValue("(O)", list));
+  }
+}
+
+void test_print_dict(PyObject *pm) {
+  PyObject *func = PyObject_GetAttrString(pm, "print_dict");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  if (PyCallable_Check(func)) {
+    PyObject *scores = Py_BuildValue("(iii)", 99, 98, 91);
+    PyObject *pdict = Py_BuildValue("{s:s,s:i,s:O}", "name", "tom", "age", 25, "scores", scores);
+    PyObject_CallObject(func, Py_BuildValue("(O)", pdict));
   }
 }
 
@@ -371,6 +370,7 @@ int main() {
     test_no_arg_func(pm);
     test_arg_func(pm);
     test_print_list(pm);
+    test_print_dict(pm);
     test_obj_func(pm);
     test_get_list(pm);
     test_get_dict(pm);

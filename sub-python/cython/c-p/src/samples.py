@@ -21,6 +21,10 @@ def print_list(li):
     print(f"list is {li}, len: {len(li)}")
 
 
+def print_dict(d):
+    print(f"dict is {d}, len: {len(d)}")
+
+
 def get_list() -> List[str]:
     return ['30', '99']
 
