@@ -30,7 +30,7 @@ void test_arg_func(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(pm, "add");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
-    PyObject *ret = PyObject_CallObject(func, Py_BuildValue("(i, i)", 2, 3));
+    PyObject *ret = PyObject_CallObject(func, Py_BuildValue("(ii)", 2, 3));
     debug_py_obj(ret, __func__);
     int r;
     PyArg_Parse(ret, "i", &r);
@@ -79,12 +79,18 @@ PyObject *to_py_dict(std::map<std::string, std::string> &raw_map) {
 }
 
 void to_cpp_map(PyObject *pd, std::map<std::string, std::string> &dst) {
+  debug_py_obj(pd, __func__);
   PyObject *keys = PyDict_Keys(pd);
-  Py_ssize_t len = keys == nullptr ? 0 : PyList_Size(keys);
+  Py_ssize_t len = keys == nullptr ? 0 : PyDict_Size(pd);
   for (int i = 0; i < len; ++i) {
-    PyObject *ks = PyObject_Str(PyList_GetItem(keys, i));
-    auto _key = PyUnicode_AsUTF8(ks);
-    PyObject *vs = PyDict_GetItem(pd, ks);
+    PyObject *ks = PyList_GetItem(keys, i);
+    const char *_key = PyUnicode_AsUTF8(ks);
+    PyObject *vs = PyDict_GetItemString(pd, _key);
+    if (vs == nullptr) {
+      PyErr_Print();
+      PyErr_Clear();
+      continue;
+    }
     if (Py_TYPE(vs) == &PyBytes_Type) {
       dst.operator[](_key) = PyBytes_AsString(vs);
     } else if (Py_TYPE(vs) == &PyFloat_Type) {
@@ -94,17 +100,15 @@ void to_cpp_map(PyObject *pd, std::map<std::string, std::string> &dst) {
     } else {
       dst.operator[](_key) = PyUnicode_AsUTF8(vs);
     }
-    PyErr_Print();
-    PyErr_Clear();
     Py_DECREF(ks);
     Py_DECREF(vs);
   }
 }
 
 PyObject *to_py_list(std::vector<std::string> &known_keys) {
-  PyObject *pl = PyList_New(0);
-  for (const auto &item: known_keys) {
-    PyList_Append(pl, PyBytes_FromString(item.data()));
+  PyObject *pl = PyList_New((Py_ssize_t) known_keys.size());
+  for (int i = 0; i < known_keys.size(); ++i) {
+    PyList_SetItem(pl, i,  PyBytes_FromString(known_keys[i].data()));
   }
   return pl;
 }
@@ -127,11 +131,7 @@ void test_algo_obj(PyObject *pm) {
   // 获取 AlgoProc 类
   PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProcImpl");
   // 创建 AlgoProc 类实例
-  PyObject *ctor_tuple = PyTuple_New(3);
-  PyTuple_SetItem(ctor_tuple, 0, Py_BuildValue("s", "prj-parse"));
-  PyTuple_SetItem(ctor_tuple, 1, to_py_dict(input_keys));
-  PyTuple_SetItem(ctor_tuple, 2, to_py_dict(output_keys));
-  PyObject *algo = PyObject_CallObject(clazz, ctor_tuple);
+  PyObject *algo = PyObject_CallObject(clazz, Py_BuildValue("(sOO)", "prj-parse", to_py_dict(input_keys), to_py_dict(output_keys)));
   // 调用 AlgoProc 实例方法 process
   PyObject *func = PyObject_GetAttrString(algo, "process");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
@@ -141,19 +141,26 @@ void test_algo_obj(PyObject *pm) {
     input_args.operator[]("audio_path") = "/tmp/audio.wav";
     input_args.operator[]("output_path") = "/tmp/results.json";
     input_args.operator[]("model_size") = "medium";
-    PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, to_py_dict(input_args));
-    PyObject *ret = PyObject_CallObject(func, tuple);
+    PyObject *ret = PyObject_CallObject(func, Py_BuildValue("(O)", to_py_dict(input_args)));
     if (ret == nullptr) {
       printf("PyObject_CallObject() failed!\n");
       PyErr_Print();
       return;
     }
     debug_py_obj(ret, __func__);
-    auto res = std::map<std::string, std::string>();
-    to_cpp_map(ret, res);
-    for (const auto &item: res) {
+    PyObject *results_ = PyTuple_GetItem(ret, 0);
+    auto results = std::map<std::string, std::string>();
+    to_cpp_map(results_, results);
+    for (const auto &item: results) {
       printf("res -> %s: %s\n", item.first.data(), item.second.data());
+    }
+    if (PyTuple_Size(ret) > 1) {
+      PyObject *files_ = PyTuple_GetItem(ret, 1);
+      auto files = std::map<std::string, std::string>();
+      to_cpp_map(files_, files);
+      for (const auto &item: files) {
+        printf("files -> %s: %s\n", item.first.data(), item.second.data());
+      }
     }
   }
   // 调用 AlgoProc 实例方法 release
@@ -191,6 +198,21 @@ void test_get_dict(PyObject *pm) {
     PyArg_Parse(PyDict_GetItemString(dict, "name"), "s", &name);
     PyArg_Parse(PyDict_GetItemString(dict, "age"), "i", &age);
     printf("dict: name: %s, age: %d\n", name, age);
+  }
+}
+
+void test_get_user(PyObject *pm) {
+  // 调用无参函数
+  PyObject *func = PyObject_GetAttrString(pm, "get_user");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  if (PyCallable_Check(func)) {
+    PyObject *user = PyObject_CallObject(func, nullptr);
+    debug_py_obj(user, __func__);
+    func = PyObject_GetAttrString(user, "say_hello");
+    printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+    if (PyCallable_Check(func)) {
+      PyObject_CallObject(func, nullptr);
+    }
   }
 }
 
@@ -298,9 +320,7 @@ void test_set_cpp_callback(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(pm, "set_cpp_callback");
   printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
-    PyObject *tuple = PyTuple_New(1);
-    PyTuple_SetItem(tuple, 0, PyInit_nativeFunctions());
-    PyObject *r = PyObject_CallObject(func, tuple);
+    PyObject *r = PyObject_CallObject(func, Py_BuildValue("(O)", PyInit_nativeFunctions()));
     debug_py_obj(r, __func__);
     PyErr_Print();
   }
@@ -347,8 +367,7 @@ int main() {
   test_hello_world();
 
   // 导入当前目录
-  PyRun_SimpleString("import sys");
-  PyRun_SimpleString("sys.path.append('src')");
+  PyRun_SimpleString("import sys\nsys.path.append('src')");
   // 找到并导入当前算法脚本文件，命名规则要符合 algo_xxx_impl.py
   auto algo_module = find_algo_impl_module("src");
   if (algo_module.empty()) {
@@ -364,7 +383,14 @@ int main() {
     PyErr_Print();
   }
 
-  pm = PyImport_ImportModule("samples");
+  printf("\n%s() start test samples modules...\n", __func__);
+
+  try {
+    pm = PyImport_ImportModule("samples");
+    PyErr_Print();
+  } catch (std::exception &e) {
+    printf("PyImport_ImportModule() failed: %s\n", e.what());
+  }
   printf("%s() samples pm: %p\n", __func__, pm);
   if (pm != nullptr) {
     test_no_arg_func(pm);
@@ -374,6 +400,7 @@ int main() {
     test_obj_func(pm);
     test_get_list(pm);
     test_get_dict(pm);
+    test_get_user(pm);
 
     // 测试给 python 设置 cpp 回调
     test_set_cpp_callback(pm);

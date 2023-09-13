@@ -33,6 +33,10 @@ def get_dict():
     return {'name': 'tom', 'age': 30}
 
 
+def get_user() -> User:
+    return User("py tom")
+
+
 class CallbackProxy:
 
     def __init__(self):
