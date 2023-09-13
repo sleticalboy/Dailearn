@@ -5,27 +5,9 @@
 #include <vector>
 #include <sstream>
 
-static std::map<PyTypeObject*, std::string> py_types{};
-
-void initialize_py_types() {
-  py_types.operator[](&PyBool_Type) = "py bool";
-  py_types.operator[](&PyLong_Type) = "py long";
-  py_types.operator[](&PyFloat_Type) = "py float";
-  py_types.operator[](&PyBytes_Type) = "py bytes";
-  py_types.operator[](&PyList_Type) = "py list";
-  py_types.operator[](&PyDict_Type) = "py dict";
-  py_types.operator[](&PySet_Type) = "py set";
-  py_types.operator[](&PyTuple_Type) = "py tuple";
-  py_types.operator[](&PyFunction_Type) = "py function";
-  py_types.operator[](&PyModule_Type) = "py module";
-  py_types.operator[](&PyMethod_Type) = "py method";
-  py_types.operator[](Py_TYPE(Py_None)) = "py none";
-}
-
 void debug_py_obj(PyObject *obj, const char *who) {
-  auto it = py_types.find(Py_TYPE(obj));
-  if (it != py_types.end()) {
-    printf("%s => PyObject is '%s'\n", who, it->second.data());
+  if (obj != nullptr) {
+    printf("%s => PyObject is '%s'\n", who, obj->ob_type->tp_name);
   }
 }
 
@@ -258,6 +240,8 @@ PyObject *wrapped_sum_int(PyObject *, PyObject *args) {
 
 PyObject *wrapped_gen_path(PyObject *, PyObject *args, PyObject *kwargs) {
   // args 类型是 tuple, kwargs 类型为 dict
+  debug_py_obj(args, "wrapped_gen_path() args");
+  debug_py_obj(kwargs, "wrapped_gen_path() kwargs");
 
   // def generate_path(self, suffix: str = None, additional: str = None) -> str:
   char *suffix = nullptr;
@@ -362,8 +346,6 @@ int main() {
   // 初始化
   Py_Initialize();
   test_hello_world();
-
-  initialize_py_types();
 
   // 导入当前目录
   PyRun_SimpleString("import sys");
