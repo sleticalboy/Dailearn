@@ -114,6 +114,20 @@ PyObject *to_py_list(std::vector<std::string> &known_keys) {
 }
 
 void test_algo_obj(PyObject *pm) {
+  char *cwd = getcwd(nullptr, 0);
+  std::string root = std::string(cwd) + "/testdata";
+  delete[] cwd;
+  auto fp = fopen((root + "/request.pbuf.txt").c_str(), "rb");
+  char rbuf[4096];
+  fread(rbuf, sizeof(rbuf), sizeof(*rbuf), fp);
+  printf("%s() request content: %s\n", __func__, rbuf);
+  fclose(fp);
+  fp = fopen((root + "/request-files.pbuf.txt").c_str(), "rb");
+  char fbuf[4096];
+  fread(fbuf, sizeof(fbuf), sizeof(*fbuf), fp);
+  printf("%s() request file content: %s\n", __func__, fbuf);
+  fclose(fp);
+
   // 已知参数
   auto input_keys = std::map<std::string, std::string>();
   input_keys.operator[]("algo_name") = "算法名";
@@ -255,7 +269,6 @@ PyObject *wrapped_sum_int(PyObject *, PyObject *args) {
     PyErr_SetString(PyExc_RuntimeError, "Failed to parse python args");
     return nullptr;
   }
-  printf("a: %d, b: %d\n", a, b);
   return Py_BuildValue("i", a + b);
 }
 

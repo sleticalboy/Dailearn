@@ -14,7 +14,7 @@ class AlgoProcImpl(AlgoProcBase):
     def __init__(self, algo_name, input_keys, output_keys):
         super().__init__(algo_name, input_keys, output_keys)
 
-    def process(self, args: dict) -> (dict, dict):
+    def process(self, args: dict):
         super().process(args)
         self.check_input_args(args.keys())
         print('model is being initialized...')

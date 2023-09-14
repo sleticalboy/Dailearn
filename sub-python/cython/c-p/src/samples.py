@@ -57,7 +57,7 @@ def do_hard_work():
     print(f'do_hard_work() cb is: {proxy_.callback}, type: {type(proxy_.callback)}, doc: {proxy_.callback.__doc__}')
     # 调用 c++ 函数并返回处理结果
     s = proxy_.callback.square(3)
-    print(f"call_c_fptr() 3's square = {s}")
+    print(f"do_hard_work() 3's square = {s}")
 
     import time
     for i in range(3):

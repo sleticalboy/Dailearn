@@ -47,13 +47,14 @@ class AlgoProcBase(object):
         raise Exception("callback is not set, could not generate path")
 
     @abstractmethod
-    def process(self, args: dict) -> (dict, dict):
+    def process(self, args: dict):
         """
         算法处理
         :param args: 处理参数
-        :return: 结果 & 文件集合（可选）
+        :return: 结果 和文件集合（可选）
         """
         print(f"[{self.name}]#process() args: {args}")
+        pass
 
     @abstractmethod
     def release(self):
@@ -61,6 +62,7 @@ class AlgoProcBase(object):
         释放算法资源
         """
         print(f"[{self.name}]#release()")
+        pass
 
     def check_input_args(self, keys):
         """
