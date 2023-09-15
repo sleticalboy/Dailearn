@@ -1,4 +1,4 @@
-import time
+import os
 
 from algo_base import AlgoProcBase
 
@@ -11,38 +11,52 @@ class AlgoProcImpl(AlgoProcBase):
     4、c 解析处理结果并转成结构体返回给 go；
     """
 
-    def __init__(self, algo_name, input_keys, output_keys):
-        super().__init__(algo_name, input_keys, output_keys)
+    def __init__(self, algo_name):
+        super().__init__(algo_name)
 
-    def process(self, args: dict):
-        super().process(args)
-        self.check_input_args(args.keys())
-        print('model is being initialized...')
-        time.sleep(0.5)
-        print('language is being detected...')
-        time.sleep(0.5)
-        print('result is being writing...')
-        time.sleep(0.5)
-        results = {
-            "language": b"en",
-            "duration_ms": 4000.67,
-            "data": []
-        }
-        print(f"p algo output is: {results}, type: {type(results)}")
-        return results, {
-            'output_path': args['output_path']
-        }
+    def process(self, request_buf: bytes) -> bytes:
+        print(f"[{self.name}]#process() {type(request_buf)}\n{request_buf}")
+        # b'\n\nprj-export\x128\n0http://172.16.3.9/share/binlee/audio_whisper.wav\x10\x01*\x02en\x1a\x9f\x01\x12\x9c\x01\n0http://172.16.3.9/share/binlee/audio_whisper.wav\x12h"f/home/binlee/code/open-source/quvideo/algo-agent/testdata/tmp/2e38c54c-52a6-4c3e-8baf-a4715548dead.wav'
+        # b'\n\tprj-parse\x12>\n0http://172.16.3.9/share/binlee/audio_whisper.wav\x10\x01*\x02en\x8fp4\xfaNV\x1a\x9f\x01\x12\x9c\x01\n0http://172.16.3.9/share/binlee/audio_whisper.wav\x12h"f/home/binlee/code/open-source/quvideo/algo-agent/testdata/tmp/2e38c54c-52a6-4c3e-8baf-a4715548dead.wav'
+
+        from genpy.audio_whisper_pb2 import AudioWhisperRequest, AudioWhisperResponse
+        from genpy.py_algo_spec_pb2 import PyAlgoRequest, PyAlgoResponse, AlgoDownloadUrlMap, AlgoUploadUrlMap
+        request = PyAlgoRequest.FromString(request_buf)
+        print(f"[{self.name}]#process() real {request}")
+        awr = AudioWhisperRequest.FromString(request.request_buf)
+        print(f'real request: {awr}\n{awr.SerializeToString()}')
+
+        durls = AlgoDownloadUrlMap.FromString(request.download_urls_buf)
+        print(f'real files:: {durls}\n{durls.SerializeToString()}')
+
+        awr_ = AudioWhisperResponse()
+        awr_.language = 'en'
+        awr_.audio_duration = 3000
+        awr_.out_json_url = '/xxx/s/d.json'
+
+        uurls = AlgoUploadUrlMap()
+        uurls.kvs.setdefault(awr_.out_json_url)
+
+        resp = PyAlgoResponse(response_buf=awr_.SerializeToString(), upload_urls_buf=uurls.SerializeToString())
+        return resp.SerializeToString()
 
     def release(self):
-        super().release()
+        print(f"[{self.name}]#release()")
 
 
 if __name__ == '__main__':
-    _proc = AlgoProcImpl('prj-export', {}, {})
-    _req = {
-        'hello': b'world',
-        'bytes': b'bytes',
-    }
-    _rep = _proc.process(_req)
+    test_data = os.path.abspath(os.getcwd() + "/../testdata")
+    from genpy.py_algo_spec_pb2 import PyAlgoRequest, PyAlgoResponse
+    _proc = AlgoProcImpl('prj-export')
+    _req = PyAlgoRequest()
+    _req.algo_name = 'prj-export'
+    with open(test_data + '/request.pbuf.txt', 'rb') as f:
+        _req.request_buf = f.read()
+    with open(test_data + '/request-files.pbuf.txt', 'rb') as f:
+        _req.download_urls_buf = f.read()
+    with open(test_data + '/request-full-python.pbuf.txt', 'wb') as f:
+        f.write(_req.SerializeToString())
+    _rep_buf = _proc.process(_req.SerializeToString())
     _proc.release()
-    print(f'output rep: {_rep}, type: {type(_rep)}')
+    _rep = PyAlgoResponse.FromString(_rep_buf)
+    print(f'output {type(_rep)}\n{_rep}')

@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = "gitlab.quvideo.com/algo/grpc.git/audio_whisperpb";
+
+package audio_whisperpb;
+
+//import "algox.proto";
+
+// 操作类型
+enum OpType {
+  // 语音转文字
+  Whisper = 0;
+  // 语种检测
+  LanguageDetect = 1;
+}
+
+// 请求
+message AudioWhisperRequest {
+  // 音频 url
+  string audio_url = 1;
+  // 操作类型
+  OpType op_type = 2;
+  // 模型尺寸
+  string model_size = 3;
+  // 语气提示词
+  string prompt = 4;
+  // 音频语言
+  string language = 5;
+}
+
+// 响应
+message AudioWhisperResponse {
+  // 响应状态
+//  algoxpb.AlgoStatus status = 1;
+  // 输出文本处理结果 url
+  string out_json_url = 2;
+  // 输入音频时长
+  int64 audio_duration = 3;
+  // 语种
+  string language = 4;
+}

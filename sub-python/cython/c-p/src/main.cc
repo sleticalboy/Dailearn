@@ -1,9 +1,11 @@
-#include <python3.8/Python.h>
+#include <python3.10/Python.h>
 #include <dirent.h>
 #include <string>
 #include <map>
 #include <vector>
 #include <sstream>
+
+#include "gencc/py_algo_spec.pb.h"
 
 void debug_py_obj(PyObject *obj, const char *who) {
   if (obj != nullptr) {
@@ -114,20 +116,6 @@ PyObject *to_py_list(std::vector<std::string> &known_keys) {
 }
 
 void test_algo_obj(PyObject *pm) {
-  char *cwd = getcwd(nullptr, 0);
-  std::string root = std::string(cwd) + "/testdata";
-  delete[] cwd;
-  auto fp = fopen((root + "/request.pbuf.txt").c_str(), "rb");
-  char rbuf[4096];
-  fread(rbuf, sizeof(rbuf), sizeof(*rbuf), fp);
-  printf("%s() request content: %s\n", __func__, rbuf);
-  fclose(fp);
-  fp = fopen((root + "/request-files.pbuf.txt").c_str(), "rb");
-  char fbuf[4096];
-  fread(fbuf, sizeof(fbuf), sizeof(*fbuf), fp);
-  printf("%s() request file content: %s\n", __func__, fbuf);
-  fclose(fp);
-
   // 已知参数
   auto input_keys = std::map<std::string, std::string>();
   input_keys.operator[]("algo_name") = "算法名";
@@ -176,6 +164,69 @@ void test_algo_obj(PyObject *pm) {
         printf("files -> %s: %s\n", item.first.data(), item.second.data());
       }
     }
+  }
+  // 调用 AlgoProc 实例方法 release
+  func = PyObject_GetAttrString(algo, "release");
+  if (PyCallable_Check(func)) {
+    PyObject_CallObject(func, nullptr);
+  }
+}
+
+void test_algo_obj_v2(PyObject *pm) {
+  char *cwd = getcwd(nullptr, 0);
+  std::string request = std::string(cwd) + "/testdata/request.pbuf.txt";
+  std::string request_file = std::string(cwd) + "/testdata/request-files.pbuf.txt";
+  std::string request_full = std::string(cwd) + "/testdata/request-full-python.pbuf.txt";
+  delete[] cwd;
+
+  struct stat s{};
+  stat(request.c_str(), &s);
+  auto fp = fopen(request.c_str(), "rb");
+  char rbuf[s.st_size];
+  fread(rbuf, sizeof(rbuf), sizeof(*rbuf), fp);
+  printf("%s() request content: %s\n", __func__, rbuf);
+  fclose(fp);
+  stat(request_file.c_str(), &s);
+  fp = fopen(request_file.c_str(), "rb");
+  char fbuf[s.st_size];
+  fread(fbuf, sizeof(fbuf), sizeof(*fbuf), fp);
+  printf("%s() request file content: %s\n", __func__, fbuf);
+  fclose(fp);
+
+  // 获取 AlgoProc 类
+  PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProcImpl");
+  // 创建 AlgoProc 类实例
+  PyObject *algo = PyObject_CallObject(clazz, Py_BuildValue("(s)", "prj-parse"));
+  // 调用 AlgoProc 实例方法 process
+  PyObject *func = PyObject_GetAttrString(algo, "process");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  if (PyCallable_Check(func)) {
+    py_algo_specpb::PyAlgoRequest req = py_algo_specpb::PyAlgoRequest();
+    req.set_algo_name("prj-parse");
+    req.set_request_buf(std::string(rbuf));
+    req.set_download_urls_buf(std::string(fbuf));
+
+    stat(request_full.c_str(), &s);
+    char *buf = new char[s.st_size];
+    auto fpp = fopen(request_full.c_str(), "rb");
+    fread(buf, sizeof(buf), sizeof(char*), fpp);
+    fclose(fpp);
+
+    PyObject *arg_list = Py_BuildValue("(O)", PyBytes_FromString(buf));
+    // delete[] buf;
+
+    // PyObject *arg_list = Py_BuildValue("(O)", PyBytes_FromString(req.SerializeAsString().c_str()));
+
+    PyObject *ret = PyObject_CallObject(func, arg_list);
+    if (ret == nullptr) {
+      printf("PyObject_CallObject() failed!\n");
+      PyErr_Print();
+      return;
+    }
+    debug_py_obj(ret, __func__);
+    py_algo_specpb::PyAlgoResponse resp = py_algo_specpb::PyAlgoResponse();
+    resp.ParseFromString(std::string(PyBytes_AsString(ret)));
+    printf("%s() response: %s\n", __func__, resp.SerializeAsString().c_str());
   }
   // 调用 AlgoProc 实例方法 release
   func = PyObject_GetAttrString(algo, "release");
@@ -348,6 +399,22 @@ void test_do_hard_work(PyObject *pm) {
   }
 }
 
+void test_protobuf(PyObject * pm) {
+  // 调用无参函数
+  PyObject *func = PyObject_GetAttrString(pm, "parse_protobuf");
+  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  if (PyCallable_Check(func)) {
+    py_algo_specpb::AlgoDownloadUrl url = py_algo_specpb::AlgoDownloadUrl();
+    url.set_url("https://example.com/index.html");
+    printf("%s() proto data 1: %s\n", __func__, url.SerializeAsString().c_str());
+    auto buf = PyBytes_FromString(url.SerializeAsString().c_str());
+    debug_py_obj(buf, __func__);
+    printf("%s() proto data 2: %s\n", __func__, PyBytes_AsString(buf));
+    PyObject_CallObject(func, Py_BuildValue("(S)", buf));
+    PyErr_Print();
+  }
+}
+
 std::string find_algo_impl_module(const std::string &who) {
   std::string algo_impl;
   char *cwd = getcwd(nullptr, 0);
@@ -381,20 +448,23 @@ int main() {
 
   // 导入当前目录
   PyRun_SimpleString("import sys\nsys.path.append('src')");
+  PyObject *pm = nullptr;
+
   // 找到并导入当前算法脚本文件，命名规则要符合 algo_xxx_impl.py
-  auto algo_module = find_algo_impl_module("src");
-  if (algo_module.empty()) {
-    perror("cannot find an algo impl module.\n");
-    return 0;
-  }
-  printf("%s() find algo impl module: %s\n", __func__, algo_module.c_str());
-  PyObject *pm = PyImport_ImportModule(algo_module.c_str());
-  printf("%s() algo impl pm: %p\n", __func__, pm);
-  if (pm != nullptr) {
-    test_algo_obj(pm);
-  } else {
-    PyErr_Print();
-  }
+  // auto algo_module = find_algo_impl_module("src");
+  // if (algo_module.empty()) {
+  //   perror("cannot find an algo impl module.\n");
+  //   return 0;
+  // }
+  // printf("%s() find algo impl module: %s\n", __func__, algo_module.c_str());
+  // PyObject *pm = PyImport_ImportModule(algo_module.c_str());
+  // printf("%s() algo impl pm: %p\n", __func__, pm);
+  // if (pm != nullptr) {
+  //   // test_algo_obj(pm);
+  //   // test_algo_obj_v2(pm);
+  // } else {
+  //   PyErr_Print();
+  // }
 
   printf("\n%s() start test samples modules...\n", __func__);
 
@@ -406,18 +476,21 @@ int main() {
   }
   printf("%s() samples pm: %p\n", __func__, pm);
   if (pm != nullptr) {
-    test_no_arg_func(pm);
-    test_arg_func(pm);
-    test_print_list(pm);
-    test_print_dict(pm);
-    test_obj_func(pm);
-    test_get_list(pm);
-    test_get_dict(pm);
-    test_get_user(pm);
+    // test_no_arg_func(pm);
+    // test_arg_func(pm);
+    // test_print_list(pm);
+    // test_print_dict(pm);
+    // test_obj_func(pm);
+    // test_get_list(pm);
+    // test_get_dict(pm);
+    // test_get_user(pm);
+    //
+    // // 测试给 python 设置 cpp 回调
+    // test_set_cpp_callback(pm);
+    // test_do_hard_work(pm);
 
-    // 测试给 python 设置 cpp 回调
-    test_set_cpp_callback(pm);
-    test_do_hard_work(pm);
+    // 测试 proto 数据传递
+    test_protobuf(pm);
   } else {
     PyErr_Print();
   }

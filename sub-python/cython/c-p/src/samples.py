@@ -1,5 +1,7 @@
 from typing import List
 
+from genpy.py_algo_spec_pb2 import AlgoDownloadUrl
+
 
 class User(object):
     def __init__(self, name):
@@ -69,3 +71,17 @@ def do_hard_work():
     print('gen dir:', proxy_.callback.gen_path())
     print('gen image name:', proxy_.callback.gen_path(suffix="png"))
     print('gen image with additional:', proxy_.callback.gen_path(additional="hello", suffix='png'))
+
+
+def parse_protobuf(buf: bytes):
+    print(f'parse_protobuf() {buf}, {type(buf)}')
+    print(f'parse_protobuf() parse proto data')
+    url_ = AlgoDownloadUrl.FromString(buf)
+    print(url_)
+    pass
+
+
+if __name__ == '__main__':
+    _url = AlgoDownloadUrl()
+    _url.url = "https://example.com/py.index.html"
+    parse_protobuf(_url.SerializeToString())

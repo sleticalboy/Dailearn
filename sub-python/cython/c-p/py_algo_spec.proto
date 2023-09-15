@@ -6,12 +6,33 @@ package py_algo_specpb;
 
 //import "algox.proto";
 
+message AlgoDownloadUrl {
+  bool is_local_file = 1;
+  bool is_unzip = 2;
+  bool is_cache = 3;
+  string url = 4;
+}
+
+message AlgoUploadUrl {
+  string url = 1;
+}
+
+message AlgoDownloadUrlMap {
+  map<string, AlgoDownloadUrl> kvs = 2;
+}
+
+message AlgoUploadUrlMap {
+  map<string, AlgoUploadUrl> kvs = 3;
+}
+
 // 请求
 message PyAlgoRequest {
   // 算法名
   string algo_name = 1;
   // 算法请求
   bytes request_buf = 2;
+  // 算法请求输入文件
+  bytes download_urls_buf = 3;
 }
 
 // 响应
@@ -20,4 +41,6 @@ message PyAlgoResponse {
   // algoxpb.AlgoStatus status = 1;
   // 处理结果
   bytes response_buf = 2;
+  // 算法处理结果文件
+  bytes upload_urls_buf = 3;
 }

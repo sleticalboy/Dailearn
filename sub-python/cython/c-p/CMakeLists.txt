@@ -7,14 +7,20 @@ project(c-p)
 #set(CMAKE_CXX_COMPILER clang++)
 
 include_directories(
-        /usr/include/python3.8
+        /usr/include/python3.10
+        /usr/include/google/protobuf
+        /src/gencc
+)
+
+link_directories(
+        /usr/lib/x86_64-linux-gnu/
+        /usr/lib/
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(sample
         src/main.cc
+        src/gencc/py_algo_spec.pb.cc
         )
 # 链接动态库
-target_link_libraries(sample
-        /usr/lib/x86_64-linux-gnu/libpython3.8.so
-        )
+target_link_libraries(sample python3.10 protobuf)

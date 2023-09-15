@@ -9,16 +9,10 @@ class AlgoProcBase(object):
     4、c 解析处理结果并转成结构体返回给 go；
     """
 
-    def __init__(self, algo_name: str, input_keys: dict, output_keys: dict):
+    def __init__(self, algo_name):
         self.name = algo_name
-        self.input_keys = input_keys
-        self.output_keys = output_keys
         self.callback = None
         print(f"[{algo_name}]#__init__()")
-        for k, v in input_keys.items():
-            print(f'===> {k}: {v.decode()}')
-        for k, v in output_keys.items():
-            print(f'<=== {k}: {v.decode()}')
 
     def set_callback(self, callback):
         """
@@ -47,28 +41,17 @@ class AlgoProcBase(object):
         raise Exception("callback is not set, could not generate path")
 
     @abstractmethod
-    def process(self, args: dict):
+    def process(self, request_buf) -> bytes:
         """
         算法处理
-        :param args: 处理参数
+        :param request_buf: 处理参数
         :return: 结果 和文件集合（可选）
         """
-        print(f"[{self.name}]#process() args: {args}")
-        pass
+        raise Exception("No implementation!")
 
     @abstractmethod
     def release(self):
         """
         释放算法资源
         """
-        print(f"[{self.name}]#release()")
-        pass
-
-    def check_input_args(self, keys):
-        """
-        检查参数是否合法
-        """
-        kl = self.input_keys.keys()
-        for k in keys:
-            if k not in kl:
-                raise Exception(f"Unknown input key '{k}'")
+        raise Exception("No implementation!")
