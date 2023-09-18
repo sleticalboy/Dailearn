@@ -24,10 +24,10 @@ class AlgoProcImpl(AlgoProcBase):
         request = PyAlgoRequest.FromString(request_buf)
         print(f"[{self.name}]#process() real {request}")
         awr = AudioWhisperRequest.FromString(request.request_buf)
-        print(f'real request: {awr}\n{awr.SerializeToString()}')
+        print(f'real request: {awr}')
 
         durls = AlgoDownloadUrlMap.FromString(request.download_urls_buf)
-        print(f'real files:: {durls}\n{durls.SerializeToString()}')
+        print(f'real files: {durls}')
 
         awr_ = AudioWhisperResponse()
         awr_.language = 'en'

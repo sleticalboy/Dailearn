@@ -74,14 +74,16 @@ def do_hard_work():
 
 
 def parse_protobuf(buf: bytes):
-    print(f'parse_protobuf() {buf}, {type(buf)}')
-    print(f'parse_protobuf() parse proto data')
+    import google
+    print(f'parse_protobuf() {buf}, {type(buf)}, version: {google.protobuf.__version__}')
     url_ = AlgoDownloadUrl.FromString(buf)
-    print(url_)
+    print(f'url is: {url_}')
     pass
 
 
 if __name__ == '__main__':
     _url = AlgoDownloadUrl()
     _url.url = "https://example.com/py.index.html"
+    _url.is_local_file = False
+    _url.is_cache = False
     parse_protobuf(_url.SerializeToString())

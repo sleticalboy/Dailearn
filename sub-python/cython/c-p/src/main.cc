@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "gencc/py_algo_spec.pb.h"
+#include "gencc/audio_whisper.pb.h"
 
 void debug_py_obj(PyObject *obj, const char *who) {
   if (obj != nullptr) {
@@ -116,83 +117,6 @@ PyObject *to_py_list(std::vector<std::string> &known_keys) {
 }
 
 void test_algo_obj(PyObject *pm) {
-  // 已知参数
-  auto input_keys = std::map<std::string, std::string>();
-  input_keys.operator[]("algo_name") = "算法名";
-  input_keys.operator[]("audio_path") = "音频路径";
-  input_keys.operator[]("output_path") = "输出 json 路径";
-  input_keys.operator[]("model_size") = "模型大小";
-  input_keys.operator[]("op_type") = "当前操作类型";
-  input_keys.operator[]("prompt") = "语气提示词";
-  input_keys.operator[]("language") = "当前语言";
-  auto output_keys = std::map<std::string, std::string>();
-  output_keys.operator[]("language") = "检测到的语言";
-  output_keys.operator[]("duration") = "音频时长";
-  output_keys.operator[]("data") = "文本数据";
-
-  // 获取 AlgoProc 类
-  PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProcImpl");
-  // 创建 AlgoProc 类实例
-  PyObject *algo = PyObject_CallObject(clazz, Py_BuildValue("(sOO)", "prj-parse", to_py_dict(input_keys), to_py_dict(output_keys)));
-  // 调用 AlgoProc 实例方法 process
-  PyObject *func = PyObject_GetAttrString(algo, "process");
-  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
-  if (PyCallable_Check(func)) {
-    auto input_args = std::map<std::string, std::string>();
-    input_args.operator[]("algo_name") = "prj-parse";
-    input_args.operator[]("audio_path") = "/tmp/audio.wav";
-    input_args.operator[]("output_path") = "/tmp/results.json";
-    input_args.operator[]("model_size") = "medium";
-    PyObject *ret = PyObject_CallObject(func, Py_BuildValue("(O)", to_py_dict(input_args)));
-    if (ret == nullptr) {
-      printf("PyObject_CallObject() failed!\n");
-      PyErr_Print();
-      return;
-    }
-    debug_py_obj(ret, __func__);
-    PyObject *results_ = PyTuple_GetItem(ret, 0);
-    auto results = std::map<std::string, std::string>();
-    to_cpp_map(results_, results);
-    for (const auto &item: results) {
-      printf("res -> %s: %s\n", item.first.data(), item.second.data());
-    }
-    if (PyTuple_Size(ret) > 1) {
-      PyObject *files_ = PyTuple_GetItem(ret, 1);
-      auto files = std::map<std::string, std::string>();
-      to_cpp_map(files_, files);
-      for (const auto &item: files) {
-        printf("files -> %s: %s\n", item.first.data(), item.second.data());
-      }
-    }
-  }
-  // 调用 AlgoProc 实例方法 release
-  func = PyObject_GetAttrString(algo, "release");
-  if (PyCallable_Check(func)) {
-    PyObject_CallObject(func, nullptr);
-  }
-}
-
-void test_algo_obj_v2(PyObject *pm) {
-  char *cwd = getcwd(nullptr, 0);
-  std::string request = std::string(cwd) + "/testdata/request.pbuf.txt";
-  std::string request_file = std::string(cwd) + "/testdata/request-files.pbuf.txt";
-  std::string request_full = std::string(cwd) + "/testdata/request-full-python.pbuf.txt";
-  delete[] cwd;
-
-  struct stat s{};
-  stat(request.c_str(), &s);
-  auto fp = fopen(request.c_str(), "rb");
-  char rbuf[s.st_size];
-  fread(rbuf, sizeof(rbuf), sizeof(*rbuf), fp);
-  printf("%s() request content: %s\n", __func__, rbuf);
-  fclose(fp);
-  stat(request_file.c_str(), &s);
-  fp = fopen(request_file.c_str(), "rb");
-  char fbuf[s.st_size];
-  fread(fbuf, sizeof(fbuf), sizeof(*fbuf), fp);
-  printf("%s() request file content: %s\n", __func__, fbuf);
-  fclose(fp);
-
   // 获取 AlgoProc 类
   PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProcImpl");
   // 创建 AlgoProc 类实例
@@ -203,20 +127,20 @@ void test_algo_obj_v2(PyObject *pm) {
   if (PyCallable_Check(func)) {
     py_algo_specpb::PyAlgoRequest req = py_algo_specpb::PyAlgoRequest();
     req.set_algo_name("prj-parse");
-    req.set_request_buf(std::string(rbuf));
-    req.set_download_urls_buf(std::string(fbuf));
+    auto whisper = audio_whisperpb::AudioWhisperRequest();
+    whisper.set_language("en");
+    whisper.set_op_type(audio_whisperpb::Whisper);
+    whisper.set_audio_url("https://www.example.com/demo.wav");
+    whisper.set_model_size("medium");
+    req.set_request_buf(whisper.SerializeAsString());
 
-    stat(request_full.c_str(), &s);
-    char *buf = new char[s.st_size];
-    auto fpp = fopen(request_full.c_str(), "rb");
-    fread(buf, sizeof(buf), sizeof(char*), fpp);
-    fclose(fpp);
+    auto urls = py_algo_specpb::AlgoDownloadUrlMap();
+    urls.mutable_kvs()->operator[]("audio_url").set_url("https://www.example.com/a.index");
+    urls.mutable_kvs()->operator[]("audio_url").set_is_unzip(true);
+    urls.mutable_kvs()->operator[]("audio_url").set_is_cache(true);
+    req.set_download_urls_buf(urls.SerializeAsString());
 
-    PyObject *arg_list = Py_BuildValue("(O)", PyBytes_FromString(buf));
-    // delete[] buf;
-
-    // PyObject *arg_list = Py_BuildValue("(O)", PyBytes_FromString(req.SerializeAsString().c_str()));
-
+    PyObject *arg_list = Py_BuildValue("(O)", PyBytes_FromString(req.SerializeAsString().c_str()));
     PyObject *ret = PyObject_CallObject(func, arg_list);
     if (ret == nullptr) {
       printf("PyObject_CallObject() failed!\n");
@@ -402,15 +326,13 @@ void test_do_hard_work(PyObject *pm) {
 void test_protobuf(PyObject * pm) {
   // 调用无参函数
   PyObject *func = PyObject_GetAttrString(pm, "parse_protobuf");
-  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  printf("======> %s() pm: %p, func: %p, proto version: %d\n", __func__, pm, func, GOOGLE_PROTOBUF_VERSION);
   if (PyCallable_Check(func)) {
     py_algo_specpb::AlgoDownloadUrl url = py_algo_specpb::AlgoDownloadUrl();
     url.set_url("https://example.com/index.html");
-    printf("%s() proto data 1: %s\n", __func__, url.SerializeAsString().c_str());
-    auto buf = PyBytes_FromString(url.SerializeAsString().c_str());
-    debug_py_obj(buf, __func__);
-    printf("%s() proto data 2: %s\n", __func__, PyBytes_AsString(buf));
-    PyObject_CallObject(func, Py_BuildValue("(S)", buf));
+    url.set_is_local_file(false);
+    url.set_is_cache(true);
+    PyObject_CallObject(func, Py_BuildValue("(S)", PyBytes_FromString(url.SerializeAsString().c_str())));
     PyErr_Print();
   }
 }
@@ -451,20 +373,19 @@ int main() {
   PyObject *pm = nullptr;
 
   // 找到并导入当前算法脚本文件，命名规则要符合 algo_xxx_impl.py
-  // auto algo_module = find_algo_impl_module("src");
-  // if (algo_module.empty()) {
-  //   perror("cannot find an algo impl module.\n");
-  //   return 0;
-  // }
-  // printf("%s() find algo impl module: %s\n", __func__, algo_module.c_str());
-  // PyObject *pm = PyImport_ImportModule(algo_module.c_str());
-  // printf("%s() algo impl pm: %p\n", __func__, pm);
-  // if (pm != nullptr) {
-  //   // test_algo_obj(pm);
-  //   // test_algo_obj_v2(pm);
-  // } else {
-  //   PyErr_Print();
-  // }
+  auto algo_module = find_algo_impl_module("src");
+  if (algo_module.empty()) {
+    perror("cannot find an algo impl module.\n");
+    return 0;
+  }
+  printf("%s() find algo impl module: %s\n", __func__, algo_module.c_str());
+  pm = PyImport_ImportModule(algo_module.c_str());
+  printf("%s() algo impl pm: %p\n", __func__, pm);
+  if (pm != nullptr) {
+    test_algo_obj(pm);
+  } else {
+    PyErr_Print();
+  }
 
   printf("\n%s() start test samples modules...\n", __func__);
 
