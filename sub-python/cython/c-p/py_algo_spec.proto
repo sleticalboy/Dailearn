@@ -25,6 +25,11 @@ message AlgoUploadUrlMap {
   map<string, AlgoUploadUrl> kvs = 3;
 }
 
+message Spec {
+  string text = 1;
+  string sub_path = 2;
+}
+
 // 请求
 message PyAlgoRequest {
   // 算法名
@@ -33,6 +38,7 @@ message PyAlgoRequest {
   bytes request_buf = 2;
   // 算法请求输入文件
   bytes download_urls_buf = 3;
+  repeated Spec test_specs = 4;
 }
 
 // 响应

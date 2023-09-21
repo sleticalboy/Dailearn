@@ -134,6 +134,13 @@ void test_algo_obj(PyObject *pm) {
     whisper.set_model_size("medium");
     req.set_request_buf(whisper.SerializeAsString());
 
+    for (int i = 0; i < 10; ++i) {
+      auto spec = req.mutable_test_specs()->Add();
+      spec->set_text("text" + std::to_string(i));
+      spec->set_sub_path("path " + std::to_string(i));
+    }
+    std::cout << "specs size: " << req.test_specs_size() << std::endl;
+
     auto urls = py_algo_specpb::AlgoDownloadUrlMap();
     urls.mutable_kvs()->operator[]("audio_url").set_url("https://www.example.com/a.index");
     urls.mutable_kvs()->operator[]("audio_url").set_is_unzip(true);
