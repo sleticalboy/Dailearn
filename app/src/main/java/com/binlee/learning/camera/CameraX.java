@@ -169,6 +169,7 @@ public class CameraX {
   public static boolean setCameraPictureSize(String candidate, List<Camera.Size> supported, Camera.Parameters params) {
     int index = candidate.indexOf('x');
     if (index == NOT_FOUND) return false;
+
     int width = Integer.parseInt(candidate.substring(0, index));
     int height = Integer.parseInt(candidate.substring(index + 1));
     for (Camera.Size size : supported) {

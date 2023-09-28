@@ -54,7 +54,6 @@ class IndexModel internal constructor() {
       ModuleItem("音视频实战", FfmpegPractise::class.java),
       // 突破系统 hidden API
       ModuleItem("突破 hidden API", "crack_hidden_api"),
-      ModuleItem("进入画中画模式", "enter_pip_mode"),
       // debug tools
       ModuleItem("调试工具", DebugUI::class.java),
       // bluetooth

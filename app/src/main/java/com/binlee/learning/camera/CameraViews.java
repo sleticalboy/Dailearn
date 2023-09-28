@@ -9,13 +9,11 @@ import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import androidx.annotation.NonNull;
 import androidx.appcompat.widget.ListPopupWindow;
 import com.binlee.learning.camera.v1.CameraV1;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Created on 2023/6/27
@@ -79,13 +77,16 @@ public final class CameraViews {
     final ListPopupWindow popView = createPopView(context, anchor, items, selected, position -> {
       camera.setWhiteBalance(items.get(position));
     });
-    if (popView != null) popView.show();
+    if (popView != null) {
+      popView.setContentWidth(anchor.getWidth() * 2);
+      popView.show();
+    }
   }
 
   // 闪光模式
   // flash-mode=off
   // flash-mode-values=off,auto,on
-  public static void showFlashMode(Context context, View anchor,CameraV1 camera) {
+  public static void showFlashMode(Context context, View anchor, CameraV1 camera) {
     final Camera.Parameters params = camera.getInitialParams();
     if (params == null) return;
     final List<String> items = params.getSupportedFlashModes();
@@ -95,13 +96,15 @@ public final class CameraViews {
     final ListPopupWindow popView = createPopView(context, anchor, items, selected, position -> {
       camera.setFlashMode(items.get(position));
     });
-    if (popView != null) popView.show();
+    if (popView != null) {
+      popView.setContentWidth((int) (anchor.getWidth() * 1.2));
+      popView.show();
+    }
   }
-  
+
   private static ListPopupWindow createPopView(Context context, View anchor, List<String> items,
     int pos, OnItemClickListener l) {
     ListPopupWindow window = new ListPopupWindow(context);
-    window.setContentWidth(anchor.getWidth() * 2);
     window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
     window.setAnchorView(anchor);
     window.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_list_item_checked, items));
@@ -118,11 +121,8 @@ public final class CameraViews {
       final ListView listView = window.getListView();
       if (listView != null) {
         listView.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
-        if (pos >= 0) {
-          listView.setItemChecked(pos, true);
-        }
+        if (pos >= 0) listView.setItemChecked(pos, true);
       }
-      window.show();
     }
     return window;
   }

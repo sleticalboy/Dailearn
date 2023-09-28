@@ -116,7 +116,7 @@ public final class DlManager {
   }
 
   private static void checkComponent(ComponentName target) {
-    if (!DL_MANAGER.mPm.hasPlugin(target.getPackageName())) {
+    if (!get().mPm.hasPlugin(target.getPackageName())) {
       throw new PluginNotFoundException(target.getPackageName());
     }
   }
