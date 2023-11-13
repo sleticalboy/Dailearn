@@ -120,10 +120,10 @@ void test_algo_obj(PyObject *pm) {
   // 获取 AlgoProc 类
   PyObject *clazz = PyObject_GetAttrString(pm, "AlgoProcImpl");
   // 创建 AlgoProc 类实例
-  PyObject *algo = PyObject_CallObject(clazz, Py_BuildValue("(s)", "prj-parse"));
-  // 调用 AlgoProc 实例方法 process
-  PyObject *func = PyObject_GetAttrString(algo, "process");
-  printf("======> %s() pm: %p, func: %p\n", __func__, pm, func);
+  PyObject *algo = PyObject_CallObject(clazz, nullptr);
+  // 调用 AlgoProc 实例方法 init
+  PyObject *func = PyObject_GetAttrString(algo, "init");
+  printf("======> %s() pm: %p, init func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
     py_algo_specpb::PyAlgoRequest req = py_algo_specpb::PyAlgoRequest();
     req.set_algo_name("prj-parse");
@@ -134,29 +134,33 @@ void test_algo_obj(PyObject *pm) {
     whisper.set_model_size("medium");
     req.set_request_buf(whisper.SerializeAsString());
 
-    for (int i = 0; i < 10; ++i) {
-      auto spec = req.mutable_test_specs()->Add();
-      spec->set_text("text" + std::to_string(i));
-      spec->set_sub_path("path " + std::to_string(i));
-    }
-    std::cout << "specs size: " << req.test_specs_size() << std::endl;
-
     auto urls = py_algo_specpb::AlgoDownloadUrlMap();
     urls.mutable_kvs()->operator[]("audio_url").set_url("https://www.example.com/a.index");
     urls.mutable_kvs()->operator[]("audio_url").set_is_unzip(true);
     urls.mutable_kvs()->operator[]("audio_url").set_is_cache(true);
     req.set_download_urls_buf(urls.SerializeAsString());
 
-    PyObject *arg_list = Py_BuildValue("(O)", PyBytes_FromString(req.SerializeAsString().c_str()));
-    PyObject *ret = PyObject_CallObject(func, arg_list);
+    PyObject *ret = PyObject_CallObject(func, Py_BuildValue("(O)", PyBytes_FromString(req.SerializeAsString().c_str())));
     if (ret == nullptr) {
-      printf("PyObject_CallObject() failed!\n");
+      printf("PyObject_CallObject() init() failed!\n");
+      PyErr_Print();
+      return;
+    }
+  }
+
+  // 调用 AlgoProc 实例方法 process
+  func = PyObject_GetAttrString(algo, "process");
+  printf("======> %s() pm: %p, process func: %p\n", __func__, pm, func);
+  if (PyCallable_Check(func)) {
+    PyObject *ret = PyObject_CallObject(func, nullptr);
+    if (ret == nullptr) {
+      printf("PyObject_CallObject('process') failed!\n");
       PyErr_Print();
       return;
     }
     debug_py_obj(ret, __func__);
-    py_algo_specpb::PyAlgoResponse resp = py_algo_specpb::PyAlgoResponse();
-    resp.ParseFromString(std::string(PyBytes_AsString(ret)));
+    auto resp = py_algo_specpb::PyAlgoResponse();
+    resp.ParseFromString(PyBytes_AsString(ret));
     printf("%s() response: %s\n", __func__, resp.SerializeAsString().c_str());
   }
   // 调用 AlgoProc 实例方法 release
@@ -285,11 +289,25 @@ PyObject *wrapped_gen_path(PyObject *, PyObject *args, PyObject *kwargs) {
   return Py_BuildValue("s", path_.str().c_str());
 }
 
+PyObject *wrapped_on_progress(PyObject *, PyObject *args) {
+  // debug_py_obj(args, __func__);
+  float progress;
+  if (!PyArg_ParseTuple(args, "f", &progress)) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to parse python args");
+    return nullptr;
+  }
+  if ((int) progress % 10 == 0) {
+    printf("%s() progress: %.2f%%\n", __func__, progress);
+  }
+  Py_RETURN_NONE;
+}
+
 static PyMethodDef module_methods[] = {
     {"square",     wrapped_square,                 METH_VARARGS, "A c++ square function."},
     {"post_value", wrapped_post_value,             METH_VARARGS, "A c++ post_value function."},
     {"sum_int",    wrapped_sum_int,                METH_VARARGS, "A c++ sum_int function."},
     {"gen_path",   (PyCFunction) wrapped_gen_path, METH_VARARGS | METH_KEYWORDS, "A c++ sum_int function."},
+    {"on_progress",   wrapped_on_progress, METH_VARARGS, "A c++ on_progress function."},
     {nullptr,      nullptr, 0,                                   nullptr}
 };
 
@@ -394,6 +412,8 @@ int main() {
     PyErr_Print();
   }
 
+  return 0;
+
   printf("\n%s() start test samples modules...\n", __func__);
 
   try {
@@ -414,11 +434,11 @@ int main() {
     // test_get_user(pm);
     //
     // // 测试给 python 设置 cpp 回调
-    // test_set_cpp_callback(pm);
-    // test_do_hard_work(pm);
+    test_set_cpp_callback(pm);
+    test_do_hard_work(pm);
 
     // 测试 proto 数据传递
-    test_protobuf(pm);
+    // test_protobuf(pm);
   } else {
     PyErr_Print();
   }

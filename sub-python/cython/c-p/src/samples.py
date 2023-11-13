@@ -42,35 +42,61 @@ def get_user() -> User:
 class CallbackProxy:
 
     def __init__(self):
-        self.callback = None
+        self.delegate = None
+
+    def generate_path(self, suffix: str = None, additional: str = None) -> str:
+        """
+        生成文件路径
+        :param suffix: 文件后缀，为空时会生成一个目录，否则生成一个文件路径
+        :param additional: 额外的信息，会附带在路径中
+        :return: 文件路径
+        """
+        if self.delegate is not None:
+            if suffix is None and additional is None:
+                return self.delegate.gen_path()
+            if suffix is not None and additional is None:
+                return self.delegate.gen_path(suffix=suffix)
+            if suffix is not None and additional is not None:
+                return self.delegate.gen_path(suffix=suffix, additional=additional)
+        raise Exception("callback is not set, could not generate path")
+
+    def publish_progress(self, progress: float):
+        if self.delegate is not None:
+            self.delegate.on_progress(progress)
+        pass
 
 
 proxy_ = CallbackProxy()
 
 
 def set_cpp_callback(callback):
-    proxy_.callback = callback
-    print(f'set_cpp_callback() cb: {callback}, cpp_cb: {proxy_.callback}')
+    proxy_.delegate = callback
+    print(f'set_cpp_callback() cb: {callback}, cpp_cb: {proxy_.delegate}')
 
 
 def do_hard_work():
-    if proxy_.callback is None:
+    print(f'do_hard_work() cb is: {proxy_.delegate}, type: {type(proxy_.delegate)}')
+    if proxy_.delegate is None:
         return
-    print(f'do_hard_work() cb is: {proxy_.callback}, type: {type(proxy_.callback)}, doc: {proxy_.callback.__doc__}')
+    print(f'do_hard_work() cb doc: {proxy_.delegate.__doc__}')
     # 调用 c++ 函数并返回处理结果
-    s = proxy_.callback.square(3)
+    s = proxy_.delegate.square(3)
     print(f"do_hard_work() 3's square = {s}")
 
     import time
     for i in range(3):
         # 把值回调给 c++
-        proxy_.callback.post_value(i, f'str {i}')
+        proxy_.delegate.post_value(i, f'str {i}')
         time.sleep(0.5)
-    s = proxy_.callback.sum_int(20, 32)
+    s = proxy_.delegate.sum_int(20, 32)
     print(f"call_c_fptr() 20 + 32 = {s}")
-    print('gen dir:', proxy_.callback.gen_path())
-    print('gen image name:', proxy_.callback.gen_path(suffix="png"))
-    print('gen image with additional:', proxy_.callback.gen_path(additional="hello", suffix='png'))
+    print('gen dir:', proxy_.generate_path())
+    print('gen image name:', proxy_.generate_path(suffix="png"))
+    print('gen image with additional:', proxy_.generate_path(additional="hello", suffix='png'))
+
+    for i in range(100):
+        proxy_.publish_progress(i + 1)
+        time.sleep(0.05)
 
 
 def parse_protobuf(buf: bytes):

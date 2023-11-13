@@ -9,10 +9,20 @@ class AlgoProcBase(object):
     4、c 解析处理结果并转成结构体返回给 go；
     """
 
-    def __init__(self, algo_name):
-        self.name = algo_name
+    def __init__(self):
+        self.name = 'py-algo-base'
         self.callback = None
-        print(f"[{algo_name}]#__init__()")
+
+        self.request = None
+        self.download_urls = None
+
+        self.response = None
+        self.upload_urls = None
+        pass
+
+    @abstractmethod
+    def init(self, req_buf: bytes):
+        print(f"[{self.name}]#init(), type: {type(req_buf)}, buf: {req_buf}")
 
     def set_callback(self, callback):
         """
@@ -41,11 +51,10 @@ class AlgoProcBase(object):
         raise Exception("callback is not set, could not generate path")
 
     @abstractmethod
-    def process(self, request_buf) -> bytes:
+    def process(self) -> bytes:
         """
         算法处理
-        :param request_buf: 处理参数
-        :return: 结果 和文件集合（可选）
+        :return: 处理结果
         """
         raise Exception("No implementation!")
 
