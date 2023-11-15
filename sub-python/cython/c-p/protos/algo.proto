@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package algopb;
+
+// gen python
+
+message AlgoTraceId {
+	uint64 high = 1;
+	uint64 low = 2;
+}
+
+message CallbackAddr {
+	enum CallbackType {
+		CALLBACK_NONE = 0;
+		CALLBACK_GRPC = 1;
+		CALLBACK_HTTP = 2;
+	}
+
+	CallbackType type = 1;
+	string addr = 2;
+	string internal_addr = 3;
+}
+
+message ObjectConfig {
+	enum ObejctType {
+		OBJECT_TYPE_NONE = 0;
+		OBJECT_TYPE_OSS = 1;
+		OBJECT_TYPE_AWS = 2;
+		OBJECT_TYPE_COS = 3;
+	}
+
+	ObejctType type = 1;
+	bool disable_upload = 2;
+	string bucket_name = 3;
+ 	string access_key_id = 4;
+	string access_key_secret = 5;
+	string endpoint = 6;
+	string domain = 7;
+	string prefix = 8;
+	string internal_endpoint = 9;
+	string internal_domain = 10;
+	string region = 11;
+	bool is_private = 12;
+	// oss 下载相关配置：并发数（默认为 1）
+	int32 routines = 13;
+	// 分片大小（范围必须在 100k - 5G）
+	int64 part_size = 14;
+}
+
+message AlgoBaseArgs {
+	AlgoTraceId trace_id = 1;
+	string business_id = 2;
+	string app_name = 3;
+	string algo_name = 4;
+    string method_name = 5;
+	string queue_name = 6;
+	CallbackAddr callback_addr = 7;
+	ObjectConfig object = 8;
+}
+
+message AlgoProcessStatus {
+	enum AlgoPorcessCode {
+		ALGO_PROCESS_CODE_OK = 0;
+		ALGO_PROCESS_CODE_SERIALIZATION_FAILED = 1;
+		ALGO_PROCESS_CODE_PARAMETER_ERROR = 2;  // 输入和cgo返回参数错误
+		ALGO_PROCESS_CODE_DOWNLOAD_FAILED = 3;
+		ALGO_PROCESS_CODE_UPLOAD_FAILED = 4;
+		ALGO_PROCESS_CODE_PROCESS_FAILED = 5;
+		ALGO_PROCESS_CODE_CGO_FAILED = 6;
+		ALGO_PROCESS_CODE_NSQ_TIMEOUT = 7;
+		ALGO_PROCESS_CODE_NSQ_ATTEMPTS = 8;
+                ALGO_PROCESS_CODE_TASK_CANCELED = 9;
+
+		ALGO_PROCESS_CODE_ALGO_INTERNAL_FAILED = 100;   // 算法内部错误 === 具体错误见algoxpb algocode algo_code
+		ALGO_PROCESS_CODE_ALGO_FAILED = 101;            // 算法错误
+
+		ALGO_PROCESS_CODE_UNKNOW = 1000;
+	}
+
+	AlgoPorcessCode code = 1;
+	string msg = 2;
+    uint64 cgo_ms = 3;
+	// 组合服务也要存储algo_code 这里可以不关注
+}
+
+message AlgoSerializeBuffer {
+	enum AlgoSerializeType {
+    	ALGO_SERIALIZE_PROTOBUF = 0;
+		ALGO_SERIALIZE_JSON = 1;
+	}
+
+	AlgoSerializeType type = 1;
+	bytes buf = 2;
+}
+
+message AlgoDownloadUrl {
+	bool is_local_file = 1;
+	bool is_unzip = 2;
+	bool is_cache = 3;
+	string url = 4;
+}
+
+message AlgoUploadUrl {
+	string url = 1;
+}
+
+message AlgoDownloadUrlMap {
+	map<string, AlgoDownloadUrl> kvs = 2;
+}
+
+message AlgoUploadUrlMap {
+	map<string, AlgoUploadUrl> kvs = 3;
+}
+
+message AlgoRequest {
+	algopb.AlgoBaseArgs base_args = 1;
+	algopb.AlgoDownloadUrlMap download_url_map = 2;
+
+	algopb.AlgoSerializeBuffer buffer = 10;
+}
+
+message AlgoResponse {
+	algopb.AlgoProcessStatus process_status = 1;
+	algopb.AlgoUploadUrlMap upload_url_map  = 2;
+
+	algopb.AlgoSerializeBuffer buffer = 10;
+}
+
+message AsyncResponse {
+	uint64 task_id = 1;
+}

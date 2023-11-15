@@ -4,19 +4,23 @@ CC	= $(CROSS)clang
 CXX	= $(CROSS)clang++
 LD	= $(CROSS)clang++
 
-CFLAGS = -I/usr/include/python3.8 -I/usr/include/google/protobuf -I./src/gencc
+CFLAGS = -I/usr/include/python3.8 -I/usr/include/google/protobuf -I./src/cc
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu/ -lpython3.8 -L/usr/lib/ -lprotobuf
 
-prepare:
-	touch src/__init__.py
+sample:
+	g++ -fPIC src/main.cc \
+	src/cc/py_algo.pb.cc \
+	src/cc/audio_whisper.pb.cc \
+	${CFLAGS} ${LDFLAGS} -o $@
 
-sample: prepare
-	g++ src/main.cc ${CFLAGS} ${LDFLAGS} -o $@
+libalgo-agent-py.so:
+	g++ -shared -fPIC \
+	src/main.cc \
+	src/cc/py_algo.pb.cc \
+	src/cc/audio_whisper.pb.cc \
+	${CFLAGS} ${LDFLAGS} -o $@
 
-libalgo-agent-py.so: prepare
-	g++ -shared -fPIC src/main.cc ${CFLAGS} ${LDFLAGS} -o $@
-
-run: prepare sample
+run: sample
 	./sample
 
 clean:

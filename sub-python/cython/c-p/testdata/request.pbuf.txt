@@ -1,2 +1,0 @@
-
-0http://172.16.3.9/share/binlee/audio_whisper.wav*en

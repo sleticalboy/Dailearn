@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package py_algopb;
+
+// gen python
+
+// 请求
+message PyAlgoRequest {
+  // 算法名
+  string algo_name = 1;
+  // 请求内容
+  bytes request_buf = 2;
+  bytes download_urls_buf = 3;
+}
+
+// 响应
+message PyAlgoResponse {
+  // 处理结果
+  bytes response_buf = 1;
+  bytes upload_urls_buf = 2;
+}

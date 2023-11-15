@@ -1,0 +1,683 @@
+syntax = "proto3";
+
+package algoxpb;
+
+// gen python
+
+enum ImageChannel {
+    IMAGE_CHANNEL_NONE = 0;
+    IMAGE_CHANNEL_A = 1;
+    IMAGE_CHANNEL_RGBA = 4;
+}
+
+message ImageGeo {
+    uint32 x = 1;
+    uint32 y = 2;
+    uint32 width = 3;
+    uint32 height = 4;
+}
+
+message ImageGeoJaw {
+    uint32 x = 1;
+    uint32 y = 2;
+    uint32 width = 3;
+    uint32 height = 4;
+    uint32 jawx = 5;    // 下巴点位
+    uint32 jawy = 6;
+}
+
+// 锚点或者矩形框中心点
+message Anchor {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+message FacePoint {
+    float x = 1;
+    float y = 2;
+}
+
+message FaceAngles {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+message HeadAlignArgs{
+    ImageGeoJaw face_geo =1;
+    FacePoint template_face_unchor =2;
+    int32 head_align_size =3; // 模版配置下来的
+}
+
+message FaceAttr {
+    int32 gender = 1;  // 0 - male, 1 - female
+    int32 age = 2;     // 0 ~ 100
+    int32 emotion = 3; // 0 - anger, 1 - disgust, 2 - fear, 3 - laugh, 4 - smile, 5 - neutral, 6 - sad, 7 - surprize
+    int32 race = 4;    // 0 - Euro, 1 - Africa, 2 - Asia, 3 - India, 4 - others
+    int32 beauty = 5;  // 60 ~ 100
+}
+
+message AlgoFaceAttrArgs {
+    FaceAttr attr = 1;
+    ImageGeo geo = 2;   // 人脸矩形框
+    FaceAngles angles = 3; // face 3d angles
+    repeated FacePoint points = 4; // len=101 点位
+}
+
+enum AlgoUrlType {
+    ALGO_URL_OTHER = 0;
+    ALGO_URL_IMG = 1;
+    ALGO_URL_AUDIO = 2;
+    ALGO_URL_VIDEO = 3;
+    ALGO_URL_LYRIC = 4;
+    ALGO_URL_ZIP = 5;
+}
+
+
+message AlgoAlignArgs {
+    enum AlignType {
+        ALIGN_SET = 0;	// from width height
+        ALIGN_WIDTH = 1;// align from width 只需要设置align_size
+        ALIGN_HEIGHT = 2; // align from height 只需要设置align_size
+        ALIGN_LONG = 3;	// align from long side(auto) 自动按长便缩放 只需要设置align_size
+        ALIGN_SRC = 4; // align with src 设置与原视频或者图片的对齐方式
+        ALIGN_SHORT = 5;   // 按短边对齐，自动缩放 设置align_size
+    }
+
+    AlignType align_type = 1;
+    int32 width = 2;
+    int32 height = 3;
+    int32 align_size = 4;
+}
+
+message AlgoVideoCoverImageArgs {
+    enum VideoCoverImagePositionType {
+        VIDEO_COVER_IMAGE_FRIST_FPS = 0;
+        VIDEO_COVER_IMAGE_LAST_FPS = 1;
+        VIDEO_COVER_IMAGE_OFFSET_FPS = 2;
+    }
+
+    AlgoAlignArgs align = 1;
+    VideoCoverImagePositionType position_type = 2;
+    int64 video_fps_position = 3;
+    int32 quality = 4;	// JPEG quality (1-100 scale, default 80)
+}
+
+message AlgoCoverGifArgs {
+    enum CoverGifType {
+        COVER_GIF = 0;
+        COVER_WEBP = 1;
+    }
+    CoverGifType type = 1;  // 目前支持type=3 按长边对齐
+    AlgoAlignArgs align = 2;
+    int64 start_ms = 3;
+    int64 duration_ms = 4;
+    float play_speed = 5;  // 播放速度在 0.1-1.0之间
+}
+
+message AlgoVideoRequestArgs {
+    enum CodecProfileType {
+        CODEC_PROFILE_BASELINE = 0;
+        CODEC_PROFILE_EXTENDED = 1;
+        CODEC_PROFILE_MAIN = 2;
+        CODEC_PROFILE_HIGH = 3;
+    }
+    
+    message VideoBitrateArgs {
+        enum BitrateType {
+            BITRATE_ATUO = 0; // auto cal from width height fps 自动计算(根据width height fps)
+            BITRATE_SET = 1; // set bitrate 设置
+            BITRATE_SRC = 2; // from src video 与原视频保持一致 
+        }
+
+        BitrateType type = 1;
+        int64 bitrate = 2; // 2000000
+    }
+
+    CodecProfileType profile_type = 1;
+    float level = 2; // 4.0 or 4.1 暂时没有用到
+    AlgoAlignArgs align = 3;
+    VideoBitrateArgs bitrate = 4;
+    int32 fps = 5;  
+    int64 duration_ms = 6;
+
+    AlgoVideoCoverImageArgs cover_image = 10;
+    AlgoCoverGifArgs cover_gif = 11;
+    int32 key_frame = 12;
+    string extra_args = 13;
+}
+
+message AlgoFrameArgs {
+    enum FrameType {
+        FRAME_KEYFRAME = 0;
+        FRAME_POSITION = 1;
+        FRAME_POSITION_MAKEUP = 2;
+    }
+    FrameType type = 1;
+    AlgoAlignArgs align = 2;
+    repeated int64 position_seconds = 3;
+}
+
+message AlgoVideoResponseArgs {
+    int64 duration_ms = 1;		// 视频时长
+    string url = 2;				// 视频url
+    string cover_image_url = 3; // 封面url
+    repeated string frame_urls = 4; // 截帧
+    string cover_gif_url = 5;   // 封面gif
+}
+
+message AlgoFilterArgs {
+    int64 start_ms = 1;
+    int64 duration_ms = 2;
+    ImageGeo geo = 3;
+    HeadAlignArgs head_align =4;
+}
+
+message AlgoFilter {
+    string id = 1;
+    string url = 2;
+    AlgoPretreatmentArgs pretreatment = 3;	// filter预处理
+    AlgoFilterArgs args = 4;
+}
+
+/*message AlgoFilterApp {
+    string id = 1;
+    string url = 2;
+}*/
+
+message AlgoUrl {
+    AlgoUrlType type = 1;
+    string url = 2;
+}
+
+message AlgoUrlSimpleWithTime {
+    AlgoUrlType type = 1;
+    string url = 2;
+    int64 start_ms = 3;
+    int64 duration_ms = 4;
+}
+
+message AlgoPretreatmentArgs {
+    enum PretreatmentType {
+        PRETREATEMENT_CROP = 0;
+        PRETREATEMENT_VIDEO_SEGMENT = 1;
+        PRETREATEMENT_MASK = 2;
+        PRETREATEMENT_EXTERN_SOURCE = 3;
+        PRETREATEMENT_HAIR_MASK = 4;
+        PRETREATEMENT_SRC_CROP_CENTER = 5;
+        PRETREATEMENT_FACE_MASK= 6;
+    }
+
+    enum AlignType {
+        ALIGN_BOTTOM = 0;
+        ALIGN_TOP = 1;
+    }
+    
+    enum CropMode {
+        SCALE_TARGET = 0;
+        SCALE_HEAD = 1;
+        SCALE_HAIR = 2;
+        SCALE_SKY = 3;
+        SCALE_CARTOON = 4;
+        SCALE_PLACE_CENTER = 5;
+        SCALE_BOTTOM = 6;
+    }
+
+    // url(裁剪) + algo url(应用url 裁剪) + filter = 新的视频
+    message AlgoCropArgs {
+        ImageGeo geo = 1;	// 裁剪点位
+        string url = 2;		// 裁剪的url
+        int32 width = 3; // 这个宽高为filter素材扩展字段
+        int32 height = 4;
+        CropMode mode = 5;
+        int32 target_head_size = 6;
+    }
+
+    message AlgoVideoSegmentArgs {
+        AlignType type = 1;
+        int32 target_width = 2;    // 目标宽高
+        int32 target_height = 3;
+    }
+
+    message AlgoMaskArgs{
+        string url = 1;
+    }
+
+    message AlgoExternSourceArgs{
+        string url = 1;
+    }
+
+    message AlgoSrcCropArgs {
+        int32 target_width = 2;    // 目标宽高
+        int32 target_height = 3;
+    }
+
+    PretreatmentType type = 1;
+    AlgoCropArgs crop = 2; // 裁剪
+    AlgoVideoSegmentArgs segment = 3;
+    AlgoMaskArgs mask = 4;
+    repeated AlgoExternSourceArgs extern_source = 5;
+    AlgoMaskArgs hair_mask = 6;
+    AlgoSrcCropArgs src_crop = 7;
+
+    Anchor anchor = 8;
+}
+
+message AlgoUrlWithTime {
+    message AlgoAudioChangeArgs {
+        int64 end_duration_ms = 1;
+        int64 start_change_percent = 2;
+        int64 end_change_percent = 3;
+    }
+
+    message AlgoVideoMergeArgs {
+        float deform_ratio = 1;
+        float coarse_ratio = 2;
+        float detail_ratio = 3;
+        bool enable_face_detect = 4;    // 开启人脸检测
+        string model_image_url = 5;     // 模型图片url    
+        string model_dat_url = 6;       // dat文件
+    }
+
+
+    AlgoUrlType type = 1;
+    bool enable_repeat_video = 2;			// 重复播放视频
+    bool enable_face_detect = 3; 			// 开启人脸检测
+    bool enable_background_blurred = 4; 	// 背景模糊，图片与生成的视频宽高不匹配
+    string url = 5;
+    int64 start_ms = 6;	
+    int64 duration_ms = 7;					// 设置时长
+    AlgoAudioChangeArgs change = 8;			// 音频减弱参数
+    AlgoPretreatmentArgs pretreatment = 9;	// 主题预处理
+    AlgoVideoMergeArgs merge = 10;          // 视频融合
+    string cartoon_theme = 11;              // 动漫主题
+
+    repeated string titles = 20;		 	// 文字
+    repeated AlgoFilter filters = 21; 		// 基础的filter处理
+}
+
+message AlgoUrlWithFacePoint {
+    int64 first_frame_duration_ms = 1; 	// 第一帧展示时长  素材扩展字段
+    int64 last_frame_duration_ms = 2;	// 最后一帧展示时长
+    int32 width = 3;  					// 渐变的宽高；若为0，算法会重置为720x720
+    int32 height = 4;
+    string face_point = 5; 				// 人脸特征点
+    AlgoUrlWithTime url = 6;
+}
+
+
+message AlgoUrlAlignArgs {
+    enum AlignType {
+        ALIGN_NONE = 0;
+        ALIGN_BOTTOM = 1;   // 底部对齐
+        ALIGN_TOP = 2;      // 顶部对齐
+        ALIGN_HEAD = 3;     // 头部对齐
+        ALIGN_ADAPTIVE = 4; // 自适应
+    }
+
+    AlignType type = 1;
+    int32 target_head_size = 2; // 只有头部对齐才会用到
+    int32 target_width = 3;
+    int32 target_height = 4;
+}
+
+message AlgoAnchorArgs {
+    int32 x = 1;                // 坐标
+    int32 y = 2;
+    int32 target_head_size = 3; // 目标头部大小
+}
+
+message AlgoMaskArgs {
+    enum MaskType {
+        MASK_NONE = 0;
+        MASK_HUMAN = 1;     // 人体mask
+        MASK_HAIR = 2;      // 头发mask
+        MASK_SKY = 3;       // 天空mask
+        MASK_HEAD = 4;      // 人头mask
+        VIDEO_FACE_CHANGE = 5;    // 表情迁移外部源
+        MASK_CLOTHING = 6;  // 服装mask
+        CARTOON_FACE_STICKERS = 7; // 动漫贴纸
+        INSTANCE_SEGMENTATION = 8; // 实例分割 （侃侃）
+        MASK_SKIN = 9;      //皮肤mask
+        MASK_INPAINTING = 10; //修复后的图片
+        MASK_FACEPARSE = 11; // 人脸分割
+        MASK_HEAD2 = 12;
+    }
+
+    MaskType type = 1;
+    ImageGeoJaw geo = 2;
+    string url = 3;
+    float rate = 4;     // 人脸比例
+}
+
+message AlgoPoint {
+    enum PointType {
+        POINT_NONE = 0;
+        POINT_HEAD = 1; // 人头操作
+    }
+    
+    PointType type = 1; // 点位类型
+    FacePoint Point = 2;
+}
+
+message AlgoUrlWithPerfect {
+    enum FaceDetectType {
+        MANY_FACE_DETECT = 0;  // 至少大于1个人脸
+        SINGLE_FACE_DETECT = 1; // 包含1个人脸
+    }
+
+    enum AlgoType {
+        ALGO_NONE = 0;
+        HUMAN_POSE = 1;     // 人体点位
+    }
+
+    AlgoUrlType type = 1;
+    string url = 2;
+    int64 start_ms = 3;	
+    int64 duration_ms = 4;					// 设置时长ms
+    bool enable_face_detect = 5;
+
+    AlgoUrlAlignArgs align = 6;                // 对齐设置
+    AlgoAnchorArgs anchor = 7;              // 描点设置
+    AlgoPoint Point = 8;
+
+    FaceDetectType detect_type = 9;
+    AlgoType algo_type = 10;
+
+    repeated string titles = 20;		 	// 自定义文字
+    repeated AlgoMaskArgs masks = 21;       // mask配置
+    string extra_args = 22;
+    bool is_input = 23;
+    int64 trim_duration_ms = 24;
+}
+
+message AlgoOptionThemeArgs {
+    string id = 1;
+    string url = 2;
+}
+
+message AlgoWatermarkThemeArgs {
+    string id = 1;
+    string url = 2;
+    repeated string titles = 3;
+}
+
+message AlgoEndingWatermarkThemeArgs {
+    string id = 1;
+    string url = 2;
+    repeated string titles = 3;
+    string ending_url = 4;  // 片尾 mp4 url
+}
+
+message AlgoThemeArgs {
+    enum AlgoThemeType {
+        ALGO_THEME_NORMAL = 0;
+        ALGO_THEME_LYRIC = 1;
+    }
+
+    message AlgoLyricTransitionArgs {
+        int64 transition_offset_ms = 1; // 默认为500ms
+        int64 mini_image_show_ms = 2; // 默认2000ms
+    }
+    
+    message AlgoLyricUrl {
+        bool enable_repeat_audio = 1;
+        string lyric_url = 2;
+        AlgoUrlSimpleWithTime audio_url = 3;
+        AlgoLyricTransitionArgs transition_args = 4;       
+    }
+
+    AlgoThemeType type = 1;
+    string id = 2;
+    string theme_url = 3;
+    AlgoLyricUrl lyric_url = 4;
+}
+
+message AlgoStatus {
+    enum AlgoCode {
+        ALGO_CODE_OK = 0;
+        ALGO_CODE_SERIALIZATION_FAILED = 1;
+        ALGO_CODE_PARAMETER_ERRORT = 2;
+        ALGO_CODE_URL_NOT_FOUND = 3;	// 参数url在download url map未找到
+        ALGO_CODE_PARAMETER_NOT_SET = 4; // 缺少必要参数
+        ALGO_CODE_PARAMETER_TRANSFORM_FAILED = 5; // 参数转换错误
+
+        ALGO_CODE_ALGO_INTERNAL_FAILED = 100; // 算法内部错误
+
+        ALGO_CARTOON_RET_ERROR_NOFACES = 101;
+        ALGO_CARTOON_RET_ERROR_FACE_SIZE = 102;
+        ALGO_CARTOON_RET_ERROR_FACE_ANGLE = 103;
+        ALGO_CARTOON_RET_ERROR_IMAGE_SIZE = 104;
+        ALGO_CARTOON_RET_ERROR_IMAGE_FORMAT = 105;
+        ALGO_CARTOON_RET_ERROR_FACE_OUT = 106;
+        ALGO_CARTOON_RET_ERROR_FACE_MORE = 107;
+        ALGO_CARTOON_RET_ERROR_FILE  = 108; // 0x18001001
+        ALGO_CARTOON_RET_ERROR_OM_FACE_MORE = 109;
+
+        ALGO_SEGMENT_RET_ERROR_NOHUMAN = 110;
+        ALGO_SEGMENT_RET_ERROR_RATIO = 111;
+        ALGO_SEGMENT_RET_ERROR_HEIGHT_WIDTH = 112;
+        ALGO_SEGMENT_RET_ERROR_SMOOTH  = 113;
+
+        ALGO_HEADSEGMENT_RET_ERROR_FACE = 114;
+        ALGO_HEADSEGMENT_RET_ERROR_NOFACE = 115;
+        ALGO_HEADSEGMENT_RET_ERROR_MANYFACE = 116;
+        ALGO_HEADSEGMENT_RET_ERROR_FACEANGLE = 117;
+
+        ALGO_SEGMENT_RET_ERROR_NOHAIR = 118;
+        ALGO_HEADSEGMENT_RET_ERROR_FACEBORDER = 119;
+
+        ALGO_MERGE_RET_ERROR_IMAGE_FORMAT = 120;
+        ALGO_MERGE_RET_ERROR_NOFACES = 121;
+        ALGO_MERGE_RET_ERROR_FACE_DETECTION = 122;
+
+        ALGO_SEGMENT_RET_ERROR_NO_CLOTH = 123;
+        ALGO_SEGMENT_RET_ERROR_NO_SKIN = 124;
+
+        ALGO_REMOVE_WATERMARK_RET_ERROR = 130;
+        
+        ALGO_VIDEOPOST_RET_ERROR_IMAGE_FORMAT = 140; // 这个对于引擎也是clip source的一种
+        ALGO_VIDEOPOST_RET_ERROR_CLIP_SOURCE = 141; 
+        ALGO_VIDEOPOST_RET_ERROR_CLIP_ATTR = 142;
+        ALGO_VIDEOPOST_RET_ERROR_STORYBOARD = 143;
+        ALGO_VIDEOPOST_RET_ERROR_SAVE_PROJECT = 144;
+        ALGO_VIDEOPOST_RET_ERROR_LOAD_PROJECT = 145;
+        ALGO_VIDEOPOST_RET_ERROR_EXPORT = 146;
+        ALGO_VIDEOPOST_RET_ERROR_SLIDEPLUS_SOURCE = 147;
+        ALGO_VIDEOPOST_RET_ERROR_SLIDEPLUS_TEMPLATE = 148;
+        ALGO_VIDEOPOST_RET_ERROR_APPLET_ENCODER = 149;
+        ALGO_VIDEOPOST_RET_ERROR_APPLET_PARAMETER = 150;
+        ALGO_VIDEOPOST_RET_ERROR_APPLET_FACE = 151;
+
+        ALGO_VIDEOPOST_RET_ERROR_NOFACES = 152;
+        ALGO_VIDEOPOST_RET_ERROR_FACE_SIZE = 153;
+        ALGO_VIDEOPOST_RET_ERROR_FACE_ANGLE = 154;
+        ALGO_VIDEOPOST_RET_ERROR_IMAGE_SIZE = 155;
+        ALGO_VIDEOPOST_RET_ERROR_FACE_OUT = 156;
+        ALGO_VIDEOPOST_RET_ERROR_FACE_MORE = 157;
+        ALGO_VIDEOPOST_RET_ERROR_THEME_CONFIG = 158;
+        ALGO_VIDEOPOST_RET_ERROR_FILTER_CONFIG = 159;
+        ALGO_VIDEOPOST_RET_ERROR_CHANGE_SIZE_NOT_MATCHED = 160;
+        ALGO_VIDEOPOST_RET_ERROR_NOHUMAN = 161;
+        ALGO_VIDEOPOST_RET_ERROR_TIMESET = 162;
+        ALGO_VIDEOPOST_RET_ERROR_INVALID_POINT = 163;
+
+        ALGO_SEGMENT_RET_ERROR_NOSKY  = 200; 
+
+        ALGO_CROP_FORMAT_UNSUPPORT = 210;
+        ALGO_CROP_ALLOC_FAILED = 211;
+        ALGO_CROP_NOT_INIT = 212;
+        ALGO_CROP_INPUT_ERROR = 213;
+        ALGO_CROP_FACEDET_ERROR = 214;
+        ALGO_CROP_OBJECTDET_ERROR = 215;
+        ALGO_CROP_SALIENTDET_ERROR = 216;
+        ALGO_CROP_CROP_TYPE_ERROR = 217;
+        ALGO_CROP_CROP_SIZE_ERROR = 218;
+        ALGO_CROP_LOAD_MODEL_FAILED = 219;
+        ALGO_CROP_RUN_MODEL_FAILED = 220;
+        ALGO_CROP_GENERATE_BBOX_FAILED = 221;
+        ALGO_CROP_INIT_DETECTION_FAILED = 222;
+        ALGO_CROP_READ_IMAGE_FAILED = 223;
+        ALGO_CROP_CROP_IMAGE_FAILED = 224;
+
+        ALGO_STYLE_IMGSIZE_INVALID = 230;
+        ALGO_STYLE_IMGFMT_INVALID = 231;
+        ALGO_STYLE_NO_FACE = 232;
+        ALGO_STYLE_IMGLOAD_FAIL = 233;
+        ALGO_STYLE_ERF_NUM_ERROR = 234;
+        ALGO_STYLE_FACE_ANGLE_BIG = 235;
+
+        ALGO_XYAI_VM_UTILS_FASTCV_SAVE_IMAGE_FORMAT_UNSUPPORTED = 240;
+        ALGO_XYAI_VM_DET_MODEL_NOT_FOUND = 241;
+        ALGO_XYAI_VM_DET_IMAGE_FORMAT_UNSUPPORTED  = 242;
+        ALGO_XYAI_VM_CROP_INPUT_IMAGE_FORMAT_UNSUPPORTED = 243;
+        ALGO_XYAI_VM_CROP_FASTCV_DONT_SUPPORT_YUV_OUTPUT = 244;
+        ALGO_XYAI_VM_CROP_OUTPUT_IMAGE_FORMAT_UNSUPPORTED = 245;
+        ALGO_XYAI_VM_CROP_EXPRCTED_LENGTH_ERROR = 246;
+        ALGO_XYAI_VM_CROP_ASPECT_RATIO_ERROR = 247;
+
+        ALOG_TRANSGENDER_NO_FACE = 300;
+        ALOG_TRANSGENDER_FACE_ANGLE_BIG = 301;
+        ALOG_TRANSGENDER_IMGSIZE_INVALID = 302;
+
+        ALOG_INNOVATE_NO_FACE = 310;
+        ALOG_INNOVATE_FACE_ANGLE_BIG = 311;
+        ALOG_INNOVATE_IMGSIZE_INVALID = 312;
+
+        ALGO_AUDIOBEATE_FILE_ERROR = 320;
+        ALGO_AUDIOBEATE_MODLE_ERROR = 321;
+        ALGO_AUDIOBEATE_DETECT_ERROR = 322;
+        ALGO_AUDIOBEATE_NOT_FOUND = 323;
+
+        // image_instseg status code
+        ALGO_INSTSEG_RET_ERROR_INBUFFER_NULL = 330;
+        ALGO_INSTSEG_RET_ERROR_DENOMINATOR_ZERO = 331;
+        ALGO_INSTSEG_RET_ERROR_GET_MEMORY_FAIL = 332;
+        ALGO_INSTSEG_RET_ERROR_NOT_SUPPORTED = 333;
+        ALGO_INSTSEG_RET_ERROR_OUT_OF_MEMORY = 334;
+        ALGO_INSTSEG_RET_ERROR_INVALID_VALUE = 335;
+        ALGO_INSTSEG_RET_ERROR_NO_MODELS = 336;
+        ALGO_INSTSEG_RET_ERROR_LOAD_MODEL_FAIL = 337;
+        ALGO_INSTSEG_RET_ERROR_FORWARD_FAIL = 338;
+        ALGO_INSTSEG_RET_ERROR_NOT_MATCH = 339;
+
+        // image inpainting status code 
+        ALGO_INPAINTING_RET_ERROR_READIMAGE_FAIL = 340;
+        ALGO_INPAINTING_RET_ERROR_NO_MODELS = 341;
+        ALGO_INPAINTING_RET_ERROR_FORWARD_FAIL = 342;
+        ALGO_INPAINTING_RET_ERROR_CONVERT_FAIL = 343;
+        ALGO_INPAINTING_RET_ERROR_SAVE_FAIL = 344;
+        ALGO_INPAINTING_RET_ERROR_SAVE_FORMAT = 345;
+
+        ALGO_VOICE_CONVERSION_READ_AUDIO_FAIL = 346;
+        ALGO_VOICE_CONVERSION_SAVE_AUDIO_FAIL = 347;
+        ALGO_VOICE_CONVERSION_TIMBRE_NOT_SUPPORT = 348;
+
+        // video enhance status code
+        ALGO_VIDEOENHANCE_READ_VIDEO_FAILED = 351;
+        ALOG_VIDEOENHANCE_PUSH_FRAME_FAILED = 352;
+        ALOG_VIDEOENHANCE_PROCESSOR_FAILED = 353;
+        ALOG_VIDEOENHANCE_INTERNAL_ERROR = 354;
+        ALOG_VIDEOENHANCE_WRITE_VIDEO_FAILED = 355;
+        ALOG_VIDEOENHANCE_INIT_FRAMEPROCESSOR_FAILED = 356;
+        ALOG_VIDEOENHANCE_VIDEO_SIZE_TOO_LARGE = 357;
+
+        // image gpen status code
+        ALGO_IMAGEGPEN_RET_INIT_FACEGAN_FAILED   = 361;
+        ALGO_IMAGEGPEN_RET_INIT_SR_FAILED        = 362;
+        ALGO_IMAGEGPEN_RET_INIT_LANDMARK_FAILED  = 363;
+        ALGO_IMAGEGPEN_RET_LOAD_IMAGE_FAILED     = 364;
+        ALGO_IMAGEGPEN_RET_SR_INFER_FAILED       = 365;
+        ALGO_IMAGEGPEN_RET_LANDMARK_INFER_FAILED = 366;
+        ALGO_IMAGEGPEN_RET_NO_FACE               = 367;
+        ALGO_IMAGEGPEN_RET_GAN_INFER_FAILED      = 368;
+        ALGO_IMAGEGPEN_RET_SAVE_IMAGE_FAILED     = 369;
+        ALGO_FS_NULL_PTR                         = 370;
+        ALGO_FS_FILE_NOT_EXIST                   = 371;
+        ALGO_FS_MODEL_ERROR                      = 372;
+        ALGO_FS_IMGSIZE_INVALID = 373;
+        ALGO_FS_IMGFMT_INVALID  = 374; 
+        ALGO_FS_NO_FACE         = 375; 
+        ALGO_FS_IMGLOAD_FAIL    = 376; 
+        ALGO_FS_FACE_ANGLE_BIG  = 377; 
+        ALGO_FS_UNKNOWN  = 378;
+        ALGO_CARTOON3_FUNCTION_PARAMS = 379;
+        ALGO_CARTOON3_FILE_OPEN_FAILED  = 380;
+        ALGO_CARTOON3_CONFIG_PARAMS  = 381;
+        ALGO_CARTOON3_LOAD_MODEL  = 382;
+        ALGO_CARTOON3_FORWARD_MODEL  = 383;
+        ALGO_CARTOON3_JSON_FORMAT = 384;
+        ALGO_CARTOON3_JSON_CONTENT = 385;  
+        ALGO_CARTOON3_OPFLOW_INIT  = 386;
+        ALGO_CARTOON3_OPFLOW_PREDICT  = 387;
+        ALGO_CARTOON3_NOT_SUPPORT  = 388;
+        ALGO_CARTOON3_OTHERS  = 389;
+        ALGO_CARTOON3_NO_FACE  = 390;
+        ALGO_FS_TRT_ENCODERINIT_ERROR = 411;
+        ALGO_FS_TRT_DECODERINIT_ERROR = 412;
+        ALGO_FS_TRT_OTHERS = 413;
+
+        ALGO_TEXT_TO_IMAGE2_ARGS_ERROR = 421;
+        ALGO_TEXT_TO_IMAGE2_PROCESS_ERROR = 422;
+        ALGO_TEXT_TO_IMAGE2_RESPONSE_ERROR = 423;
+        ALGO_TEXT_TO_IMAGE2_SR_ERROR = 424;
+
+        ALGO_IMAGE_SR_FACTOR_TOO_BIGGER_ERROR = 430;
+        ALGO_IMAGE_SR_OPFLOW_PREDICT_ERROR = 431;
+        ALGO_IMAGE_SR_IMAGE_FORMAT_ERROR = 432;
+        ALGO_IMAGE_SR_IMAGE_TOO_LARGE_ERROR = 433;
+
+        ALGO_VIDEO_DIGITAL_DOWNLOAD_IMAGE_ERROR = 451;
+        ALGO_VIDEO_DIGITAL_MISS_AUDIO_DATA_ERROR = 452;
+
+        ALGO_IMAGE_SOD_OPFLOW_PREDICT_ERROR = 461;
+        ALGO_IMAGE_SOD_IMAGE_FORMAT_ERROR = 462;
+
+        // 提取视频 mask
+        ALGO_EXTRACT_MASK_SCRIPT_ERROR = 463;
+        ///////////// 引擎相关错误码
+        // 初始化失败
+        ALGO_ENGINE_INIT_ERROR = 464;
+        // 引擎处理失败
+        ALGO_ENGINE_PROCESS_ERROR = 465;
+        // 引擎释放资源失败
+        ALGO_ENGINE_UNINIT_ERROR = 466;
+        // 非法请求
+        ALGO_ENGINE_INVALID_REQUEST = 467;
+        // 素材文件缺失
+        ALGO_ENGINE_TEMPLATE_URL_MISSED = 468;
+        // 资源文件缺失
+        ALGO_ENGINE_RESOURCE_URL_MISSED = 469;
+        // 工程文件路径缺失
+        ALGO_ENGINE_PRJ_URL_MISSED = 470;
+        // 获取缩略图错误
+        ALGO_ENGINE_GET_THUMBNAIL_FAILED = 471;
+        // 导出资源包缺失
+        ALGO_ENGINE_EXPORT_RES_MISSED = 472;
+        ///////////// 引擎相关错误码
+
+        ALGO_INVALID_IMAGE_FORMAT_ERROR = 998;
+        ALGO_NO_FACE_ERROR = 999;
+        ALGO_CODE_UNKNOW = 1000;	// 其它未知错误，对应的十六进制码放到msg中
+    }
+
+    AlgoCode code = 1;
+    uint64 algo_code = 2; // 0x00 十六进制 存储到db
+    string msg = 3;
+    string log = 4;
+}
+
+message AlgoPictureRequestArgs{
+    bool bEnableOutputPic = 1;
+    int32 width = 3;
+    int32 height = 4;
+    int32 level = 5;
+    int32 key_frame = 12;
+}
+
+message ImageFaceDetInfo {
+    int32 id = 1;              // face ids
+    repeated int32 rect = 2;   // face bounding boxes, order is [x0, y0, x1, y1]
+    repeated float point = 3;  // 101 facial landmarks, order is [x0, y0, x1, y1, ..., x100, y100]
+    repeated float angle = 4;  // face euler angles, store order is [roll, pitch, yaw]
+}

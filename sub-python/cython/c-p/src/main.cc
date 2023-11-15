@@ -5,8 +5,9 @@
 #include <vector>
 #include <sstream>
 
-#include "gencc/py_algo_spec.pb.h"
-#include "gencc/audio_whisper.pb.h"
+#include "cc/algo.pb.h"
+#include "cc/py_algo.pb.h"
+#include "cc/audio_whisper.pb.h"
 
 void debug_py_obj(PyObject *obj, const char *who) {
   if (obj != nullptr) {
@@ -125,7 +126,7 @@ void test_algo_obj(PyObject *pm) {
   PyObject *func = PyObject_GetAttrString(algo, "init");
   printf("======> %s() pm: %p, init func: %p\n", __func__, pm, func);
   if (PyCallable_Check(func)) {
-    py_algo_specpb::PyAlgoRequest req = py_algo_specpb::PyAlgoRequest();
+    auto req = py_algopb::PyAlgoRequest();
     req.set_algo_name("prj-parse");
     auto whisper = audio_whisperpb::AudioWhisperRequest();
     whisper.set_language("en");
@@ -134,7 +135,7 @@ void test_algo_obj(PyObject *pm) {
     whisper.set_model_size("medium");
     req.set_request_buf(whisper.SerializeAsString());
 
-    auto urls = py_algo_specpb::AlgoDownloadUrlMap();
+    auto urls = algopb::AlgoDownloadUrlMap();
     urls.mutable_kvs()->operator[]("audio_url").set_url("https://www.example.com/a.index");
     urls.mutable_kvs()->operator[]("audio_url").set_is_unzip(true);
     urls.mutable_kvs()->operator[]("audio_url").set_is_cache(true);
@@ -159,8 +160,8 @@ void test_algo_obj(PyObject *pm) {
       return;
     }
     debug_py_obj(ret, __func__);
-    auto resp = py_algo_specpb::PyAlgoResponse();
-    resp.ParseFromString(PyBytes_AsString(ret));
+    auto resp = py_algopb::PyAlgoResponse();
+    resp.ParseFromString(std::string(PyBytes_AsString(ret)));
     printf("%s() response: %s\n", __func__, resp.SerializeAsString().c_str());
   }
   // 调用 AlgoProc 实例方法 release
@@ -267,7 +268,7 @@ PyObject *wrapped_gen_path(PyObject *, PyObject *args, PyObject *kwargs) {
   char *suffix = nullptr;
   char *addition = nullptr;
   if (kwargs != nullptr) {
-    static char *kwlist[] = { "suffix", "additional", nullptr };
+    static char *kwlist[] = {(char *) "suffix", (char *) "additional", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ss", (char **) kwlist, &suffix, &addition)) {
       PyErr_SetString(PyExc_RuntimeError, "Failed to parse gen_path() kwargs");
       return nullptr;
@@ -353,7 +354,7 @@ void test_protobuf(PyObject * pm) {
   PyObject *func = PyObject_GetAttrString(pm, "parse_protobuf");
   printf("======> %s() pm: %p, func: %p, proto version: %d\n", __func__, pm, func, GOOGLE_PROTOBUF_VERSION);
   if (PyCallable_Check(func)) {
-    py_algo_specpb::AlgoDownloadUrl url = py_algo_specpb::AlgoDownloadUrl();
+    auto url = algopb::AlgoDownloadUrl();
     url.set_url("https://example.com/index.html");
     url.set_is_local_file(false);
     url.set_is_cache(true);

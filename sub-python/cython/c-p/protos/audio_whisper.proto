@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-option go_package = "gitlab.quvideo.com/algo/grpc.git/audio_whisperpb";
-
 package audio_whisperpb;
 
-//import "algox.proto";
+import "algox.proto";
+
+// gen python
 
 // 操作类型
 enum OpType {
@@ -12,6 +12,16 @@ enum OpType {
   Whisper = 0;
   // 语种检测
   LanguageDetect = 1;
+  // 语句分割
+  StatementSegment = 2;
+}
+
+// 分割结果
+message SplitSpec {
+  // 文本
+  string text = 1;
+  // 分割后的路径
+  string sub_path = 2;
 }
 
 // 请求
@@ -26,16 +36,22 @@ message AudioWhisperRequest {
   string prompt = 4;
   // 音频语言
   string language = 5;
+  // 音频分割时，最短语句长度
+  uint32 min_split_size = 6;
 }
 
 // 响应
 message AudioWhisperResponse {
   // 响应状态
-//  algoxpb.AlgoStatus status = 1;
+  algoxpb.AlgoStatus status = 1;
   // 输出文本处理结果 url
   string out_json_url = 2;
   // 输入音频时长
   int64 audio_duration = 3;
   // 语种
   string language = 4;
+  // 操作类型
+  OpType op_type = 5;
+  // 语句分割结果
+  repeated SplitSpec split_results = 6;
 }

@@ -1,6 +1,9 @@
-
-algo_args_pb2.py
-
-gen*
 cmake-build-debug
 sample
+
+testdata
+
+*.pb.h
+*.pb.cc
+*.pyi
+*_pb2.py
