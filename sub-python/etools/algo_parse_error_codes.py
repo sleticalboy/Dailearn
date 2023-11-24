@@ -121,7 +121,7 @@ def update_project(path: str):
     else:
         print('start cloning project: XYAlgLibs...')
         cmd = f"""
-        git clone http://bin:{access_token}@gitlab.quvideo.com/Engine/XYAlgLibs.git --depth=1 {path};
+        git clone http://bin:{access_token}@gitlab.quvideo.com/Engine/XYAlgLibs.git --depth=1 {path}; cd {path};
         git config url."http://oauth2:{access_token}@gitlab.quvideo.com".insteadof "http://gitlab.quvideo.com"
         """
         res = os.system(cmd)
@@ -131,11 +131,11 @@ def update_project(path: str):
 def parse_errors_once():
     path = f'{work_dir}/XYAlgLibs'
     update_project(path)
-    balck_list = ['ios', 'mac', 'ubuntu', 'centos', 'windows']
+    black_list = ['ios', 'mac', 'ubuntu', 'centos', 'windows']
 
     def header_filter(p: str) -> bool:
         p = p.lower()
-        for bl in balck_list:
+        for bl in black_list:
             if bl in p:
                 return False
         return True
@@ -170,10 +170,11 @@ def run_main_flow():
     # 每 6~12 小时更新一次，或者强制更新
     # schedule.every(3).hours.do(parse_errors_once)
     # 测试
-    schedule.every(2).seconds.do(test_job)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    # schedule.every(2).seconds.do(test_job)
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)
+    parse_errors_once()
 
 
 def run_main_test():

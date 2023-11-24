@@ -1,6 +1,6 @@
 from typing import List
 
-from genpy.py_algo_spec_pb2 import AlgoDownloadUrl
+from algo_pb2 import AlgoDownloadUrl
 
 
 class User(object):

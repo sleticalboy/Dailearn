@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh">
+<title>算法工程生成工具</title>
+<head>
+    <script src="jquery-3.6.0.js" type="text/javascript"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>算法工程生成工具</title>
+</head>
+
+<body>
+
+<h1>算法工程生成工具</h1>
+
+<form id="gen_form" method="post" onsubmit="return gen_prj()">
+    <label for="algo_type">算法类型：</label>
+    <select id="algo_type">
+        <option value="cpp">C++</option>
+        <option value="python">Python</option>
+    </select>
+    <br>
+    <label for="algo_name">算法名：</label>
+    <input id="algo_name" type="text">
+    <br>
+    <input type="submit" value="提交" id="gen_prj_btn">
+</form>
+
+<br>
+<div id="gen_result"><div>
+
+<script>
+    function gen_prj() {
+        let algoType = $("#algo_type").val();
+        let algoName = $("#algo_name").val();
+        console.info("selected algo type is: " + algoType + ", algo name: " + algoName)
+        // 发送 POST 请求
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/generate",
+            data: "algo_type=" + algoType + "&algo_name=" + algoName,
+            success: function (response) {
+                on_success(response)
+            },
+            error: function (error) {
+                on_failed(error)
+            },
+            processData: false,
+            contentType: "multipart/form-data",
+        });
+        return false;
+    }
+
+    function on_success(resp) {
+        console.log("on_success: " + JSON.stringify(resp));
+        let genResult = $("#gen_result")
+        genResult.html("结果：<a href='" + resp.url + "'>" + resp.url + "</a>")
+    }
+
+    function on_failed(resp) {
+        console.error("on_failed: " + JSON.stringify(resp));
+        let genResult = $("#gen_result")
+        genResult.html("错误：<font color='red'>" + resp.responseText + "</font>")
+    }
+</script>
+</body>
+
+</html>

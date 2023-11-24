@@ -1,6 +1,9 @@
+import ctypes
 import os
 
 from algo_base import AlgoProcBase
+
+lib_path = '/home/binlee/code/Golearn/go-so/libfib.so'
 
 
 class AlgoProcImpl(AlgoProcBase):
@@ -11,9 +14,14 @@ class AlgoProcImpl(AlgoProcBase):
     4、c 解析处理结果并转成结构体返回给 go；
     """
 
+    def __init__(self):
+        super().__init__()
+        self.lib = None
+
     def init(self, req_buf: bytes):
         super().init(req_buf)
-        from genpy.py_algo_spec_pb2 import PyAlgoRequest, PyAlgoResponse, AlgoDownloadUrlMap, AlgoUploadUrlMap
+        from py_algo_pb2 import PyAlgoRequest, PyAlgoResponse
+        from algo_pb2 import AlgoDownloadUrlMap, AlgoUploadUrlMap
         self.request = PyAlgoRequest()
         self.download_urls = AlgoDownloadUrlMap()
         self.request.ParseFromString(req_buf)
@@ -24,10 +32,12 @@ class AlgoProcImpl(AlgoProcBase):
         self.response = PyAlgoResponse()
         self.upload_urls = AlgoUploadUrlMap()
 
+        self.lib = ctypes.cdll.LoadLibrary(lib_path)
+
     def process(self) -> bytes:
         print(f"[{self.name}]#process()")
 
-        from genpy.audio_whisper_pb2 import AudioWhisperRequest, AudioWhisperResponse
+        from audio_whisper_pb2 import AudioWhisperRequest, AudioWhisperResponse
         awr = AudioWhisperRequest.FromString(self.request.request_buf)
         print(f'real request: {awr}')
         print(f'real files: {self.download_urls}')
@@ -36,6 +46,8 @@ class AlgoProcImpl(AlgoProcBase):
         awr_.language = 'en'
         awr_.audio_duration = 3000
         awr_.out_json_url = '/xxx/s/d.json'
+
+        self.lib.HelloGo(b"Python 3")
 
         self.upload_urls.kvs.setdefault(awr_.out_json_url)
 
@@ -49,7 +61,8 @@ class AlgoProcImpl(AlgoProcBase):
 
 if __name__ == '__main__':
     test_data = os.path.abspath(os.getcwd() + "/../testdata")
-    from genpy.py_algo_spec_pb2 import PyAlgoRequest, PyAlgoResponse, AlgoDownloadUrlMap
+    from py_algo_pb2 import PyAlgoRequest, PyAlgoResponse
+    from algo_pb2 import AlgoDownloadUrlMap
 
     _proc = AlgoProcImpl('prj-export')
     _req = PyAlgoRequest()

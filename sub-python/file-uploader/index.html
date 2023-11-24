@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh">
+<title>文件上传工具</title>
+<head>
+    <script src="jquery-3.6.0.js" type="text/javascript"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>文件上传工具</title>
+</head>
+
+<body>
+<form id="uploadForm" enctype="multipart/form-data" method="post"
+      onsubmit="return submitFile()">
+    <div><input type="file" name="file" multiple></div>
+    <br>
+    <div><input type="submit" value="上传"></div>
+</form>
+<br>
+<div id="upload_result"></div>
+<script>
+    function submitFile() {
+        let files = $('#uploadForm')[0].file.files;
+        console.info("files: ", files)
+        for (let i = 0; i < files.length; i++) {
+            $.ajax({
+                url: "/api/v1/upload?file_name=" + encodeURIComponent(files[i].name),
+                type: "POST",
+                headers: {"Access-Control-Allow-Origin": "*"},
+                data: files[i],
+                success: function (data) {
+                    console.info("success", JSON.stringify(data));
+                    let uploadResult = $("#upload_result")
+                    uploadResult.html("上传成功")
+                },
+                error: function (data) {
+                    console.warn("fail", JSON.stringify(data));
+                    let uploadResult = $("#upload_result")
+                    uploadResult.html("上传失败")
+                },
+                processData: false,
+                contentType: "multipart/form-data",
+            });
+        }
+        return false;
+    }
+</script>
+</body>
+
+</html>

@@ -2,6 +2,7 @@
 __pycache__/
 a.json
 
+tmp
 out
 build
 *.so
