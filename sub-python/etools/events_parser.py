@@ -23,7 +23,7 @@ j = {
                 # "video_url": "http://static-qa.xiaoying.tv/make_video/avaclon/20231128/56f145d297c5d355-11360405-1701141762883969551.mp4"
             }
         },
-        # "export_res": "https://static-qa.xiaoying.tv/309-1/meta_human/20231128/1701141722_1512416206878220288.zip"
+        "export_res": "https://static-qa.xiaoying.tv/309-1/meta_human/20231128/1701141722_1512416206878220288.zip"
     }
 }
 
@@ -139,9 +139,6 @@ class JsonParser:
 if __name__ == '__main__':
     print(sys.argv)
     event_body = j['video_export_event']
-    p = os.path.join("/algo-server/whisper_pretrain", "medium.pt")
-    print(p)
-    exit(1)
 
 
     def _key_mapper(key: str) -> type:
