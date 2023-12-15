@@ -1,20 +1,25 @@
 import logging
 import os
+import threading
 import time
 import traceback
+
+from concurrent import futures
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s',
                     filename='a.log', filemode='w')
 
 logging.debug('starting....')
 
-logging.disable(logging.WARNING)
+logging.disable(logging.DEBUG)
 
 
-def main():
-    cwd = os.getcwd()
-    logging.debug(cwd)
-    for root, dirs, files in os.walk(os.path.dirname(cwd)):
+thread_executor = futures.ThreadPoolExecutor(max_workers=5, thread_name_prefix="Test-")
+
+
+def walk_dir(path):
+    logging.debug(path)
+    for root, dirs, files in os.walk(path):
         logging.debug(f'current dir: {root}')
         for sd in dirs:
             logging.info(f'sub dir {sd} in {root}')
@@ -22,6 +27,20 @@ def main():
         for f in files:
             logging.warning(f'file {f} in {root}')
             pass
+    pass
+
+
+def main():
+    cwd = os.getcwd()
+    # args 是传给 walk_dir 的参数列表
+    t = threading.Thread(target=walk_dir, args=[os.path.dirname(cwd)])
+    t.start()
+    t.join()
+
+    logging.debug("another walk dir")
+    thread_executor.submit(walk_dir, os.path.dirname(os.path.dirname(cwd)))
+    thread_executor.shutdown()
+
     time.sleep(1)
     try:
         raise Exception(f'main() run')
@@ -40,6 +59,7 @@ def main():
             logging.error(f'num is {i}')
         elif i % 6 == 0:
             logging.critical(f'num is {i}')
+
     pass
 
 
