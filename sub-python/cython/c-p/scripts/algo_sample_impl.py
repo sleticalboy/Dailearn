@@ -34,7 +34,7 @@ class AlgoProcImpl(AlgoProcBase):
 
         self.lib = ctypes.cdll.LoadLibrary(lib_path)
 
-    def process(self) -> bytes:
+    def process(self) -> (bytes, str):
         print(f"[{self.name}]#process()")
 
         from audio_whisper_pb2 import AudioWhisperRequest, AudioWhisperResponse
@@ -53,7 +53,7 @@ class AlgoProcImpl(AlgoProcBase):
 
         self.response.response_buf = awr_.SerializeToString()
         self.response.upload_urls_buf = self.upload_urls.SerializeToString()
-        return self.response.SerializeToString()
+        return self.response.SerializeToString(), 'proto'
 
     def release(self):
         print(f"[{self.name}]#release()")

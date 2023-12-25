@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <google/protobuf/util/json_util.h>
 
 #include "cc/algo.pb.h"
 #include "cc/py_algo.pb.h"
@@ -160,9 +161,20 @@ void test_algo_obj(PyObject *pm) {
       return;
     }
     debug_py_obj(ret, __func__);
+    char *fmt = nullptr;
+    char *buf = PyBytes_AsString(PyTuple_GetItem(ret, 0));
+    PyArg_Parse(PyTuple_GetItem(ret, 1), "s", &fmt);
+    printf("%s() buf: %s, fmt: %s\n", __func__, buf, fmt);
+
     auto resp = py_algopb::PyAlgoResponse();
-    resp.ParseFromString(PyBytes_AsString(ret));
-    printf("%s() response: %s\n", __func__, resp.SerializeAsString().c_str());
+    if (strcmp(fmt, "proto") == 0) {
+      resp.ParseFromString(buf);
+    } else {
+      if (!google::protobuf::util::JsonStringToMessage(buf, &resp).ok()) {
+        // failed
+      }
+    }
+    printf("%s() response: %s", __func__, resp.SerializeAsString().c_str());
   }
   // 调用 AlgoProc 实例方法 release
   func = PyObject_GetAttrString(algo, "release");
@@ -396,11 +408,11 @@ int run_main_test() {
   test_hello_world();
 
   // 导入当前目录
-  PyRun_SimpleString("import sys\nsys.path.append('./src')");
+  PyRun_SimpleString("import sys\nsys.path.append('./scripts')");
   PyObject *pm = nullptr;
 
   // 找到并导入当前算法脚本文件，命名规则要符合 algo_xxx_impl.py
-  auto algo_module = find_algo_impl_module("src");
+  auto algo_module = find_algo_impl_module("scripts");
   if (algo_module.empty()) {
     perror("cannot find an algo impl module.\n");
     return -1;

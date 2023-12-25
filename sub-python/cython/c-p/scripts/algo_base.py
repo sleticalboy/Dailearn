@@ -53,7 +53,7 @@ class AlgoProcBase(object):
         raise Exception("callback is not set, could not generate path")
 
     @abstractmethod
-    def process(self) -> bytes:
+    def process(self) -> (bytes, str):
         """
         算法处理
         :return: 处理结果

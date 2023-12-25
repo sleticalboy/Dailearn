@@ -23,6 +23,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 # 编译二进制程序
 add_executable(sample
         src/main.cc
+        src/lib_main.cc
+        src/cc/algo.pb.cc
+        src/cc/algox.pb.cc
         src/cc/py_algo.pb.cc
         src/cc/audio_whisper.pb.cc
         )
