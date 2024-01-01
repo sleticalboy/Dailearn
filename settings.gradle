@@ -26,8 +26,8 @@ include ':lib_dl:host'
 include ':lib_dl:aosp-stub'
 
 // 下载抖音、快手、B 站视频
-// include ':lib_free_videos'
-// include ':lib_sqlite_orm'
+include ':lib_free_videos'
+include ':lib_sqlite_orm'
 
 // 手机端文件服务器
 // include ':lib_file_server'

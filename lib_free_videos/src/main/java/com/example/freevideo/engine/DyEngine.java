@@ -50,8 +50,13 @@ public final class DyEngine extends Engine {
     // 解析 url
     int start = text.indexOf("http");
     if (start < 0) return null;
-    final int end = text.lastIndexOf('/');
-    return end < 0 ? text.substring(start) : text.substring(start, end + 1);
+    int end = text.lastIndexOf('/');
+    text = end < 0 ? text.substring(start) : text.substring(start, end + 1);
+    end = text.indexOf(' ');
+    if (end > 0) {
+      text = text.substring(0, end);
+    }
+    return text;
   }
 
   protected String getVideoInfo_() throws IOException, JSONException {
@@ -105,6 +110,8 @@ public final class DyEngine extends Engine {
     conn.addRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
     conn.addRequestProperty("User-Agent", USER_AGENT);
     conn.setDoOutput(true);
+    conn.setReadTimeout(3000);
+    conn.setConnectTimeout(3000);
     conn.getOutputStream().write(("shareUrl=" + shortUrl).getBytes());
     final int code = conn.getResponseCode();
     Log.d(TAG, "getVideoInfo() http code: " + code + ", msg: [" + conn.getResponseMessage()
