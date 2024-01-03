@@ -63,6 +63,28 @@ def main():
     pass
 
 
+def trace_(func):
+    def wrapper(*args, **kwargs):
+        ret = func(*args, **kwargs)
+        logging.debug(f'{func.__name__}() called, r: {ret}')
+        print(f'{func.__name__}() called, r: {ret}')
+        return ret
+    return wrapper
+
+
+def main_2():
+    @trace_
+    def foo():
+        print('hello, foo!')
+        return dict
+
+    print(foo)
+    trace_(foo)()
+    foo()
+    pass
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    main_2()
     logging.debug('ending...')
